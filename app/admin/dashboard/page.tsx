@@ -12,6 +12,18 @@ export default function AdminDashboard() {
   const [activeMonth, setActiveMonth] = useState('May');
   const [hoveredRing, setHoveredRing] = useState<string | null>(null);
 
+  const [stats, setStats] = useState({
+    totalProjects: 0,
+    completedProjects: 0,
+    inDesignProjects: 0,
+    underReviewProjects: 0,
+    revenueTurnover: 0,
+    approvedPercent: 0,
+    inDesignPercent: 0,
+    underReviewPercent: 0,
+    approvedCount: 0
+  });
+
   useEffect(() => {
     async function fetchDashboardData() {
       try {
@@ -30,12 +42,42 @@ export default function AdminDashboard() {
         const { data: projects } = await supabase
           .from('projects')
           .select('id, project_name, client_name, status, created_at, area_sq_ft')
-          .order('created_at', { ascending: false })
-          .limit(5);
+          .order('created_at', { ascending: false });
 
         if (projects && projects.length > 0) {
-          setRecentProjects(projects);
+          setRecentProjects(projects.slice(0, 5));
+
+          const { data: payments } = await supabase
+            .from('payments')
+            .select('amount, status');
+
+          const total = projects.length;
+          const completed = projects.filter(p => p.status === 'Closed' || p.status === 'Approved').length;
+          const inDesign = projects.filter(p => p.status === 'In Design').length;
+          const underReview = projects.filter(p => p.status === 'Under Review').length;
+          const approvedCount = projects.filter(p => p.status === 'Approved').length;
+
+          const approvedPct = total > 0 ? Math.round((approvedCount / total) * 100) : 0;
+          const inDesignPct = total > 0 ? Math.round((inDesign / total) * 100) : 0;
+          const underReviewPct = total > 0 ? Math.round((underReview / total) * 100) : 0;
+
+          const revenue = payments
+            ? payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + Number(p.amount), 0)
+            : 0;
+
+          setStats({
+            totalProjects: total,
+            completedProjects: completed,
+            inDesignProjects: inDesign,
+            underReviewProjects: underReview,
+            revenueTurnover: revenue,
+            approvedPercent: approvedPct,
+            inDesignPercent: inDesignPct,
+            underReviewPercent: underReviewPct,
+            approvedCount
+          });
         } else {
+          // Fallback mock stats if no database data is populated yet
           setRecentProjects([
             { id: '1', project_name: 'Lotus Penthouse', client_name: 'Vikram Shah', status: 'In Design', area_sq_ft: 1800 },
             { id: '2', project_name: 'Vertex IT Hub', client_name: 'Vertex Corp', status: 'Under Review', area_sq_ft: 12500 },
@@ -43,6 +85,17 @@ export default function AdminDashboard() {
             { id: '4', project_name: 'Orion Workspace', client_name: 'Orion Enterprises', status: 'Approved', area_sq_ft: 8500 },
             { id: '5', project_name: 'Azure Residences', client_name: 'BlueWave Developments', status: 'In Design', area_sq_ft: 4500 }
           ]);
+          setStats({
+            totalProjects: 247,
+            completedProjects: 189,
+            inDesignProjects: 38,
+            underReviewProjects: 27,
+            revenueTurnover: 1860000,
+            approvedPercent: 45,
+            inDesignPercent: 15,
+            underReviewPercent: 11,
+            approvedCount: 111
+          });
         }
       } catch (err) {
         console.error(err);
@@ -90,7 +143,7 @@ export default function AdminDashboard() {
         <div className="space-y-1">
           <h2 className="text-2xl font-bold tracking-tight">Good morning, {adminName}</h2>
           <p className="text-sm text-neutral-400">
-            Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}. You have 3 critical deadlines remaining.
+            Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}. You have {stats.underReviewProjects} critical deadlines remaining.
           </p>
         </div>
         <div className="mt-4 md:mt-0 flex items-center space-x-3">
@@ -119,10 +172,10 @@ export default function AdminDashboard() {
           <div className="space-y-1">
             <span className="text-sm font-bold text-neutral-400 block">Revenue Turnover</span>
             <div className="flex items-baseline space-x-1.5">
-              <span className="text-3xl font-black text-neutral-900 font-sans">₹18.6L</span>
+              <span className="text-3xl font-black text-neutral-900 font-sans">₹{(stats.revenueTurnover / 100000).toFixed(1)}L</span>
               <span className="text-sm font-bold text-emerald-600 font-sans">+14%</span>
             </div>
-            <span className="text-sm text-neutral-400 block">vs. ₹16.2L last month</span>
+            <span className="text-sm text-neutral-400 block">Settled payouts volume</span>
           </div>
           <div className="w-12 h-12 bg-blue-50 rounded-md flex items-center justify-center text-blue-600 border border-blue-100">
             <i className="bx bx-trending-up text-xl"></i>
@@ -134,10 +187,10 @@ export default function AdminDashboard() {
           <div className="space-y-1">
             <span className="text-sm font-bold text-neutral-400 block">Design Pipeline</span>
             <div className="flex items-baseline space-x-1.5">
-              <span className="text-3xl font-black text-neutral-900 font-sans">38</span>
+              <span className="text-3xl font-black text-neutral-900 font-sans">{stats.inDesignProjects}</span>
               <span className="text-sm font-bold text-cyan-600 font-sans">Active</span>
             </div>
-            <span className="text-sm text-neutral-400 block">8 assigned this week</span>
+            <span className="text-sm text-neutral-400 block">Workspaces in development</span>
           </div>
           <div className="w-12 h-12 bg-cyan-50 rounded-md flex items-center justify-center text-cyan-600 border border-cyan-100">
             <i className="bx bx-pencil text-xl"></i>
@@ -149,10 +202,10 @@ export default function AdminDashboard() {
           <div className="space-y-1">
             <span className="text-sm font-bold text-neutral-400 block">Total Logged</span>
             <div className="flex items-baseline space-x-1.5">
-              <span className="text-3xl font-black text-neutral-900 font-sans">247</span>
-              <span className="text-sm font-bold text-indigo-600 font-sans">+18 new</span>
+              <span className="text-3xl font-black text-neutral-900 font-sans">{stats.totalProjects}</span>
+              <span className="text-sm font-bold text-indigo-600 font-sans">Projects</span>
             </div>
-            <span className="text-sm text-neutral-400 block">Across 12 designers</span>
+            <span className="text-sm text-neutral-400 block">Registered index</span>
           </div>
           <div className="w-12 h-12 bg-indigo-50 rounded-md flex items-center justify-center text-indigo-600 border border-indigo-100">
             <i className="bx bx-folder-open text-xl"></i>
@@ -164,10 +217,10 @@ export default function AdminDashboard() {
           <div className="space-y-1">
             <span className="text-sm font-bold text-neutral-400 block">Completed Jobs</span>
             <div className="flex items-baseline space-x-1.5">
-              <span className="text-3xl font-black text-neutral-900 font-sans">189</span>
-              <span className="text-sm font-bold text-emerald-600 font-sans">98% rate</span>
+              <span className="text-3xl font-black text-neutral-900 font-sans">{stats.completedProjects}</span>
+              <span className="text-sm font-bold text-emerald-600 font-sans">Delivered</span>
             </div>
-            <span className="text-sm text-neutral-400 block">Satisfactory delivery rating</span>
+            <span className="text-sm text-neutral-400 block">Approved & closed status</span>
           </div>
           <div className="w-12 h-12 bg-emerald-50 rounded-md flex items-center justify-center text-emerald-600 border border-emerald-100">
             <i className="bx bx-badge-check text-xl"></i>
@@ -303,19 +356,23 @@ export default function AdminDashboard() {
                 }}></span>
                 <span>
                   {hoveredRing === 'approved' ? 'Approved' : hoveredRing === 'indesign' ? 'In Design' : 'Under Review'}:{' '}
-                  {hoveredRing === 'approved' ? '111/247 (45%)' : hoveredRing === 'indesign' ? '37/247 (15%)' : '27/247 (11%)'}
+                  {hoveredRing === 'approved' 
+                    ? `${stats.approvedCount}/${stats.totalProjects} (${stats.approvedPercent}%)` 
+                    : hoveredRing === 'indesign' 
+                    ? `${stats.inDesignProjects}/${stats.totalProjects} (${stats.inDesignPercent}%)` 
+                    : `${stats.underReviewProjects}/${stats.totalProjects} (${stats.underReviewPercent}%)`}
                 </span>
               </div>
             )}
 
             <div className="relative w-56 h-56 flex items-center justify-center">
 
-              {/* Outermost Ring: Approved (45%) */}
+              {/* Outermost Ring: Approved */}
               <div
                 className={`absolute w-56 h-56 rounded-full cursor-pointer transition-all duration-300 ${hoveredRing && hoveredRing !== 'approved' ? 'opacity-25 scale-95' : 'opacity-100 scale-100 shadow-[0_2px_8px_rgba(16,185,129,0.15)]'
                   }`}
                 style={{
-                  background: 'conic-gradient(#10b981 0% 45%, #f1f5f9 45% 100%)'
+                  background: `conic-gradient(#10b981 0% ${stats.approvedPercent}%, #f1f5f9 ${stats.approvedPercent}% 100%)`
                 }}
                 onMouseEnter={() => setHoveredRing('approved')}
                 onMouseLeave={() => setHoveredRing(null)}
@@ -324,12 +381,12 @@ export default function AdminDashboard() {
               {/* Outer Mask */}
               <div className="absolute w-[184px] h-[184px] bg-white rounded-full pointer-events-none"></div>
 
-              {/* Middle Ring: In Design (15%) */}
+              {/* Middle Ring: In Design */}
               <div
                 className={`absolute w-[152px] h-[152px] rounded-full cursor-pointer transition-all duration-300 ${hoveredRing && hoveredRing !== 'indesign' ? 'opacity-25 scale-95' : 'opacity-100 scale-100 shadow-[0_2px_8px_rgba(6,182,212,0.15)]'
                   }`}
                 style={{
-                  background: 'conic-gradient(#06b6d4 0% 15%, #f1f5f9 15% 100%)'
+                  background: `conic-gradient(#06b6d4 0% ${stats.inDesignPercent}%, #f1f5f9 ${stats.inDesignPercent}% 100%)`
                 }}
                 onMouseEnter={() => setHoveredRing('indesign')}
                 onMouseLeave={() => setHoveredRing(null)}
@@ -338,12 +395,12 @@ export default function AdminDashboard() {
               {/* Middle Mask */}
               <div className="absolute w-[120px] h-[120px] bg-white rounded-full pointer-events-none"></div>
 
-              {/* Innermost Ring: Under Review (11%) */}
+              {/* Innermost Ring: Under Review */}
               <div
                 className={`absolute w-[88px] h-[88px] rounded-full cursor-pointer transition-all duration-300 ${hoveredRing && hoveredRing !== 'underreview' ? 'opacity-25 scale-95' : 'opacity-100 scale-100 shadow-[0_2px_8px_rgba(59,130,246,0.15)]'
                   }`}
                 style={{
-                  background: 'conic-gradient(#3b82f6 0% 11%, #f1f5f9 11% 100%)'
+                  background: `conic-gradient(#3b82f6 0% ${stats.underReviewPercent}%, #f1f5f9 ${stats.underReviewPercent}% 100%)`
                 }}
                 onMouseEnter={() => setHoveredRing('underreview')}
                 onMouseLeave={() => setHoveredRing(null)}
@@ -351,7 +408,7 @@ export default function AdminDashboard() {
 
               {/* Center Mask & Core Value Display */}
               <div className="absolute w-[56px] h-[56px] bg-white rounded-full flex items-center justify-center shadow-sm pointer-events-none">
-                <span className="text-[11px] font-black text-neutral-900 font-sans">247</span>
+                <span className="text-[11px] font-black text-neutral-900 font-sans">{stats.totalProjects}</span>
               </div>
             </div>
           </div>
@@ -369,8 +426,8 @@ export default function AdminDashboard() {
                 <span className="text-neutral-800 font-medium">Approved</span>
               </div>
               <div className="flex items-center space-x-8 font-sans">
-                <span className="text-neutral-400">111/247</span>
-                <span className="text-neutral-905 font-bold w-10 text-right">45%</span>
+                <span className="text-neutral-400">{stats.approvedCount}/{stats.totalProjects}</span>
+                <span className="text-neutral-905 font-bold w-10 text-right">{stats.approvedPercent}%</span>
               </div>
             </div>
             <div
@@ -384,8 +441,8 @@ export default function AdminDashboard() {
                 <span className="text-neutral-800 font-medium">In Design</span>
               </div>
               <div className="flex items-center space-x-8 font-sans">
-                <span className="text-neutral-400">37/247</span>
-                <span className="text-neutral-905 font-bold w-10 text-right">15%</span>
+                <span className="text-neutral-400">{stats.inDesignProjects}/{stats.totalProjects}</span>
+                <span className="text-neutral-905 font-bold w-10 text-right">{stats.inDesignPercent}%</span>
               </div>
             </div>
             <div
@@ -399,8 +456,8 @@ export default function AdminDashboard() {
                 <span className="text-neutral-800 font-medium">Under Review</span>
               </div>
               <div className="flex items-center space-x-8 font-sans">
-                <span className="text-neutral-400">27/247</span>
-                <span className="text-neutral-905 font-bold w-10 text-right">11%</span>
+                <span className="text-neutral-400">{stats.underReviewProjects}/{stats.totalProjects}</span>
+                <span className="text-neutral-905 font-bold w-10 text-right">{stats.underReviewPercent}%</span>
               </div>
             </div>
           </div>
@@ -428,24 +485,24 @@ export default function AdminDashboard() {
               </Link>
             </div>
 
-            <div className="overflow-x-auto mt-2">
+            <div className="overflow-hidden mt-3 border border-neutral-100 rounded-md">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-neutral-100 text-neutral-400 font-bold tracking-wider">
-                    <th className="pb-3">Project Title</th>
-                    <th className="pb-3">Client Representative</th>
-                    <th className="pb-3">Total Area</th>
-                    <th className="pb-3">Status Pill</th>
-                    <th className="pb-3 text-right">Action</th>
+                  <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-bold text-xs uppercase tracking-wider">
+                    <th className="py-3 px-4 first:pl-5 last:pr-5">Project Title</th>
+                    <th className="py-3 px-4 first:pl-5 last:pr-5">Client Representative</th>
+                    <th className="py-3 px-4 first:pl-5 last:pr-5">Total Area</th>
+                    <th className="py-3 px-4 first:pl-5 last:pr-5">Status Pill</th>
+                    <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-50 text-neutral-700 font-semibold">
                   {recentProjects.map((p) => (
                     <tr key={p.id} className="hover:bg-neutral-50/40 transition-colors">
-                      <td className="py-3.5 font-bold text-neutral-900">{p.project_name}</td>
-                      <td className="py-3.5 text-neutral-500 font-medium">{p.client_name}</td>
-                      <td className="py-3.5 text-neutral-400 font-sans">{Number(p.area_sq_ft).toLocaleString()} sq ft</td>
-                      <td className="py-3.5">
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-bold text-neutral-900">{p.project_name}</td>
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{p.client_name}</td>
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-400 font-sans">{Number(p.area_sq_ft).toLocaleString()} sq ft</td>
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                         <span className={`px-2 py-0.5 rounded text-sm font-bold border ${p.status === 'Approved' || p.status === 'Closed'
                           ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
                           : p.status === 'In Design'
@@ -457,7 +514,7 @@ export default function AdminDashboard() {
                           {p.status}
                         </span>
                       </td>
-                      <td className="py-3.5 text-right">
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
                         <Link
                           href={`/admin/projects/${p.id}`}
                           className="text-sm font-bold text-neutral-800 hover:text-amber-600 transition-colors"
