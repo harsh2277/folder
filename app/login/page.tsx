@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 
-export default function ArchitectLoginPage() {
+export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
 
@@ -42,19 +42,21 @@ export default function ArchitectLoginPage() {
         .single();
 
       if (profileError || !profile) {
-        // Sign out if role cannot be verified
         await supabase.auth.signOut();
         throw new Error('Unable to verify user role.');
       }
 
-      if (profile.role !== 'architect') {
-        // Sign out if not architect
+      // 3. Redirect depending on role
+      if (profile.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (profile.role === 'architect') {
+        router.push('/architect/dashboard');
+      } else if (profile.role === 'designer') {
+        router.push('/designer/dashboard');
+      } else {
         await supabase.auth.signOut();
-        throw new Error('Access Denied: You are not authorized as an Architect.');
+        throw new Error('Access Denied: You are not authorized to access this portal.');
       }
-
-      // 3. Redirect to Architect Dashboard
-      router.push('/architect/dashboard');
     } catch (err: any) {
       setErrorMsg(err.message || 'Something went wrong.');
     } finally {
@@ -64,14 +66,14 @@ export default function ArchitectLoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
-      {/* Light Container - 6px radius (rounded-md), no shadow, light theme */}
+      {/* Container */}
       <div className="w-full max-w-md p-8 bg-white border border-neutral-200 rounded-md">
         
         {/* Branding header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-3 bg-cyan-50 rounded-md mb-4 border border-cyan-200">
+          <div className="inline-flex items-center justify-center p-3 bg-amber-50 rounded-md mb-4 border border-amber-200">
             <svg
-              className="w-8 h-8 text-cyan-600"
+              className="w-8 h-8 text-amber-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -81,12 +83,37 @@ export default function ArchitectLoginPage() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
               />
             </svg>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Lighting Design Portal</h1>
-          <p className="text-sm text-neutral-500 mt-2">Architect & Designer Login</p>
+          <p className="text-sm text-neutral-500 mt-2">Sign in to your account</p>
+
+          {/* Quick Demo Login Auto-fill buttons */}
+          <div className="mt-4 pt-4 border-t border-neutral-100 flex flex-wrap gap-2 justify-center">
+            <button
+              type="button"
+              onClick={() => { setEmail('admin@gmail.com'); setPassword('admin123'); }}
+              className="px-2.5 py-1 text-xs font-bold text-neutral-700 bg-neutral-100 border border-neutral-200 rounded hover:bg-neutral-200 transition-all cursor-pointer"
+            >
+              🔑 Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEmail('design@gmail.com'); setPassword('design123'); }}
+              className="px-2.5 py-1 text-xs font-bold text-cyan-700 bg-cyan-50 border border-cyan-100 rounded hover:bg-cyan-100 transition-all cursor-pointer"
+            >
+              🔑 Architect
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEmail('design123@gmail.com'); setPassword('design123'); }}
+              className="px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded hover:bg-emerald-100 transition-all cursor-pointer"
+            >
+              🔑 Designer
+            </button>
+          </div>
         </div>
 
         {/* Error alert */}
@@ -124,8 +151,8 @@ export default function ArchitectLoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors"
-              placeholder="architect@studio.com"
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors"
+              placeholder="user@example.com"
             />
           </div>
 
@@ -144,7 +171,7 @@ export default function ArchitectLoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-4 pr-12 py-3 bg-neutral-50 border border-neutral-200 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors"
+                className="w-full pl-4 pr-12 py-3 bg-neutral-50 border border-neutral-200 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors"
                 placeholder="••••••••"
               />
               <button
@@ -169,7 +196,7 @@ export default function ArchitectLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 mt-4 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
+            className="w-full py-3 mt-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
           >
             {loading ? (
               <span className="flex items-center justify-center space-x-2">

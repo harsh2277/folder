@@ -12,20 +12,28 @@ interface PricingPlan {
   min_sq_ft: string;
 }
 
-export default function ArchitectProjectCreationWizard() {
+interface ArchitectProfile {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export default function AdminProjectCreationWizard() {
   const router = useRouter();
   const supabase = createClient();
 
   const [step, setStep] = useState(1);
   const [plans, setPlans] = useState<PricingPlan[]>([]);
+  const [architects, setArchitects] = useState<ArchitectProfile[]>([]);
   const [designers, setDesigners] = useState<any[]>([]);
-  const [assignedDesignerId, setAssignedDesignerId] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   // Form State
   const [selectedPlanId, setSelectedPlanId] = useState('');
+  const [assignedArchitectId, setAssignedArchitectId] = useState('');
+  const [assignedDesignerId, setAssignedDesignerId] = useState('');
   const [projectDetails, setProjectDetails] = useState({
     projectName: '',
     clientName: '',
@@ -52,42 +60,50 @@ export default function ArchitectProjectCreationWizard() {
   const [fileCategory, setFileCategory] = useState('layout');
 
   useEffect(() => {
-    async function loadPlans() {
+    async function loadData() {
       try {
-        const { data, error } = await supabase
+        // Fetch plans
+        const { data: plansData, error: plansError } = await supabase
           .from('pricing_plans')
           .select('*')
           .eq('is_active', true);
 
-        if (error) throw error;
-        setPlans(data || []);
-        if (data && data.length > 0) {
-          setSelectedPlanId(data[0].id);
+        if (plansError) throw plansError;
+        setPlans(plansData || []);
+        if (plansData && plansData.length > 0) {
+          setSelectedPlanId(plansData[0].id);
         }
 
+        // Fetch architects
+        const { data: archsData, error: archsError } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .eq('role', 'architect');
+
+        if (archsError) throw archsError;
+        setArchitects(archsData || []);
+
         // Fetch designers
-        const { data: designerProfiles } = await supabase
+        const { data: desData, error: desError } = await supabase
           .from('profiles')
           .select('id, name, email')
           .eq('role', 'designer');
-        setDesigners(designerProfiles || []);
-        if (designerProfiles && designerProfiles.length > 0) {
-          setAssignedDesignerId(designerProfiles[0].id);
-        }
+
+        if (desError) throw desError;
+        setDesigners(desData || []);
       } catch (err: any) {
-        console.error('Error loading plans/designers:', err);
+        console.error('Error loading initialization data:', err);
         // Fallback plans
         setPlans([
           { id: '19acfba5-8ffc-47cf-b1d0-e8cb8ad9ce0d', name: 'Basic Lighting Plan', description: 'Includes basic light layout and luminaire recommendations.', base_price_per_sq_ft: '15.00', min_sq_ft: '500.00' },
           { id: '3b147280-ebd7-4e61-97b2-a96b7e767888', name: 'Premium Design Plan', description: 'Custom lighting layouts, product selections, and mood boards.', base_price_per_sq_ft: '25.00', min_sq_ft: '500.00' },
-          { id: 'aeed1171-ee5b-4456-83b5-c456df6133ff', name: 'BOQ + Design Package', description: 'Complete lighting design, power blueprints, Dialux simulation, and BOQ.', base_price_per_sq_ft: '40.00', min_sq_ft: '1000.00' },
         ]);
         setSelectedPlanId('19acfba5-8ffc-47cf-b1d0-e8cb8ad9ce0d');
       } finally {
         setLoading(false);
       }
     }
-    loadPlans();
+    loadData();
   }, [supabase]);
 
   const selectedPlan = plans.find(p => p.id === selectedPlanId);
@@ -138,7 +154,7 @@ export default function ArchitectProjectCreationWizard() {
         .from('projects')
         .insert({
           project_id_serial: serial,
-          architect_id: user.id,
+          architect_id: assignedArchitectId || null,
           assigned_designer_id: assignedDesignerId || null,
           project_name: projectDetails.projectName,
           client_name: projectDetails.clientName,
@@ -151,7 +167,7 @@ export default function ArchitectProjectCreationWizard() {
           pricing_plan_id: selectedPlanId,
           calculated_price: calculatedPrice,
           payment_status: isPaid ? 'paid' : 'pending',
-          status: 'Submitted',
+          status: 'In Design',
           client_username: clientUsername,
           client_password_hash: 'kelvinlightings', // default password
         })
@@ -225,7 +241,7 @@ export default function ArchitectProjectCreationWizard() {
         });
       if (paymentError) throw paymentError;
 
-      router.push('/architect/projects');
+      router.push('/admin/projects');
     } catch (err: any) {
       console.error('Error saving project:', err);
       setErrorMsg(err.message || 'Something went wrong while saving the project.');
@@ -264,7 +280,7 @@ export default function ArchitectProjectCreationWizard() {
       <div className="bg-white border border-neutral-200 rounded-md p-5 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
-            <h2 className="text-xl font-bold text-neutral-900">Add New Project</h2>
+            <h2 className="text-xl font-bold text-neutral-900">Add New Project (Admin)</h2>
             <p className="text-sm text-neutral-400 mt-0.5">Step {step} of 6: {stepsList[step - 1].label}</p>
           </div>
           {/* Breadcrumb line for steps */}
@@ -273,15 +289,15 @@ export default function ArchitectProjectCreationWizard() {
               <div key={s.num} className="flex items-center">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   step === s.num
-                    ? 'bg-cyan-600 text-white'
+                    ? 'bg-amber-500 text-neutral-950 font-bold'
                     : step > s.num
-                    ? 'bg-cyan-100 text-cyan-700'
+                    ? 'bg-amber-100 text-amber-800'
                     : 'bg-neutral-100 text-neutral-400'
                 }`}>
                   {s.num}
                 </div>
                 {s.num < 6 && (
-                  <div className={`w-4 h-0.5 ml-2.5 ${step > s.num ? 'bg-cyan-300' : 'bg-neutral-200'}`} />
+                  <div className={`w-4 h-0.5 ml-2.5 ${step > s.num ? 'bg-amber-300' : 'bg-neutral-200'}`} />
                 )}
               </div>
             ))}
@@ -310,7 +326,7 @@ export default function ArchitectProjectCreationWizard() {
                     onClick={() => setSelectedPlanId(p.id)}
                     className={`border p-5 rounded-md cursor-pointer transition-all duration-200 flex flex-col justify-between ${
                       selectedPlanId === p.id
-                        ? 'border-cyan-600 bg-cyan-50/20 ring-1 ring-cyan-600 shadow-sm'
+                        ? 'border-amber-500 bg-amber-50/10 ring-1 ring-amber-500 shadow-sm'
                         : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50/30'
                     }`}
                   >
@@ -318,7 +334,7 @@ export default function ArchitectProjectCreationWizard() {
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-bold text-neutral-900 text-base">{p.name}</h4>
                         <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          selectedPlanId === p.id ? 'border-cyan-600 bg-cyan-600 text-white' : 'border-neutral-300'
+                          selectedPlanId === p.id ? 'border-amber-500 bg-amber-500 text-white' : 'border-neutral-300'
                         }`}>
                           {selectedPlanId === p.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                         </span>
@@ -348,8 +364,8 @@ export default function ArchitectProjectCreationWizard() {
                     required
                     value={projectDetails.projectName}
                     onChange={(e) => setProjectDetails(prev => ({ ...prev, projectName: e.target.value }))}
-                    placeholder="e.g. Modern duplex villa"
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors font-semibold"
+                    placeholder="e.g. Lotus Penthouse"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
                   />
                 </div>
 
@@ -361,19 +377,36 @@ export default function ArchitectProjectCreationWizard() {
                     value={projectDetails.clientName}
                     onChange={(e) => setProjectDetails(prev => ({ ...prev, clientName: e.target.value }))}
                     placeholder="e.g. Vikram Shah"
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors font-semibold"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Site Location</label>
-                  <input
-                    type="text"
-                    value={projectDetails.siteLocation}
-                    onChange={(e) => setProjectDetails(prev => ({ ...prev, siteLocation: e.target.value }))}
-                    placeholder="e.g. Bandra, Mumbai"
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors font-semibold"
-                  />
+                  <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Assign Architect</label>
+                  <select
+                    value={assignedArchitectId}
+                    onChange={(e) => setAssignedArchitectId(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold cursor-pointer"
+                  >
+                    <option value="">None / Unassigned</option>
+                    {architects.map(arch => (
+                      <option key={arch.id} value={arch.id}>{arch.name} ({arch.email})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Assign Designer</label>
+                  <select
+                    value={assignedDesignerId}
+                    onChange={(e) => setAssignedDesignerId(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold cursor-pointer"
+                  >
+                    <option value="">None / Unassigned</option>
+                    {designers.map(des => (
+                      <option key={des.id} value={des.id}>{des.name} ({des.email})</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -384,7 +417,18 @@ export default function ArchitectProjectCreationWizard() {
                     required
                     value={projectDetails.areaSqFt}
                     onChange={(e) => setProjectDetails(prev => ({ ...prev, areaSqFt: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors font-semibold"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Site Location</label>
+                  <input
+                    type="text"
+                    value={projectDetails.siteLocation}
+                    onChange={(e) => setProjectDetails(prev => ({ ...prev, siteLocation: e.target.value }))}
+                    placeholder="e.g. Bandra, Mumbai"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
                   />
                 </div>
 
@@ -393,7 +437,7 @@ export default function ArchitectProjectCreationWizard() {
                   <select
                     value={projectDetails.projectType}
                     onChange={(e) => setProjectDetails(prev => ({ ...prev, projectType: e.target.value }))}
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-cyan-500 transition-colors font-semibold"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold"
                   >
                     <option value="Residential">Residential</option>
                     <option value="Commercial">Commercial</option>
@@ -409,7 +453,7 @@ export default function ArchitectProjectCreationWizard() {
                     value={projectDetails.timeline}
                     onChange={(e) => setProjectDetails(prev => ({ ...prev, timeline: e.target.value }))}
                     placeholder="e.g. 1-3 months"
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors font-semibold"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
                   />
                 </div>
 
@@ -419,33 +463,13 @@ export default function ArchitectProjectCreationWizard() {
                     type="date"
                     value={projectDetails.deadline}
                     onChange={(e) => setProjectDetails(prev => ({ ...prev, deadline: e.target.value }))}
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors font-semibold"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Assign Designer *</label>
-                  <select
-                    value={assignedDesignerId}
-                    onChange={(e) => setAssignedDesignerId(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-cyan-500 transition-colors font-semibold cursor-pointer text-neutral-800"
-                  >
-                    {designers.length === 0 ? (
-                      <option value="">No designers available</option>
-                    ) : (
-                      designers.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name} ({d.email})
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-
-                <div className="bg-cyan-50/30 border border-cyan-100 rounded-md p-4 flex flex-col justify-center">
+                <div className="bg-amber-50/20 border border-amber-100 rounded-md p-4 flex flex-col justify-center md:col-span-2">
                   <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider mb-1">Estimated Cost Breakdown</span>
-                  <span className="text-xl font-extrabold text-cyan-700">₹{calculatePrice().toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="text-xl font-extrabold text-amber-600">₹{calculatePrice().toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   <span className="text-[10px] text-neutral-400 mt-1 font-medium">({projectDetails.areaSqFt} sq ft × ₹{selectedPlan?.base_price_per_sq_ft} / sq ft)</span>
                 </div>
               </div>
@@ -456,7 +480,6 @@ export default function ArchitectProjectCreationWizard() {
           {step === 3 && (
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-neutral-900 border-b border-neutral-100 pb-2">Lighting Design Preferences</h3>
-              <p className="text-xs text-neutral-400">Select all lighting concept preferences that match the design requirements.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
@@ -478,12 +501,12 @@ export default function ArchitectProjectCreationWizard() {
                       onClick={() => handlePreferenceToggle(pref)}
                       className={`border p-3.5 rounded-md cursor-pointer transition-all duration-200 flex items-center space-x-3 ${
                         isChecked
-                          ? 'border-cyan-600 bg-cyan-50/15 text-cyan-800 font-bold'
+                          ? 'border-amber-500 bg-amber-50/10 text-amber-800 font-bold'
                           : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50/20'
                       }`}
                     >
                       <div className={`w-4.5 h-4.5 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-                        isChecked ? 'bg-cyan-600 border-cyan-600 text-white' : 'border-neutral-300'
+                        isChecked ? 'bg-amber-500 border-amber-500 text-white' : 'border-neutral-300'
                       }`}>
                         {isChecked && <i className="bx bx-check text-xs"></i>}
                       </div>
@@ -507,8 +530,8 @@ export default function ArchitectProjectCreationWizard() {
                     rows={3}
                     value={remarks.lightingMood}
                     onChange={(e) => setRemarks(prev => ({ ...prev, lightingMood: e.target.value }))}
-                    placeholder="e.g. Cozy warm lighting, minimalistic look, luxury feel..."
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors font-semibold"
+                    placeholder="e.g. Cozy warm lighting, minimalistic look..."
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
                   />
                 </div>
 
@@ -518,8 +541,8 @@ export default function ArchitectProjectCreationWizard() {
                     rows={3}
                     value={remarks.expectations}
                     onChange={(e) => setRemarks(prev => ({ ...prev, expectations: e.target.value }))}
-                    placeholder="e.g. Detailed DWG layout map, product specs list, Dialux reporting..."
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors font-semibold"
+                    placeholder="e.g. Detailed DWG layout map, product specs list..."
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
                   />
                 </div>
 
@@ -529,8 +552,8 @@ export default function ArchitectProjectCreationWizard() {
                     rows={3}
                     value={remarks.inspirationIdeas}
                     onChange={(e) => setRemarks(prev => ({ ...prev, inspirationIdeas: e.target.value }))}
-                    placeholder="e.g. Scandinavian clean lines, hidden light strips, smart control hubs..."
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors font-semibold"
+                    placeholder="e.g. Hidden light strips, smart control hubs..."
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
                   />
                 </div>
 
@@ -540,8 +563,8 @@ export default function ArchitectProjectCreationWizard() {
                     rows={3}
                     value={remarks.functionalRequirements}
                     onChange={(e) => setRemarks(prev => ({ ...prev, functionalRequirements: e.target.value }))}
-                    placeholder="e.g. Waterproof fixtures for bathrooms, emergency backup lights..."
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-cyan-500 transition-colors font-semibold"
+                    placeholder="e.g. Waterproof fixtures for bathrooms..."
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
                   />
                 </div>
               </div>
@@ -552,11 +575,10 @@ export default function ArchitectProjectCreationWizard() {
           {step === 5 && (
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-neutral-900 border-b border-neutral-100 pb-2">Upload Layout Blueprint</h3>
-              <p className="text-xs text-neutral-400">Upload CAD drawings, layout plans (PDF/DWG/Images) to assist Kelvin designers.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
-                  <div className="border-2 border-dashed border-neutral-200 hover:border-cyan-500 transition-colors rounded-md p-8 text-center bg-neutral-50/50 flex flex-col items-center justify-center min-h-[200px] relative">
+                  <div className="border-2 border-dashed border-neutral-200 hover:border-amber-500 transition-colors rounded-md p-8 text-center bg-neutral-50/50 flex flex-col items-center justify-center min-h-[200px] relative">
                     <input
                       type="file"
                       onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
@@ -583,7 +605,7 @@ export default function ArchitectProjectCreationWizard() {
                     <select
                       value={fileCategory}
                       onChange={(e) => setFileCategory(e.target.value)}
-                      className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-cyan-500 transition-colors font-semibold"
+                      className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold"
                     >
                       <option value="layout">Architectural Layout</option>
                       <option value="electrical">Electrical Grid Map</option>
@@ -618,19 +640,21 @@ export default function ArchitectProjectCreationWizard() {
                       <span className="text-xs font-bold text-neutral-800">{projectDetails.clientName}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Total Area</span>
-                      <span className="text-xs font-bold text-neutral-800">{projectDetails.areaSqFt} sq ft</span>
+                      <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Assigned Architect</span>
+                      <span className="text-xs font-bold text-neutral-800">
+                        {architects.find(a => a.id === assignedArchitectId)?.name || 'Unassigned'}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Timeline</span>
-                      <span className="text-xs font-bold text-neutral-800">{projectDetails.timeline}</span>
+                      <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Total Area</span>
+                      <span className="text-xs font-bold text-neutral-800">{projectDetails.areaSqFt} sq ft</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-3.5 border-t md:border-t-0 md:border-l border-neutral-200/60 md:pl-6">
                   <div>
-                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Lighting Preferences Selected</span>
+                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Lighting Preferences</span>
                     {lightingPreferences.length === 0 ? (
                       <span className="text-xs text-neutral-400 font-medium italic">None selected</span>
                     ) : (
@@ -649,7 +673,7 @@ export default function ArchitectProjectCreationWizard() {
                     </span>
                   </div>
 
-                  <div className="bg-cyan-600 text-white rounded-md p-4 mt-4 shadow-sm flex justify-between items-center">
+                  <div className="bg-amber-500 text-white rounded-md p-4 mt-4 shadow-sm flex justify-between items-center">
                     <div>
                       <span className="text-[9px] uppercase tracking-wider font-bold opacity-80 block">Grand Total Plan Cost</span>
                       <span className="text-lg font-extrabold">₹{calculatePrice().toLocaleString()}</span>
@@ -675,7 +699,7 @@ export default function ArchitectProjectCreationWizard() {
           {step < 6 ? (
             <button
               onClick={handleNext}
-              className="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-bold transition-colors shadow-sm"
+              className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-sm font-bold transition-colors shadow-sm"
             >
               Continue
             </button>
@@ -683,7 +707,7 @@ export default function ArchitectProjectCreationWizard() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-sm font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {submitting ? (
                 <>
@@ -703,13 +727,13 @@ export default function ArchitectProjectCreationWizard() {
 
       {/* Payment Confirmation Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in font-sans">
           <div className="bg-white border border-neutral-200 rounded-lg max-w-md w-full p-6 shadow-xl space-y-6">
             <div className="text-center">
-              <div className="w-12 h-12 bg-cyan-50 text-cyan-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-cyan-100">
+              <div className="w-12 h-12 bg-amber-550/10 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-100">
                 <i className="bx bx-credit-card-front text-2xl"></i>
               </div>
-              <h3 className="text-lg font-bold text-neutral-900">Verify Project Payment</h3>
+              <h3 className="text-lg font-bold text-neutral-900 font-sans">Verify Project Payment</h3>
               <p className="text-xs text-neutral-450 mt-1">Confirm the payment status for <strong>{projectDetails.projectName}</strong> before submitting.</p>
             </div>
 
@@ -729,7 +753,7 @@ export default function ArchitectProjectCreationWizard() {
                   await saveProject(true);
                 }}
                 disabled={submitting}
-                className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-sm rounded-md transition-colors shadow-sm flex items-center justify-center space-x-1.5"
+                className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-md transition-colors shadow-sm flex items-center justify-center space-x-1.5"
               >
                 <i className="bx bx-check-circle text-base"></i>
                 <span>Yes, Payment Completed</span>

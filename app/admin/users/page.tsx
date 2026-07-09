@@ -9,9 +9,26 @@ export default function AdminUsersManagement() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [roleFilter, setRoleFilter] = useState('All');
+
+  // Modals state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form states
+  const [newUser, setNewUser] = useState({
+    email: '',
+    password: '',
+    name: '',
+    role: 'architect',
+    mobileNumber: '',
+  });
+
+  const [editingUser, setEditingUser] = useState<any>(null);
 
   async function fetchUsers() {
     try {
@@ -24,7 +41,7 @@ export default function AdminUsersManagement() {
       setUsers(data || []);
     } catch (err) {
       console.error('Error fetching users:', err);
-      // Fallback mock data in case table is empty or missing connection
+      // Fallback mock data
       setUsers([
         { id: '1', name: 'Sarah Jenkins', email: 'sarah@kelvinlightings.com', role: 'admin', mobile_number: '+91 98765 43210', created_at: new Date().toISOString() },
         { id: '2', name: 'Rohan Varma', email: 'rohan@kelvinlightings.com', role: 'designer', mobile_number: '+91 99887 76655', created_at: new Date().toISOString() },
@@ -40,23 +57,105 @@ export default function AdminUsersManagement() {
     fetchUsers();
   }, [supabase]);
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
-
-      if (error) throw error;
-      
-      // Update local state
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
-    } catch (err) {
-      console.error('Error updating user role:', err);
-      setErrorMsg('Failed to update user role.');
+  // Show notifications helper
+  const triggerNotification = (success: string | null, error: string | null) => {
+    if (success) {
+      setSuccessMsg(success);
+      setTimeout(() => setSuccessMsg(null), 3000);
+    }
+    if (error) {
+      setErrorMsg(error);
       setTimeout(() => setErrorMsg(null), 3000);
     }
   };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create user');
+
+      triggerNotification('User created successfully!', null);
+      setShowAddModal(false);
+      setNewUser({ email: '', password: '', name: '', role: 'architect', mobileNumber: '' });
+      fetchUsers();
+    } catch (err: any) {
+      triggerNotification(null, err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: editingUser.id,
+          email: editingUser.email,
+          name: editingUser.name,
+          role: editingUser.role,
+          mobileNumber: editingUser.mobile_number,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update user');
+
+      triggerNotification('User updated successfully!', null);
+      setShowEditModal(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (err: any) {
+      triggerNotification(null, err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user? This will permanently delete their account and profile.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete user');
+
+      triggerNotification('User deleted successfully!', null);
+      fetchUsers();
+    } catch (err: any) {
+      triggerNotification(null, err.message);
+    }
+  };
+
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.mobile_number && u.mobile_number.includes(searchQuery));
+    const matchesRole = roleFilter === 'All' || u.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
 
   if (loading) {
     return (
@@ -69,16 +168,29 @@ export default function AdminUsersManagement() {
     );
   }
 
-  // Count metrics
   const totalArchitects = users.filter(u => u.role === 'architect').length;
   const totalDesigners = users.filter(u => u.role === 'designer').length;
   const totalAdmins = users.filter(u => u.role === 'admin').length;
 
   return (
     <div className="space-y-4">
+      {/* Notifications */}
+      {successMsg && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold rounded-md flex items-center space-x-2">
+          <i className="bx bx-check-circle text-lg"></i>
+          <span>{successMsg}</span>
+        </div>
+      )}
+      {errorMsg && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-sm font-semibold rounded-md flex items-center space-x-2">
+          <i className="bx bx-error-circle text-lg"></i>
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
+        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between shadow-sm">
           <div className="space-y-1">
             <span className="text-sm font-bold text-neutral-400 block">Total Architects</span>
             <span className="text-3xl font-black text-neutral-900 font-sans">{totalArchitects}</span>
@@ -89,18 +201,18 @@ export default function AdminUsersManagement() {
           </div>
         </div>
 
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
+        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between shadow-sm">
           <div className="space-y-1">
             <span className="text-sm font-bold text-neutral-400 block">Active Designers</span>
             <span className="text-3xl font-black text-neutral-900 font-sans">{totalDesigners}</span>
-            <span className="text-sm text-neutral-400 block">Internal design workspace staff</span>
+            <span className="text-sm text-neutral-400 block">Internal workspace staff</span>
           </div>
           <div className="w-12 h-12 bg-emerald-50 rounded-md flex items-center justify-center text-emerald-600 border border-emerald-100">
             <i className="bx bx-pencil text-xl"></i>
           </div>
         </div>
 
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
+        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between shadow-sm">
           <div className="space-y-1">
             <span className="text-sm font-bold text-neutral-400 block">Admin Staff</span>
             <span className="text-3xl font-black text-neutral-900 font-sans">{totalAdmins}</span>
@@ -113,19 +225,20 @@ export default function AdminUsersManagement() {
       </div>
 
       {/* User Management Directory Card */}
-      <div className="bg-white border border-neutral-200 rounded-md p-5">
+      <div className="bg-white border border-neutral-200 rounded-md p-5 shadow-sm">
         <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
           <div>
             <h2 className="text-xl font-bold text-neutral-900 font-sans">User Access Control</h2>
-            <p className="text-sm text-neutral-400 mt-0.5">Manage credentials, coordinate designer assignments, and toggle system roles.</p>
+            <p className="text-sm text-neutral-400 mt-0.5">Manage credentials, coordinate designer assignments, and update system roles.</p>
           </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-md transition-colors shadow-sm cursor-pointer"
+          >
+            <i className="bx bx-plus text-sm mr-1.5"></i>
+            <span>Add User</span>
+          </button>
         </div>
-
-        {errorMsg && (
-          <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded text-rose-800 text-sm">
-            {errorMsg}
-          </div>
-        )}
 
         {/* Interactive controls bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
@@ -134,7 +247,7 @@ export default function AdminUsersManagement() {
               <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
               <input
                 type="text"
-                placeholder="Search by name, email or phone..."
+                placeholder="Search by name, email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
@@ -178,59 +291,59 @@ export default function AdminUsersManagement() {
         {/* List/Table Render Area */}
         {viewMode === 'card' ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            {users
-              .filter(u => {
-                const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  (u.mobile_number && u.mobile_number.includes(searchQuery));
-                const matchesRole = roleFilter === 'All' || u.role === roleFilter;
-                return matchesSearch && matchesRole;
-              })
-              .map((u) => (
-                <div
-                  key={u.id}
-                  className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 hover:shadow-sm transition-all duration-200"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 flex items-center justify-center font-bold text-sm">
-                        {u.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-neutral-900 line-clamp-1">{u.name}</h3>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border mt-0.5 ${
-                          u.role === 'admin'
-                            ? 'bg-rose-50 border-rose-100 text-rose-700'
-                            : u.role === 'designer'
-                            ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                            : 'bg-blue-50 border-blue-100 text-blue-700'
-                        }`}>
-                          {u.role}
-                        </span>
-                      </div>
+            {filteredUsers.map((u) => (
+              <div
+                key={u.id}
+                className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 hover:shadow-sm transition-all duration-200"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 flex items-center justify-center font-bold text-sm">
+                      {u.name.substring(0, 2).toUpperCase()}
                     </div>
-                    <div className="space-y-1.5 text-xs text-neutral-500 font-medium pt-2">
-                      <p className="truncate">Email: {u.email}</p>
-                      <p>Phone: {u.mobile_number || 'Not Provided'}</p>
+                    <div>
+                      <h3 className="text-base font-bold text-neutral-900 line-clamp-1">{u.name}</h3>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border mt-0.5 ${
+                        u.role === 'admin'
+                          ? 'bg-rose-50 border-rose-100 text-rose-700'
+                          : u.role === 'designer'
+                          ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                          : 'bg-blue-50 border-blue-100 text-blue-700'
+                      }`}>
+                        {u.role}
+                      </span>
                     </div>
                   </div>
-
-                  <div className="pt-3 border-t border-neutral-50 flex items-center justify-between">
-                    <span className="text-[10px] text-neutral-400 font-sans font-medium">
-                      Joined: {new Date(u.created_at).toLocaleDateString()}
-                    </span>
-                    <select
-                      value={u.role}
-                      onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                      className="bg-neutral-50 border border-neutral-200 rounded px-2 py-1 text-xs font-bold text-neutral-800 focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
-                    >
-                      <option value="architect">Architect</option>
-                      <option value="designer">Designer</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                  <div className="space-y-1.5 text-xs text-neutral-500 font-medium pt-2">
+                    <p className="truncate">Email: {u.email}</p>
+                    <p>Phone: {u.mobile_number || 'Not Provided'}</p>
                   </div>
                 </div>
-              ))}
+
+                <div className="pt-3 border-t border-neutral-50 flex items-center justify-between">
+                  <span className="text-[10px] text-neutral-400 font-sans font-medium">
+                    Joined: {new Date(u.created_at).toLocaleDateString()}
+                  </span>
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={() => {
+                        setEditingUser(u);
+                        setShowEditModal(true);
+                      }}
+                      className="px-2.5 py-1 text-xs font-bold text-neutral-600 border border-neutral-200 rounded hover:bg-neutral-50 transition-colors cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUser(u.id)}
+                      className="px-2.5 py-1 text-xs font-bold text-rose-750 bg-rose-50 border border-rose-100 rounded hover:bg-rose-100 transition-colors cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="overflow-hidden mt-3 border border-neutral-100 rounded-md">
@@ -242,60 +355,233 @@ export default function AdminUsersManagement() {
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Contact Number</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Role Badge</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Sign Up Date</th>
-                  <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Assign Role</th>
+                  <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-50 text-neutral-700 font-semibold">
-                {users
-                  .filter(u => {
-                    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      (u.mobile_number && u.mobile_number.includes(searchQuery));
-                    const matchesRole = roleFilter === 'All' || u.role === roleFilter;
-                    return matchesSearch && matchesRole;
-                  })
-                  .map((u) => (
-                    <tr key={u.id} className="hover:bg-neutral-50/40 transition-colors">
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                          {u.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <span className="font-bold text-neutral-900">{u.name}</span>
-                      </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{u.email}</td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-400 font-sans">{u.mobile_number || 'Not Provided'}</td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-bold border ${
-                          u.role === 'admin'
-                            ? 'bg-rose-50 border-rose-100 text-rose-700'
-                            : u.role === 'designer'
-                            ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                            : 'bg-blue-50 border-blue-100 text-blue-700'
-                        }`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-xs text-neutral-400 font-medium font-sans">
-                        {new Date(u.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
-                        <select
-                          value={u.role}
-                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                          className="bg-neutral-50 border border-neutral-200 rounded px-2.5 py-1 text-xs font-bold text-neutral-800 focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
+                {filteredUsers.map((u) => (
+                  <tr key={u.id} className="hover:bg-neutral-50/40 transition-colors">
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                        {u.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <span className="font-bold text-neutral-900">{u.name}</span>
+                    </td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{u.email}</td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-400 font-sans">{u.mobile_number || 'Not Provided'}</td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-bold border ${
+                        u.role === 'admin'
+                          ? 'bg-rose-50 border-rose-100 text-rose-700'
+                          : u.role === 'designer'
+                          ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                          : 'bg-blue-50 border-blue-100 text-blue-700'
+                      }`}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-xs text-neutral-400 font-medium font-sans">
+                      {new Date(u.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => {
+                            setEditingUser(u);
+                            setShowEditModal(true);
+                          }}
+                          className="px-2.5 py-1 text-xs font-bold text-neutral-600 border border-neutral-200 rounded hover:bg-neutral-50 transition-colors cursor-pointer"
                         >
-                          <option value="architect">Architect</option>
-                          <option value="designer">Designer</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u.id)}
+                          className="px-2.5 py-1 text-xs font-bold text-rose-750 bg-rose-50 border border-rose-100 rounded hover:bg-rose-100 transition-colors cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
+          <div className="bg-white border border-neutral-200 rounded-lg max-w-md w-full p-6 shadow-xl space-y-4">
+            <div>
+              <h3 className="text-lg font-bold text-neutral-900">Add New User</h3>
+              <p className="text-xs text-neutral-400">Create credentials and profile metadata for staff or architect portal access.</p>
+            </div>
+
+            <form onSubmit={handleAddUser} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newUser.name}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Sarah Jenkins"
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  value={newUser.email}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="sarah@example.com"
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Password *</label>
+                <input
+                  type="password"
+                  required
+                  value={newUser.password}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Access Role *</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold cursor-pointer"
+                >
+                  <option value="architect">Architect</option>
+                  <option value="designer">Designer</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Contact Phone</label>
+                <input
+                  type="text"
+                  value={newUser.mobileNumber}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, mobileNumber: e.target.value }))}
+                  placeholder="+91 XXXXX XXXXX"
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  disabled={submitting}
+                  className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-xs font-bold text-neutral-600 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-bold transition-colors shadow-sm cursor-pointer disabled:opacity-55"
+                >
+                  {submitting ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
+          <div className="bg-white border border-neutral-200 rounded-lg max-w-md w-full p-6 shadow-xl space-y-4">
+            <div>
+              <h3 className="text-lg font-bold text-neutral-900">Update User Profile</h3>
+              <p className="text-xs text-neutral-400">Modify credentials, system access roles, or contact numbers.</p>
+            </div>
+
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingUser.name}
+                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Access Role *</label>
+                <select
+                  value={editingUser.role}
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold cursor-pointer"
+                >
+                  <option value="architect">Architect</option>
+                  <option value="designer">Designer</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Contact Phone</label>
+                <input
+                  type="text"
+                  value={editingUser.mobile_number || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, mobile_number: e.target.value })}
+                  placeholder="+91 XXXXX XXXXX"
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingUser(null);
+                  }}
+                  disabled={submitting}
+                  className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-xs font-bold text-neutral-600 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-bold transition-colors shadow-sm cursor-pointer disabled:opacity-55"
+                >
+                  {submitting ? 'Saving...' : 'Save Updates'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

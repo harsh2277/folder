@@ -21,8 +21,15 @@ html, body {
   font-family: "Google Sans Flex" !important;
 }
 
-@theme inline {
+@theme {
   --color-background: #ffffff;
   --color-foreground: #171717;
   --font-sans: "Google Sans Flex";
+  --shadow: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --shadow-2xl: none;
+  --shadow-inner: none;
 }

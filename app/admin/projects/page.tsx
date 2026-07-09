@@ -42,6 +42,19 @@ export default function AdminProjectsList() {
     fetchProjects();
   }, [supabase]);
 
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this project? All associated payments, comments, and files will be permanently deleted.')) {
+      try {
+        const { error } = await supabase.from('projects').delete().eq('id', id);
+        if (error) throw error;
+        setProjects(prev => prev.filter(p => p.id !== id));
+      } catch (err) {
+        console.error('Error deleting project:', err);
+        alert('Failed to delete project.');
+      }
+    }
+  };
+
   const statuses = [
     'All', 'Submitted', 'Payment Pending', 'Under Review', 'In Design', 
     'Ready for Client Review', 'Revision Requested', 'Approved', 'Closed'
@@ -82,6 +95,13 @@ export default function AdminProjectsList() {
             <h2 className="text-xl font-bold text-neutral-900 font-sans">Project Directory</h2>
             <p className="text-sm text-neutral-400 mt-0.5">Review onboarding questionnaires, assign designers, and update statuses.</p>
           </div>
+          <Link
+            href="/admin/projects/create"
+            className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-md transition-colors shadow-sm"
+          >
+            <i className="bx bx-plus text-sm mr-1.5"></i>
+            <span>Add Project</span>
+          </Link>
         </div>
 
         {/* Filter Controls Bar */}
@@ -203,12 +223,20 @@ export default function AdminProjectsList() {
                       <span className="text-[10px] text-neutral-400 font-sans font-medium">
                         {new Date(proj.created_at).toLocaleDateString()}
                       </span>
-                      <Link
-                        href={`/admin/projects/${proj.id}`}
-                        className="inline-flex items-center px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-bold text-xs border border-neutral-200 rounded-md transition-colors"
-                      >
-                        Manage
-                      </Link>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleDelete(proj.id)}
+                          className="inline-flex items-center px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 rounded-md transition-colors cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                        <Link
+                          href={`/admin/projects/${proj.id}`}
+                          className="inline-flex items-center px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-bold text-xs border border-neutral-200 rounded-md transition-colors"
+                        >
+                          Manage
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -266,12 +294,20 @@ export default function AdminProjectsList() {
                         {new Date(proj.created_at).toLocaleDateString()}
                       </td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
-                        <Link
-                          href={`/admin/projects/${proj.id}`}
-                          className="inline-flex items-center px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-bold text-xs border border-neutral-200 rounded-md transition-colors"
-                        >
-                          Manage
-                        </Link>
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={() => handleDelete(proj.id)}
+                            className="inline-flex items-center px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 rounded-md transition-colors cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                          <Link
+                            href={`/admin/projects/${proj.id}`}
+                            className="inline-flex items-center px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-bold text-xs border border-neutral-200 rounded-md transition-colors"
+                          >
+                            Manage
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

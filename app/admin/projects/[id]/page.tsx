@@ -15,11 +15,14 @@ export default function AdminProjectDetail() {
   const [remarks, setRemarks] = useState<any | null>(null);
   const [preferences, setPreferences] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);
+  const [architects, setArchitects] = useState<any[]>([]);
   const [designers, setDesigners] = useState<any[]>([]);
 
   // Form states
   const [status, setStatus] = useState('');
-  const [designerId, setDesignerId] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('');
+  const [architectId, setArchitectId] = useState('');
+  const [assignedDesignerId, setAssignedDesignerId] = useState('');
   const [deadline, setDeadline] = useState('');
   const [updating, setUpdating] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
@@ -39,7 +42,9 @@ export default function AdminProjectDetail() {
         if (projError) throw projError;
         setProject(proj);
         setStatus(proj.status);
-        setDesignerId(proj.assigned_designer_id || '');
+        setPaymentStatus(proj.payment_status || 'pending');
+        setArchitectId(proj.architect_id || '');
+        setAssignedDesignerId(proj.assigned_designer_id || '');
         setDeadline(proj.deadline ? new Date(proj.deadline).toISOString().substring(0, 10) : '');
 
         // 2. Fetch remarks
@@ -64,12 +69,19 @@ export default function AdminProjectDetail() {
           .eq('project_id', id);
         setFiles(filesData || []);
 
-        // 5. Fetch profiles who can be assigned as designers (role: designer or admin)
+        // 5. Fetch profiles who can be assigned as architects (role: architect)
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, name, role')
-          .in('role', ['admin', 'designer']);
-        setDesigners(profiles || []);
+          .eq('role', 'architect');
+        setArchitects(profiles || []);
+
+        // 6. Fetch profiles who can be assigned as designers (role: designer)
+        const { data: designerProfiles } = await supabase
+          .from('profiles')
+          .select('id, name, role')
+          .eq('role', 'designer');
+        setDesigners(designerProfiles || []);
 
       } catch (err) {
         console.error('Error fetching project detail:', err);
@@ -87,23 +99,38 @@ export default function AdminProjectDetail() {
     setSaveMessage('');
 
     try {
+      // 1. Update project details
       const { error } = await supabase
         .from('projects')
         .update({
           status: status,
-          assigned_designer_id: designerId || null,
+          architect_id: architectId || null,
+          assigned_designer_id: assignedDesignerId || null,
           deadline: deadline ? new Date(deadline).toISOString() : null,
+          payment_status: paymentStatus,
         })
         .eq('id', id);
 
       if (error) throw error;
+
+      // 2. Update payments table status
+      await supabase
+        .from('payments')
+        .update({
+          status: paymentStatus === 'paid' ? 'completed' : 'pending',
+          transaction_id: paymentStatus === 'paid' ? `manual_${Date.now()}` : null,
+        })
+        .eq('project_id', id);
+
       setSaveMessage('Changes saved successfully!');
       
       // Update local project object
       setProject((prev: any) => ({
         ...prev,
         status,
-        assigned_designer_id: designerId || null,
+        payment_status: paymentStatus,
+        architect_id: architectId || null,
+        assigned_designer_id: assignedDesignerId || null,
         deadline: deadline ? new Date(deadline).toISOString() : null,
       }));
     } catch (err: any) {
@@ -309,15 +336,16 @@ export default function AdminProjectDetail() {
 
         {/* Right Column - Management & Assignment controls */}
         <div className="space-y-6">
-          <div className="bg-white border border-neutral-200 rounded-md p-6 space-y-6">
-            <h3 className="text-sm font-bold text-neutral-900 border-b border-neutral-100 pb-3 uppercase tracking-wider">
-              Management Controls
+          <div className="bg-white border border-neutral-200 rounded-lg p-6 space-y-6 shadow-sm">
+            <h3 className="text-sm font-extrabold text-neutral-900 border-b border-neutral-100 pb-3 uppercase tracking-wider flex items-center space-x-1.5">
+              <i className="bx bx-cog text-neutral-400 text-base"></i>
+              <span>Management Controls</span>
             </h3>
 
             {saveMessage && (
               <div className={`p-3 rounded-md text-xs font-semibold ${
                 saveMessage.startsWith('Error') 
-                  ? 'bg-red-50 border border-red-200 text-red-800' 
+                  ? 'bg-rose-50 border border-rose-200 text-rose-800' 
                   : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
               }`}>
                 {saveMessage}
@@ -326,13 +354,13 @@ export default function AdminProjectDetail() {
 
             <form onSubmit={handleSaveChanges} className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-neutral-600 uppercase tracking-wider mb-2">
                   Project Status
                 </label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm text-neutral-800 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors"
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm text-neutral-800 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold cursor-pointer"
                 >
                   <option value="Submitted">Submitted</option>
                   <option value="Payment Pending">Payment Pending</option>
@@ -346,41 +374,74 @@ export default function AdminProjectDetail() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-2">
-                  Assign Designer / Team
+                <label className="block text-xs font-bold text-neutral-600 uppercase tracking-wider mb-2">
+                  Payment Status
                 </label>
                 <select
-                  value={designerId}
-                  onChange={(e) => setDesignerId(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm text-neutral-800 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors"
+                  value={paymentStatus}
+                  onChange={(e) => setPaymentStatus(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm text-neutral-800 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold cursor-pointer"
+                >
+                  <option value="pending">Pending (Pay Later)</option>
+                  <option value="paid">Paid (Mark Completed)</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 uppercase tracking-wider mb-2">
+                  Assign Architect
+                </label>
+                <select
+                  value={architectId}
+                  onChange={(e) => setArchitectId(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm text-neutral-800 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold cursor-pointer"
                 >
                   <option value="">Unassigned</option>
-                  {designers.map((des) => (
-                    <option key={des.id} value={des.id}>
-                      {des.name} ({des.role})
+                  {architects.map((arc) => (
+                    <option key={arc.id} value={arc.id}>
+                      {arc.name}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-neutral-600 uppercase tracking-wider mb-2">
+                  Assign Designer
+                </label>
+                <select
+                  value={assignedDesignerId}
+                  onChange={(e) => setAssignedDesignerId(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm text-neutral-800 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold cursor-pointer"
+                >
+                  <option value="">Unassigned</option>
+                  {designers.map((des) => (
+                    <option key={des.id} value={des.id}>
+                      {des.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 uppercase tracking-wider mb-2">
                   Target Deadline
                 </label>
                 <input
                   type="date"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm text-neutral-800 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors"
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm text-neutral-800 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={updating}
-                className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-sm rounded-md transition-colors duration-200 disabled:opacity-50"
+                className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-md transition-colors duration-200 disabled:opacity-50 cursor-pointer shadow-sm uppercase tracking-wider"
               >
-                {updating ? 'Saving...' : 'Save Changes'}
+                {updating ? 'Saving...' : 'Save Configuration'}
               </button>
             </form>
           </div>

@@ -9,6 +9,10 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [adminName, setAdminName] = useState('Super Admin');
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
+  const [pendingProjects, setPendingProjects] = useState<any[]>([]);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectingProjId, setRejectingProjId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [activeMonth, setActiveMonth] = useState('May');
   const [hoveredRing, setHoveredRing] = useState<string | null>(null);
 
@@ -46,6 +50,7 @@ export default function AdminDashboard() {
 
         if (projects && projects.length > 0) {
           setRecentProjects(projects.slice(0, 5));
+          setPendingProjects(projects.filter(p => p.status === 'Submitted'));
 
           const { data: payments } = await supabase
             .from('payments')
@@ -84,6 +89,9 @@ export default function AdminDashboard() {
             { id: '3', project_name: 'Zoya Boutique', client_name: 'Zoya Lifestyle', status: 'Submitted', area_sq_ft: 2200 },
             { id: '4', project_name: 'Orion Workspace', client_name: 'Orion Enterprises', status: 'Approved', area_sq_ft: 8500 },
             { id: '5', project_name: 'Azure Residences', client_name: 'BlueWave Developments', status: 'In Design', area_sq_ft: 4500 }
+          ]);
+          setPendingProjects([
+            { id: '3', project_name: 'Zoya Boutique', client_name: 'Zoya Lifestyle', status: 'Submitted', area_sq_ft: 2200 }
           ]);
           setStats({
             totalProjects: 247,
@@ -135,6 +143,48 @@ export default function AdminDashboard() {
     { month: 'Dec', value: 28, prevValue: 27 }
   ];
 
+  const handleApproveProject = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status: 'Under Review' })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setPendingProjects(prev => prev.filter(p => p.id !== id));
+      setRecentProjects(prev => prev.map(p => p.id === id ? { ...p, status: 'Under Review' } : p));
+    } catch (err: any) {
+      alert('Failed to approve project: ' + err.message);
+    }
+  };
+
+  const handleRejectProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectingProjId || !rejectReason.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          status: 'Revision Requested',
+          project_notes: `Rejection Reason: ${rejectReason}`
+        })
+        .eq('id', rejectingProjId);
+
+      if (error) throw error;
+
+      setPendingProjects(prev => prev.filter(p => p.id !== rejectingProjId));
+      setRecentProjects(prev => prev.map(p => p.id === rejectingProjId ? { ...p, status: 'Revision Requested' } : p));
+      
+      setShowRejectModal(false);
+      setRejectingProjId(null);
+      setRejectReason('');
+    } catch (err: any) {
+      alert('Failed to reject project: ' + err.message);
+    }
+  };
+
   return (
     <div className="space-y-4">
 
@@ -163,6 +213,65 @@ export default function AdminDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Project Approval Requests Queue */}
+      {pendingProjects.length > 0 && (
+        <div className="bg-white border border-rose-200 rounded-md p-5 space-y-4">
+          <div className="flex justify-between items-center pb-3 border-b border-rose-100">
+            <div>
+              <h3 className="text-base font-bold text-rose-950 flex items-center space-x-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                <span>Pending Project Approvals</span>
+              </h3>
+              <p className="text-xs text-rose-500 font-semibold mt-0.5">Projects submitted by architects awaiting administrator verification.</p>
+            </div>
+            <span className="text-xs font-bold bg-rose-50 text-rose-700 px-2 py-0.5 rounded border border-rose-100 font-sans">
+              {pendingProjects.length} Pending
+            </span>
+          </div>
+
+          <div className="overflow-hidden border border-neutral-100 rounded-md">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-bold text-xs uppercase tracking-wider">
+                  <th className="py-2.5 px-4">Project Scope</th>
+                  <th className="py-2.5 px-4">Client Name</th>
+                  <th className="py-2.5 px-4">Area (Sq Ft)</th>
+                  <th className="py-2.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-semibold">
+                {pendingProjects.map((p) => (
+                  <tr key={p.id} className="hover:bg-neutral-55/10 transition-colors">
+                    <td className="py-3 px-4 font-bold text-neutral-900">{p.project_name}</td>
+                    <td className="py-3 px-4 text-neutral-500 font-medium">{p.client_name}</td>
+                    <td className="py-3 px-4 text-neutral-400 font-sans">{p.area_sq_ft ? p.area_sq_ft.toLocaleString() : 'N/A'}</td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleApproveProject(p.id)}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRejectingProjId(p.id);
+                            setShowRejectModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Grid of Key Performance Indicators */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -239,16 +348,6 @@ export default function AdminDashboard() {
               <h3 className="text-base font-bold text-neutral-900">Revenue Analytics</h3>
               <p className="text-sm text-neutral-400 mt-0.5">Comparing current year turnover vs previous year (in Lakhs)</p>
             </div>
-            <div className="flex items-center space-x-3 text-sm font-bold text-neutral-500 mt-0.5">
-              <div className="flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-[2px]" style={{ backgroundColor: '#2563eb' }}></span>
-                <span>Current Year</span>
-              </div>
-              <div className="flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-[2px]" style={{ backgroundColor: '#e2e8f0' }}></span>
-                <span>Previous Year</span>
-              </div>
-            </div>
           </div>
 
           {/* Premium Diagonal-Striped Rounded Column Chart */}
@@ -296,14 +395,14 @@ export default function AdminDashboard() {
                           <span className="bg-white text-neutral-900 text-sm font-bold px-2 py-0.5 rounded border border-neutral-200 shadow-sm font-sans whitespace-nowrap">
                             ₹{pt.value.toFixed(1)}L
                           </span>
-                          <span className="w-2 h-2 rounded-full bg-blue-500 border-2 border-white ring-1 ring-blue-500 mt-1"></span>
+                          <span className="w-2 h-2 rounded-full bg-amber-500 border-2 border-white ring-1 ring-amber-500 mt-1"></span>
                         </div>
                       )}
 
                       {/* Pill Shaped Column Bar with repeating pattern */}
                       <div
                         className={`w-4 md:w-12 rounded-[6px] transition-all duration-300 relative border ${isActive
-                          ? 'bg-blue-500 border-blue-600 shadow-[0_4px_12px_rgba(59,130,246,0.2)]'
+                          ? 'bg-amber-500 border-amber-600'
                           : 'bg-neutral-100 border-neutral-200/60 hover:bg-neutral-200/50'
                           }`}
                         style={{
@@ -325,7 +424,7 @@ export default function AdminDashboard() {
                   return (
                     <span
                       key={pt.month}
-                      className={`flex-1 text-center py-0.5 transition-all duration-200 cursor-pointer ${isActive ? ' text-blue-600 rounded-full font-bold scale-105' : ''
+                      className={`flex-1 text-center py-0.5 transition-all duration-200 cursor-pointer ${isActive ? ' text-amber-600 rounded-full font-bold scale-105' : ''
                         }`}
                       onMouseEnter={() => setActiveMonth(pt.month)}
                     >
@@ -356,11 +455,11 @@ export default function AdminDashboard() {
                 }}></span>
                 <span>
                   {hoveredRing === 'approved' ? 'Approved' : hoveredRing === 'indesign' ? 'In Design' : 'Under Review'}:{' '}
-                  {hoveredRing === 'approved' 
-                    ? `${stats.approvedCount}/${stats.totalProjects} (${stats.approvedPercent}%)` 
-                    : hoveredRing === 'indesign' 
-                    ? `${stats.inDesignProjects}/${stats.totalProjects} (${stats.inDesignPercent}%)` 
-                    : `${stats.underReviewProjects}/${stats.totalProjects} (${stats.underReviewPercent}%)`}
+                  {hoveredRing === 'approved'
+                    ? `${stats.approvedCount}/${stats.totalProjects} (${stats.approvedPercent}%)`
+                    : hoveredRing === 'indesign'
+                      ? `${stats.inDesignProjects}/${stats.totalProjects} (${stats.inDesignPercent}%)`
+                      : `${stats.underReviewProjects}/${stats.totalProjects} (${stats.underReviewPercent}%)`}
                 </span>
               </div>
             )}
@@ -369,7 +468,7 @@ export default function AdminDashboard() {
 
               {/* Outermost Ring: Approved */}
               <div
-                className={`absolute w-56 h-56 rounded-full cursor-pointer transition-all duration-300 ${hoveredRing && hoveredRing !== 'approved' ? 'opacity-25 scale-95' : 'opacity-100 scale-100 shadow-[0_2px_8px_rgba(16,185,129,0.15)]'
+                className={`absolute w-56 h-56 rounded-full cursor-pointer transition-all duration-300 ${hoveredRing && hoveredRing !== 'approved' ? 'opacity-25 scale-95' : 'opacity-100 scale-100'
                   }`}
                 style={{
                   background: `conic-gradient(#10b981 0% ${stats.approvedPercent}%, #f1f5f9 ${stats.approvedPercent}% 100%)`
@@ -383,7 +482,7 @@ export default function AdminDashboard() {
 
               {/* Middle Ring: In Design */}
               <div
-                className={`absolute w-[152px] h-[152px] rounded-full cursor-pointer transition-all duration-300 ${hoveredRing && hoveredRing !== 'indesign' ? 'opacity-25 scale-95' : 'opacity-100 scale-100 shadow-[0_2px_8px_rgba(6,182,212,0.15)]'
+                className={`absolute w-[152px] h-[152px] rounded-full cursor-pointer transition-all duration-300 ${hoveredRing && hoveredRing !== 'indesign' ? 'opacity-25 scale-95' : 'opacity-100 scale-100'
                   }`}
                 style={{
                   background: `conic-gradient(#06b6d4 0% ${stats.inDesignPercent}%, #f1f5f9 ${stats.inDesignPercent}% 100%)`
@@ -397,7 +496,7 @@ export default function AdminDashboard() {
 
               {/* Innermost Ring: Under Review */}
               <div
-                className={`absolute w-[88px] h-[88px] rounded-full cursor-pointer transition-all duration-300 ${hoveredRing && hoveredRing !== 'underreview' ? 'opacity-25 scale-95' : 'opacity-100 scale-100 shadow-[0_2px_8px_rgba(59,130,246,0.15)]'
+                className={`absolute w-[88px] h-[88px] rounded-full cursor-pointer transition-all duration-300 ${hoveredRing && hoveredRing !== 'underreview' ? 'opacity-25 scale-95' : 'opacity-100 scale-100'
                   }`}
                 style={{
                   background: `conic-gradient(#3b82f6 0% ${stats.underReviewPercent}%, #f1f5f9 ${stats.underReviewPercent}% 100%)`
@@ -589,6 +688,52 @@ export default function AdminDashboard() {
         </div>
 
       </div>
+
+      {/* Reject Project Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
+          <div className="bg-white border border-neutral-200 rounded-lg max-w-md w-full p-6 shadow-xl space-y-4">
+            <div>
+              <h3 className="text-lg font-bold text-neutral-900">Reject Project Creation</h3>
+              <p className="text-xs text-neutral-400 mt-1">Specify why this project cannot be approved. This feedback will be displayed to the submitting architect.</p>
+            </div>
+
+            <form onSubmit={handleRejectProject} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Rejection Reason *</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="e.g. Please specify correct area dimensions in sq ft and attach updated layout drawings."
+                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-rose-500 transition-colors font-semibold resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setRejectingProjId(null);
+                    setRejectReason('');
+                  }}
+                  className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-xs font-bold text-neutral-600 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Submit Rejection
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
