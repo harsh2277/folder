@@ -90,22 +90,18 @@ export default function AdminProjectsList() {
     <div className="space-y-4">
       {/* Title block */}
       <div className="bg-white border border-neutral-200 rounded-md p-5">
-        <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
+        <div className="flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold text-neutral-900 font-sans">Project Directory</h2>
             <p className="text-sm text-neutral-400 mt-0.5">Review onboarding questionnaires, assign designers, and update statuses.</p>
           </div>
-          <Link
-            href="/admin/projects/create"
-            className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-md transition-colors shadow-sm"
-          >
-            <i className="bx bx-plus text-sm mr-1.5"></i>
-            <span>Add Project</span>
-          </Link>
         </div>
+      </div>
 
+      {/* Content Block */}
+      <div className="bg-white border border-neutral-200 rounded-md p-5">
         {/* Filter Controls Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-4 pb-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3">
           <div className="flex items-center space-x-2 flex-1">
             <div className="relative flex-1 max-w-xs">
               <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
@@ -246,7 +242,7 @@ export default function AdminProjectsList() {
             <div className="overflow-hidden mt-3 border border-neutral-100 rounded-md">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-bold text-xs uppercase tracking-wider">
+                  <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-xs uppercase tracking-wider">
                     <th className="py-3 px-4 first:pl-5 last:pr-5">Project ID</th>
                     <th className="py-3 px-4 first:pl-5 last:pr-5">Project Name</th>
                     <th className="py-3 px-4 first:pl-5 last:pr-5">Client Representative</th>
@@ -257,14 +253,14 @@ export default function AdminProjectsList() {
                     <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-50 text-neutral-700 font-semibold">
+                <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
                   {filteredProjects.map((proj) => (
                     <tr key={proj.id} className="hover:bg-neutral-50/40 transition-colors">
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-mono text-xs font-semibold text-neutral-900">
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-mono text-xs text-neutral-900">
                         {proj.project_id_serial || 'Generating...'}
                       </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-bold text-neutral-900">{proj.project_name}</td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{proj.client_name}</td>
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900">{proj.project_name}</td>
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500">{proj.client_name}</td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-400 font-sans">{Number(proj.area_sq_ft).toLocaleString()} sq ft</td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-bold border ${

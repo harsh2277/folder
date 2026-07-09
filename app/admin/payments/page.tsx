@@ -320,7 +320,7 @@ export default function AdminPaymentsPage() {
           <div className="overflow-hidden mt-3 border border-neutral-100 rounded-md">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-bold text-xs uppercase tracking-wider">
+                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-xs uppercase tracking-wider">
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Invoice ID</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Project Scope</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Client Representative</th>
@@ -329,7 +329,7 @@ export default function AdminPaymentsPage() {
                   <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Invoice</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-semibold">
+              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
                 {payments
                   .filter(pay => {
                     const matchesSearch = (pay.invoice_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -339,16 +339,16 @@ export default function AdminPaymentsPage() {
                   })
                   .map((pay) => (
                     <tr key={pay.id} className="hover:bg-neutral-50/40 transition-colors">
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-mono text-xs font-semibold text-neutral-900">
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-mono text-xs text-neutral-900">
                         {pay.invoice_number}
                       </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-bold text-neutral-900">
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900">
                         {pay.projects?.project_name || 'Individual Project'}
                       </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500">
                         {pay.projects?.client_name || 'Unassigned'}
                       </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-sans font-extrabold text-neutral-900">
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-sans text-neutral-900">
                         ₹{Number(pay.amount).toLocaleString('en-IN')}
                       </td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5">

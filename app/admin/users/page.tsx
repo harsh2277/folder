@@ -349,7 +349,7 @@ export default function AdminUsersManagement() {
           <div className="overflow-hidden mt-3 border border-neutral-100 rounded-md">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-bold text-xs uppercase tracking-wider">
+                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-xs uppercase tracking-wider">
                   <th className="py-3 px-4 first:pl-5 last:pr-5">User</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Email Address</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Contact Number</th>
@@ -358,16 +358,16 @@ export default function AdminUsersManagement() {
                   <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-semibold">
+              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
                 {filteredUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-neutral-50/40 transition-colors">
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
                         {u.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="font-bold text-neutral-900">{u.name}</span>
+                      <span className="text-neutral-900">{u.name}</span>
                     </td>
-                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{u.email}</td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500">{u.email}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-400 font-sans">{u.mobile_number || 'Not Provided'}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-bold border ${

@@ -183,7 +183,7 @@ export default function ArchitectDashboard() {
           <div className="overflow-hidden mt-3 border border-neutral-100 rounded-md">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-bold text-xs uppercase tracking-wider">
+                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-xs uppercase tracking-wider">
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Project Serial ID</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Project Name</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Client Representative</th>
@@ -191,12 +191,12 @@ export default function ArchitectDashboard() {
                   <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-semibold">
+              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
                 {recentProjects.map((p) => (
                   <tr key={p.id} className="hover:bg-neutral-50/40 transition-colors">
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-mono text-neutral-900">{p.project_id_serial || 'N/A'}</td>
-                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-bold text-neutral-850">{p.project_name}</td>
-                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{p.client_name}</td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-855">{p.project_name}</td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500">{p.client_name}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border ${
                         p.status === 'Closed' || p.status === 'Approved'

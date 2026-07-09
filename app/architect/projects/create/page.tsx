@@ -18,8 +18,6 @@ export default function ArchitectProjectCreationWizard() {
 
   const [step, setStep] = useState(1);
   const [plans, setPlans] = useState<PricingPlan[]>([]);
-  const [designers, setDesigners] = useState<any[]>([]);
-  const [assignedDesignerId, setAssignedDesignerId] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -64,18 +62,8 @@ export default function ArchitectProjectCreationWizard() {
         if (data && data.length > 0) {
           setSelectedPlanId(data[0].id);
         }
-
-        // Fetch designers
-        const { data: designerProfiles } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .eq('role', 'designer');
-        setDesigners(designerProfiles || []);
-        if (designerProfiles && designerProfiles.length > 0) {
-          setAssignedDesignerId(designerProfiles[0].id);
-        }
       } catch (err: any) {
-        console.error('Error loading plans/designers:', err);
+        console.error('Error loading plans:', err);
         // Fallback plans
         setPlans([
           { id: '19acfba5-8ffc-47cf-b1d0-e8cb8ad9ce0d', name: 'Basic Lighting Plan', description: 'Includes basic light layout and luminaire recommendations.', base_price_per_sq_ft: '15.00', min_sq_ft: '500.00' },
@@ -139,7 +127,6 @@ export default function ArchitectProjectCreationWizard() {
         .insert({
           project_id_serial: serial,
           architect_id: user.id,
-          assigned_designer_id: assignedDesignerId || null,
           project_name: projectDetails.projectName,
           client_name: projectDetails.clientName,
           project_type: projectDetails.projectType,
@@ -423,25 +410,7 @@ export default function ArchitectProjectCreationWizard() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Assign Designer *</label>
-                  <select
-                    value={assignedDesignerId}
-                    onChange={(e) => setAssignedDesignerId(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-cyan-500 transition-colors font-semibold cursor-pointer text-neutral-800"
-                  >
-                    {designers.length === 0 ? (
-                      <option value="">No designers available</option>
-                    ) : (
-                      designers.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name} ({d.email})
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
+
 
                 <div className="bg-cyan-50/30 border border-cyan-100 rounded-md p-4 flex flex-col justify-center">
                   <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider mb-1">Estimated Cost Breakdown</span>

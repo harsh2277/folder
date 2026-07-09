@@ -187,8 +187,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Top bar inside the floating white card */}
         <header className="h-16 bg-white border-b border-neutral-100 px-4 md:px-6 flex items-center justify-between flex-shrink-0">
-          {/* Breadcrumbs */}
+          {/* Breadcrumbs & Collapse Toggle */}
           <div className="flex items-center space-x-2 text-sm font-semibold text-neutral-400">
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-1.5 hover:bg-neutral-100 text-neutral-500 hover:text-neutral-950 rounded-md transition-colors mr-2 cursor-pointer flex items-center"
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              <i className="bx bx-menu text-xl"></i>
+            </button>
             <span>Admin</span>
             <i className="bx bx-chevron-right text-sm"></i>
             <span className="text-neutral-800 font-bold">{activeTab}</span>

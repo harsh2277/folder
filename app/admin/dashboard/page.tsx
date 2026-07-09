@@ -10,6 +10,8 @@ export default function AdminDashboard() {
   const [adminName, setAdminName] = useState('Super Admin');
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
+  const [designers, setDesigners] = useState<any[]>([]);
+  const [selectedDesigners, setSelectedDesigners] = useState<Record<string, string>>({});
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingProjId, setRejectingProjId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -42,6 +44,13 @@ export default function AdminDashboard() {
             setAdminName(data.name);
           }
         }
+
+        // Fetch designers
+        const { data: designerProfiles } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .eq('role', 'designer');
+        setDesigners(designerProfiles || []);
 
         const { data: projects } = await supabase
           .from('projects')
@@ -145,9 +154,18 @@ export default function AdminDashboard() {
 
   const handleApproveProject = async (id: string) => {
     try {
+      const designerId = selectedDesigners[id];
+      if (!designerId) {
+        alert('Please select and assign a designer before approving the project.');
+        return;
+      }
+
       const { error } = await supabase
         .from('projects')
-        .update({ status: 'Under Review' })
+        .update({ 
+          status: 'Under Review',
+          assigned_designer_id: designerId
+        })
         .eq('id', id);
 
       if (error) throw error;
@@ -201,8 +219,8 @@ export default function AdminDashboard() {
             href="/admin/projects"
             className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-neutral-950 rounded-md text-sm font-bold transition-all flex items-center space-x-2"
           >
-            <i className="bx bx-plus-circle text-base"></i>
-            <span>Add Project</span>
+            <i className="bx bx-folder text-base"></i>
+            <span>View Projects</span>
           </Link>
           <Link
             href="/admin/users"
@@ -233,19 +251,34 @@ export default function AdminDashboard() {
           <div className="overflow-hidden border border-neutral-100 rounded-md">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-bold text-xs uppercase tracking-wider">
+                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-xs uppercase tracking-wider">
                   <th className="py-2.5 px-4">Project Scope</th>
                   <th className="py-2.5 px-4">Client Name</th>
                   <th className="py-2.5 px-4">Area (Sq Ft)</th>
+                  <th className="py-2.5 px-4">Assign Designer</th>
                   <th className="py-2.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-semibold">
+              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
                 {pendingProjects.map((p) => (
                   <tr key={p.id} className="hover:bg-neutral-55/10 transition-colors">
-                    <td className="py-3 px-4 font-bold text-neutral-900">{p.project_name}</td>
-                    <td className="py-3 px-4 text-neutral-500 font-medium">{p.client_name}</td>
+                    <td className="py-3 px-4 text-neutral-900">{p.project_name}</td>
+                    <td className="py-3 px-4 text-neutral-500">{p.client_name}</td>
                     <td className="py-3 px-4 text-neutral-400 font-sans">{p.area_sq_ft ? p.area_sq_ft.toLocaleString() : 'N/A'}</td>
+                    <td className="py-3 px-4">
+                      <select
+                        value={selectedDesigners[p.id] || ''}
+                        onChange={(e) => setSelectedDesigners(prev => ({ ...prev, [p.id]: e.target.value }))}
+                        className="px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs font-semibold text-neutral-800 cursor-pointer focus:outline-none focus:border-cyan-500 max-w-[200px]"
+                      >
+                        <option value="">-- Choose Designer --</option>
+                        {designers.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} ({d.email})
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
                         <button
@@ -587,7 +620,7 @@ export default function AdminDashboard() {
             <div className="overflow-hidden mt-3 border border-neutral-100 rounded-md">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-bold text-xs uppercase tracking-wider">
+                  <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-xs uppercase tracking-wider">
                     <th className="py-3 px-4 first:pl-5 last:pr-5">Project Title</th>
                     <th className="py-3 px-4 first:pl-5 last:pr-5">Client Representative</th>
                     <th className="py-3 px-4 first:pl-5 last:pr-5">Total Area</th>
@@ -595,11 +628,11 @@ export default function AdminDashboard() {
                     <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-50 text-neutral-700 font-semibold">
+                <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
                   {recentProjects.map((p) => (
                     <tr key={p.id} className="hover:bg-neutral-50/40 transition-colors">
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-bold text-neutral-900">{p.project_name}</td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{p.client_name}</td>
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900">{p.project_name}</td>
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500">{p.client_name}</td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-400 font-sans">{Number(p.area_sq_ft).toLocaleString()} sq ft</td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                         <span className={`px-2 py-0.5 rounded text-sm font-bold border ${p.status === 'Approved' || p.status === 'Closed'

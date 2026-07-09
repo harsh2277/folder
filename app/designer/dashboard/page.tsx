@@ -160,23 +160,23 @@ export default function DesignerDashboard() {
             <div className="overflow-hidden mt-3 border border-neutral-100 rounded-md">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-bold text-xs uppercase tracking-wider">
+                  <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-xs uppercase tracking-wider">
                     <th className="py-3 px-4 first:pl-5 last:pr-5">Project Name</th>
                     <th className="py-3 px-4 first:pl-5 last:pr-5">Client Representative</th>
                     <th className="py-3 px-4 first:pl-5 last:pr-5">Area (Sq Ft)</th>
                     <th className="py-3 px-4 first:pl-5 last:pr-5">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-50 text-neutral-700 font-semibold">
+                <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
                   {recentProjects.map((proj) => (
                     <tr key={proj.id} className="hover:bg-neutral-50/40 transition-colors">
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-bold text-neutral-850">
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-855">
                         <Link href="/designer/projects" className="hover:text-emerald-600 transition-colors">
                           {proj.project_name}
                         </Link>
                         <span className="text-[10px] text-neutral-400 font-mono block mt-0.5">{proj.project_id_serial || 'NO-ID'}</span>
                       </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{proj.client_name}</td>
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500">{proj.client_name}</td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-mono text-neutral-450">{proj.area_sq_ft ? proj.area_sq_ft.toLocaleString() : 'N/A'}</td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border ${
