@@ -196,12 +196,12 @@ export default function AdminPricingManagement() {
       <div className="bg-white border border-neutral-200 rounded-md p-5 shadow-sm">
         <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
           <div>
-            <h2 className="text-xl font-bold text-neutral-900 font-sans">Pricing & Rate Architecture</h2>
-            <p className="text-sm text-neutral-400 mt-0.5">Control pricing plan defaults, rate per square foot parameters, and active design packages.</p>
+            <h2 className="text-xl font-semibold text-neutral-900 font-sans">Pricing & Rate Architecture</h2>
+            <p className="text-sm text-neutral-450 mt-0.5">Control pricing plan defaults, rate per square foot parameters, and active design packages.</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-md transition-colors shadow-sm cursor-pointer"
+            className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm rounded-md transition-colors shadow-sm cursor-pointer"
           >
             <i className="bx bx-plus text-sm mr-1.5"></i>
             <span>Add Plan</span>
@@ -219,26 +219,26 @@ export default function AdminPricingManagement() {
             >
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-extrabold text-neutral-900 leading-snug">{plan.name}</h3>
-                  <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold border ${
+                  <h3 className="text-sm font-semibold text-neutral-900 leading-snug">{plan.name}</h3>
+                  <span className={`px-2.5 py-0.5 rounded text-sm font-semibold border ${
                     plan.is_active ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-neutral-100 border-neutral-200 text-neutral-400'
                   }`}>
                     {plan.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
-                <p className="text-xs text-neutral-500 font-medium leading-relaxed min-h-[48px] line-clamp-3">{plan.description}</p>
+                <p className="text-sm text-neutral-500 font-medium leading-relaxed min-h-[48px] line-clamp-3">{plan.description}</p>
               </div>
 
               <div className="pt-4 border-t border-neutral-100 space-y-4">
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[10px] text-neutral-450 font-bold uppercase tracking-wider">Base Rate</span>
-                  <span className="text-2xl font-black text-neutral-800 font-sans">
+                  <span className="text-sm text-neutral-450 font-semibold uppercase tracking-wider">Base Rate</span>
+                  <span className="text-xl font-semibold text-neutral-800 font-sans">
                     ₹{Number(plan.base_price_per_sq_ft).toFixed(2)}
-                    <span className="text-xs text-neutral-400 font-semibold"> / sq ft</span>
+                    <span className="text-sm text-neutral-450 font-semibold"> / sq ft</span>
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center text-xs font-semibold text-neutral-500">
+                <div className="flex justify-between items-center text-sm font-semibold text-neutral-500">
                   <span>Minimum Area Threshold</span>
                   <span className="font-sans text-neutral-800">{Number(plan.min_sq_ft).toLocaleString()} sq ft</span>
                 </div>
@@ -246,13 +246,13 @@ export default function AdminPricingManagement() {
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <button
                     onClick={() => startEditing(plan)}
-                    className="py-2 bg-neutral-550/10 hover:bg-neutral-100 text-neutral-800 font-bold text-xs rounded border border-neutral-250/20 transition-colors cursor-pointer"
+                    className="py-2 bg-neutral-550/10 hover:bg-neutral-100 text-neutral-800 font-semibold text-sm rounded border border-neutral-250/20 transition-colors cursor-pointer"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDeletePlan(plan.id, plan.name)}
-                    className="py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded border border-rose-100 transition-colors cursor-pointer"
+                    className="py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-sm rounded border border-rose-100 transition-colors cursor-pointer"
                   >
                     Delete
                   </button>
@@ -268,13 +268,13 @@ export default function AdminPricingManagement() {
         <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
           <div className="bg-white border border-neutral-200 rounded-lg max-w-md w-full p-6 shadow-xl space-y-4 animate-fade-in">
             <div>
-              <h3 className="text-lg font-bold text-neutral-900">Add Pricing Plan</h3>
-              <p className="text-xs text-neutral-400">Introduce a new design package, rate configuration, or minimum threshold.</p>
+              <h3 className="text-lg font-semibold text-neutral-900">Add Pricing Plan</h3>
+              <p className="text-sm text-neutral-450">Introduce a new design package, rate configuration, or minimum threshold.</p>
             </div>
 
             <form onSubmit={handleAddPlan} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Plan Name *</label>
+                <label className="block text-sm font-semibold text-neutral-600 mb-1.5 uppercase tracking-wider">Plan Name *</label>
                 <input
                   type="text"
                   required
@@ -287,7 +287,7 @@ export default function AdminPricingManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Price (₹/sq ft) *</label>
+                  <label className="block text-sm font-semibold text-neutral-600 mb-1.5 uppercase tracking-wider">Price (₹/sq ft) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -299,7 +299,7 @@ export default function AdminPricingManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Min Sq Ft *</label>
+                  <label className="block text-sm font-semibold text-neutral-600 mb-1.5 uppercase tracking-wider">Min Sq Ft *</label>
                   <input
                     type="number"
                     required
@@ -312,7 +312,7 @@ export default function AdminPricingManagement() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Description *</label>
+                <label className="block text-sm font-semibold text-neutral-600 mb-1.5 uppercase tracking-wider">Description *</label>
                 <textarea
                   rows={3}
                   required
@@ -331,7 +331,7 @@ export default function AdminPricingManagement() {
                   onChange={(e) => setNewPlan(prev => ({ ...prev, isActive: e.target.checked }))}
                   className="w-4.5 h-4.5 text-amber-500 border-neutral-350 rounded cursor-pointer"
                 />
-                <label htmlFor="new_is_active" className="text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer">
+                <label htmlFor="new_is_active" className="text-sm font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer">
                   Activate Package Immediately
                 </label>
               </div>
@@ -341,14 +341,14 @@ export default function AdminPricingManagement() {
                   type="button"
                   onClick={() => setShowAddModal(false)}
                   disabled={submitting}
-                  className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-xs font-bold text-neutral-600 transition-colors cursor-pointer"
+                  className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-sm font-semibold text-neutral-600 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-bold transition-colors shadow-sm cursor-pointer disabled:opacity-55"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-sm font-semibold transition-colors shadow-sm cursor-pointer disabled:opacity-55"
                 >
                   {submitting ? 'Adding...' : 'Create Plan'}
                 </button>
@@ -363,13 +363,13 @@ export default function AdminPricingManagement() {
         <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
           <div className="bg-white border border-neutral-200 rounded-lg max-w-md w-full p-6 shadow-xl space-y-4 animate-fade-in">
             <div>
-              <h3 className="text-lg font-bold text-neutral-900">Edit Pricing Plan</h3>
-              <p className="text-xs text-neutral-400">Update rates, minimum dimensions, or descriptions for <strong>{editingPlan.name}</strong>.</p>
+              <h3 className="text-lg font-semibold text-neutral-900">Edit Pricing Plan</h3>
+              <p className="text-sm text-neutral-450">Update rates, minimum dimensions, or descriptions for <strong>{editingPlan.name}</strong>.</p>
             </div>
 
             <form onSubmit={handleUpdatePlan} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Plan Name *</label>
+                <label className="block text-sm font-semibold text-neutral-600 mb-1.5 uppercase tracking-wider">Plan Name *</label>
                 <input
                   type="text"
                   required
@@ -381,7 +381,7 @@ export default function AdminPricingManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Price (₹/sq ft) *</label>
+                  <label className="block text-sm font-semibold text-neutral-600 mb-1.5 uppercase tracking-wider">Price (₹/sq ft) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -392,7 +392,7 @@ export default function AdminPricingManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Min Sq Ft *</label>
+                  <label className="block text-sm font-semibold text-neutral-600 mb-1.5 uppercase tracking-wider">Min Sq Ft *</label>
                   <input
                     type="number"
                     required
@@ -404,7 +404,7 @@ export default function AdminPricingManagement() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase tracking-wider">Description *</label>
+                <label className="block text-sm font-semibold text-neutral-600 mb-1.5 uppercase tracking-wider">Description *</label>
                 <textarea
                   rows={3}
                   required
@@ -422,7 +422,7 @@ export default function AdminPricingManagement() {
                   onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
                   className="w-4.5 h-4.5 text-amber-500 border-neutral-350 rounded cursor-pointer"
                 />
-                <label htmlFor="edit_is_active" className="text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer">
+                <label htmlFor="edit_is_active" className="text-sm font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer">
                   Toggle Plan Status Active
                 </label>
               </div>
@@ -435,14 +435,14 @@ export default function AdminPricingManagement() {
                     setEditingPlan(null);
                   }}
                   disabled={submitting}
-                  className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-xs font-bold text-neutral-600 transition-colors cursor-pointer"
+                  className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-sm font-semibold text-neutral-600 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-bold transition-colors shadow-sm cursor-pointer disabled:opacity-55"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-sm font-semibold transition-colors shadow-sm cursor-pointer disabled:opacity-55"
                 >
                   {submitting ? 'Saving...' : 'Save Updates'}
                 </button>

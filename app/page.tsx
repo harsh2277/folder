@@ -63,14 +63,14 @@ export default async function Home() {
               <span className="text-emerald-400 font-semibold text-xl tracking-tight">Supabase</span>
             </div>
           </div>
-          <span className="text-xs font-mono px-3 py-1 bg-slate-900 border border-slate-800 rounded-full text-slate-400">
+          <span className="text-base font-mono px-3 py-1 bg-slate-900 border border-slate-800 rounded-full text-slate-400">
             Next.js 16 + Supabase SSR
           </span>
         </div>
 
         {/* Hero Section */}
         <div className="space-y-6 mb-12">
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-500 bg-clip-text text-transparent">
             Serverless Database Configured
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl leading-relaxed">
@@ -86,7 +86,7 @@ export default async function Home() {
               <h3 className="font-semibold text-lg text-slate-200">
                 Connection Status: {status.connected ? 'Connected' : 'Connection Error'}
               </h3>
-              <p className="text-sm text-slate-400 font-mono leading-relaxed bg-slate-950/60 p-4 rounded-lg border border-slate-800">
+              <p className="text-base text-slate-400 font-mono leading-relaxed bg-slate-950/60 p-4 rounded-lg border border-slate-800">
                 {status.message}
               </p>
             </div>
@@ -99,7 +99,7 @@ export default async function Home() {
             <h3 className="text-base font-semibold text-slate-200 mb-3 flex items-center gap-2">
               <span className="text-emerald-400 text-lg">📁</span> Folder Structure
             </h3>
-            <ul className="text-sm text-slate-400 space-y-2 font-mono">
+            <ul className="text-base text-slate-400 space-y-2 font-mono">
               <li>
                 <span className="text-emerald-500/80">utils/supabase/</span>
                 <ul className="pl-4 border-l border-slate-800 mt-1 space-y-1">
@@ -116,11 +116,11 @@ export default async function Home() {
             <h3 className="text-base font-semibold text-slate-200 mb-3 flex items-center gap-2">
               <span className="text-emerald-400 text-lg">💡</span> How to use
             </h3>
-            <div className="space-y-4 text-sm text-slate-400">
+            <div className="space-y-4 text-base text-slate-400">
               <p>
                 Import <code className="text-emerald-300 font-mono bg-slate-950 px-1.5 py-0.5 rounded">createClient</code> from server or client utilities depending on your component type:
               </p>
-              <pre className="text-xs bg-slate-950/80 p-3 rounded-lg border border-slate-800 font-mono text-emerald-400/90 overflow-x-auto">
+              <pre className="text-base bg-slate-950/80 p-3 rounded-lg border border-slate-800 font-mono text-emerald-400/90 overflow-x-auto">
 {`// In Server Components/Actions:
 import { createClient } from '@/utils/supabase/server';
 const supabase = await createClient();
@@ -134,7 +134,7 @@ const supabase = createClient();`}
         </div>
 
         {/* Footer */}
-        <footer className="mt-20 pt-8 border-t border-slate-900 text-center text-xs text-slate-600">
+        <footer className="mt-20 pt-8 border-t border-slate-900 text-center text-base text-slate-600">
           Powered by Next.js App Router and Supabase SSR.
         </footer>
       </main>

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Lighting Design Portal",
-  description: "Kelvin Lightings - Lighting Design Portal",
+  description: "Lightlab - Lighting Design Portal",
 };
 
 export default function RootLayout({

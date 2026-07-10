@@ -64,7 +64,7 @@ export default function DesignerProjectsList() {
   };
 
   const statuses = [
-    'All', 'Submitted', 'Payment Pending', 'Under Review', 'In Design', 
+    'All', 'Submitted', 'Payment Pending', 'Under Review', 'In Design',
     'Ready for Client Review', 'Revision Requested', 'Approved', 'Closed'
   ];
 
@@ -90,7 +90,7 @@ export default function DesignerProjectsList() {
   return (
     <div className="space-y-4 font-sans">
       {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold rounded-md flex items-center space-x-2">
+        <div className="p-3 bg-amber-50 border border-emerald-200 text-emerald-800 text-sm font-semibold rounded-md flex items-center space-x-2">
           <i className="bx bx-check-circle text-lg"></i>
           <span>{successMsg}</span>
         </div>
@@ -100,8 +100,8 @@ export default function DesignerProjectsList() {
       <div className="bg-white border border-neutral-200 rounded-md p-5">
         <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
           <div>
-            <h2 className="text-xl font-bold text-neutral-900">Project Design Board</h2>
-            <p className="text-sm text-neutral-400 mt-0.5">Filter project layouts, review onboarding requirements, and update design milestones.</p>
+            <h2 className="text-xl font-semibold text-neutral-900">Project Design Board</h2>
+            <p className="text-sm text-neutral-450 mt-0.5">Filter project layouts, review onboarding requirements, and update design milestones.</p>
           </div>
         </div>
 
@@ -115,13 +115,13 @@ export default function DesignerProjectsList() {
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-emerald-500 transition-colors font-semibold"
+                className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
               />
             </div>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-neutral-50 border border-neutral-200 rounded-md px-3 py-2 text-sm font-bold text-neutral-650 focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
+              className="bg-neutral-50 border border-neutral-200 rounded-md px-3 py-2 text-sm font-semibold text-neutral-650 focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
             >
               {statuses.map(s => (
                 <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s}</option>
@@ -131,12 +131,12 @@ export default function DesignerProjectsList() {
         </div>
 
         {/* Projects Table */}
-        <div className="overflow-hidden mt-4 border border-neutral-100 rounded-md">
-          <table className="w-full text-left border-collapse text-sm">
+        <div className="overflow-x-auto mt-4 border border-neutral-100 rounded-md">
+          <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0">
             <thead>
-              <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-xs uppercase tracking-wider">
+              <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-sm uppercase tracking-wider">
                 <th className="py-3 px-4 first:pl-5 last:pr-5">Project Name</th>
-                <th className="py-3 px-4 first:pl-5 last:pr-5">Client Representative</th>
+                <th className="py-3 px-4 first:pl-5 last:pr-5">Client Name</th>
                 <th className="py-3 px-4 first:pl-5 last:pr-5">Area (Sq Ft)</th>
                 <th className="py-3 px-4 first:pl-5 last:pr-5">Design Status</th>
                 <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Actions</th>
@@ -147,24 +147,23 @@ export default function DesignerProjectsList() {
                 <tr key={proj.id} className="hover:bg-neutral-50/40 transition-colors">
                   <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                     <span className="text-neutral-850">{proj.project_name}</span>
-                    <span className="text-[10px] text-neutral-400 font-mono block mt-0.5">{proj.project_id_serial || 'NO-ID'}</span>
+                    <span className="text-sm text-neutral-450 font-mono block mt-0.5">{proj.project_id_serial || 'NO-ID'}</span>
                   </td>
                   <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500">{proj.client_name}</td>
                   <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-mono text-neutral-450">{proj.area_sq_ft ? proj.area_sq_ft.toLocaleString() : 'N/A'}</td>
                   <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                     {updatingId === proj.id ? (
-                      <span className="text-xs text-neutral-400 font-medium italic">Updating...</span>
+                      <span className="text-sm text-neutral-450 font-medium italic">Updating...</span>
                     ) : (
                       <select
                         value={proj.status}
                         onChange={(e) => handleStatusChange(proj.id, e.target.value)}
-                        className={`text-xs font-bold border rounded px-2.5 py-1 focus:outline-none cursor-pointer ${
-                          proj.status === 'Approved' || proj.status === 'Closed'
-                            ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                            : proj.status === 'In Design'
+                        className={`text-sm font-semibold border rounded px-2.5 py-1 focus:outline-none cursor-pointer ${proj.status === 'Approved' || proj.status === 'Closed'
                             ? 'bg-amber-50 border-amber-100 text-amber-700'
-                            : 'bg-blue-50 border-blue-100 text-blue-700'
-                        }`}
+                            : proj.status === 'In Design'
+                              ? 'bg-amber-50 border-amber-100 text-amber-700'
+                              : 'bg-blue-50 border-blue-100 text-blue-700'
+                          }`}
                       >
                         <option value="Submitted">Submitted</option>
                         <option value="Payment Pending">Payment Pending</option>
@@ -178,7 +177,7 @@ export default function DesignerProjectsList() {
                     )}
                   </td>
                   <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
-                    <span className="text-xs text-neutral-400 font-medium font-sans">
+                    <span className="text-sm text-neutral-450 font-medium font-sans">
                       Added: {new Date(proj.created_at).toLocaleDateString()}
                     </span>
                   </td>

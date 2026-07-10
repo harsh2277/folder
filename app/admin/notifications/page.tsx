@@ -1,7 +1,7 @@
 export default function AdminNotificationsPage() {
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold">Admin Notifications Page</h1>
+      <h1 className="text-2xl font-semibold">Admin Notifications Page</h1>
     </div>
   );
 }

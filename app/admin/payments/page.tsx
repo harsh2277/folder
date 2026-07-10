@@ -182,13 +182,21 @@ export default function AdminPaymentsPage() {
         }
       `}</style>
 
+      {/* Title block */}
+      <div className="flex justify-between items-center print-hide">
+        <div>
+          <h2 className="text-xl font-semibold text-neutral-900 font-sans">Invoice Ledger</h2>
+          <p className="text-sm text-neutral-400 mt-0.5 font-medium">Audit onboarding invoices, track billing milestones, and view pending workspace invoices.</p>
+        </div>
+      </div>
+
       {/* Billing KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print-hide">
         <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between shadow-sm">
           <div className="space-y-1">
-            <span className="text-sm font-bold text-neutral-400 block">Total Invoiced</span>
-            <span className="text-3xl font-black text-neutral-900 font-sans">₹{(totalInvoiced / 100000).toFixed(2)}L</span>
-            <span className="text-sm text-neutral-400 block">Sum of all billing events</span>
+            <span className="text-sm font-semibold text-neutral-400 block">Total Invoiced</span>
+            <span className="text-2xl font-semibold text-neutral-900 font-sans">₹{(totalInvoiced / 100000).toFixed(2)}L</span>
+            <span className="text-xs text-neutral-400 block">Sum of all billing events</span>
           </div>
           <div className="w-12 h-12 bg-blue-50 rounded-md flex items-center justify-center text-blue-600 border border-blue-100">
             <i className="bx bx-receipt text-xl"></i>
@@ -197,9 +205,9 @@ export default function AdminPaymentsPage() {
 
         <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between shadow-sm">
           <div className="space-y-1">
-            <span className="text-sm font-bold text-neutral-400 block">Settled Volume</span>
-            <span className="text-3xl font-black text-neutral-900 font-sans">₹{(completedPayments / 100000).toFixed(2)}L</span>
-            <span className="text-sm text-neutral-400 block">Successfully completed settlements</span>
+            <span className="text-sm font-semibold text-neutral-400 block">Settled Volume</span>
+            <span className="text-2xl font-semibold text-neutral-900 font-sans">₹{(completedPayments / 100000).toFixed(2)}L</span>
+            <span className="text-xs text-neutral-400 block">Successfully completed settlements</span>
           </div>
           <div className="w-12 h-12 bg-emerald-50 rounded-md flex items-center justify-center text-emerald-600 border border-emerald-100">
             <i className="bx bx-badge-check text-xl"></i>
@@ -208,9 +216,9 @@ export default function AdminPaymentsPage() {
 
         <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between shadow-sm">
           <div className="space-y-1">
-            <span className="text-sm font-bold text-neutral-400 block">Outstanding Bills</span>
-            <span className="text-3xl font-black text-neutral-900 font-sans">₹{(pendingPayments / 100000).toFixed(2)}L</span>
-            <span className="text-sm text-neutral-400 block">Invoices waiting for client action</span>
+            <span className="text-sm font-semibold text-neutral-400 block">Outstanding Bills</span>
+            <span className="text-2xl font-semibold text-neutral-900 font-sans">₹{(pendingPayments / 100000).toFixed(2)}L</span>
+            <span className="text-xs text-neutral-400 block">Invoices waiting for client action</span>
           </div>
           <div className="w-12 h-12 bg-amber-50 rounded-md flex items-center justify-center text-amber-600 border border-amber-100">
             <i className="bx bx-time-five text-xl"></i>
@@ -218,14 +226,8 @@ export default function AdminPaymentsPage() {
         </div>
       </div>
 
-      {/* Transaction Logs Table Card */}
-      <div className="bg-white border border-neutral-200 rounded-md p-5 shadow-sm print-hide">
-        <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
-          <div>
-            <h2 className="text-xl font-bold text-neutral-900 font-sans">Invoice Ledger</h2>
-            <p className="text-sm text-neutral-400 mt-0.5">Audit onboarding invoices, track billing milestones, and view pending workspace invoices.</p>
-          </div>
-        </div>
+      {/* Transaction Logs Container - matching project view style */}
+      <div className="space-y-4 print-hide">
 
         {/* Interactive controls bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
@@ -244,7 +246,7 @@ export default function AdminPaymentsPage() {
           <div className="flex items-center bg-neutral-50 border border-neutral-200 rounded-md p-0.5">
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center space-x-1.5 ${viewMode === 'table' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-550 hover:text-neutral-900'
+              className={`px-3 py-1.5 rounded text-sm font-semibold transition-all flex items-center space-x-1.5 ${viewMode === 'table' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-550 hover:text-neutral-900'
                 }`}
             >
               <i className="bx bx-list-ul text-sm"></i>
@@ -252,7 +254,7 @@ export default function AdminPaymentsPage() {
             </button>
             <button
               onClick={() => setViewMode('card')}
-              className={`px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center space-x-1.5 ${viewMode === 'card' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-550 hover:text-neutral-900'
+              className={`px-3 py-1.5 rounded text-sm font-semibold transition-all flex items-center space-x-1.5 ${viewMode === 'card' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-550 hover:text-neutral-900'
                 }`}
             >
               <i className="bx bx-grid-alt text-sm"></i>
@@ -278,10 +280,10 @@ export default function AdminPaymentsPage() {
                 >
                   <div className="space-y-2">
                     <div className="flex justify-between items-start">
-                      <span className="font-mono text-xs font-bold text-neutral-400">
+                      <span className="font-mono text-sm font-semibold text-neutral-400">
                         {pay.invoice_number}
                       </span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${pay.status === 'completed'
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border uppercase ${pay.status === 'completed'
                         ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
                         : pay.status === 'failed'
                           ? 'bg-rose-50 border-rose-100 text-rose-700'
@@ -290,26 +292,26 @@ export default function AdminPaymentsPage() {
                         {pay.status === 'completed' ? 'Paid' : pay.status}
                       </span>
                     </div>
-                    <h3 className="text-base font-bold text-neutral-900 line-clamp-1">{pay.projects?.project_name || 'Individual Project'}</h3>
-                    <p className="text-xs text-neutral-450 font-medium">Representative: {pay.projects?.client_name || 'Unassigned'}</p>
+                    <h3 className="text-sm font-semibold text-neutral-900 line-clamp-1">{pay.projects?.project_name || 'Individual Project'}</h3>
+                    <p className="text-sm text-neutral-450 font-medium">Representative: {pay.projects?.client_name || 'Unassigned'}</p>
                   </div>
 
                   <div className="pt-3 border-t border-neutral-100 space-y-2.5">
                     <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-neutral-400 font-semibold">Invoiced Amount</span>
-                      <span className="text-xl font-black text-neutral-800 font-sans">₹{Number(pay.amount).toLocaleString('en-IN')}</span>
+                      <span className="text-sm text-neutral-400 font-semibold">Invoiced Amount</span>
+                      <span className="text-lg font-semibold text-neutral-800 font-sans">₹{Number(pay.amount).toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between items-center pt-2">
-                      <span className="text-[10px] text-neutral-400 font-sans font-medium">
+                      <span className="text-sm text-neutral-400 font-sans font-medium">
                         {new Date(pay.created_at).toLocaleDateString()}
                       </span>
                       <button
                         onClick={() => setSelectedInvoice(pay)}
-                        className="inline-flex items-center p-2 hover:bg-neutral-50 text-neutral-600 hover:text-amber-600 border border-neutral-200 rounded-md transition-colors cursor-pointer"
+                        className="inline-flex items-center p-2 hover:bg-neutral-50 text-neutral-600 hover:text-amber-600 border border-neutral-200 rounded-md transition-colors cursor-pointer text-sm"
                         title="View Detailed Invoice"
                       >
-                        <i className="bx bx-receipt text-base mr-1"></i>
-                        <span className="text-xs font-bold">Details</span>
+                        <i className="bx bx-receipt text-sm mr-1"></i>
+                        <span className="text-sm font-semibold font-sans">Details</span>
                       </button>
                     </div>
                   </div>
@@ -317,13 +319,13 @@ export default function AdminPaymentsPage() {
               ))}
           </div>
         ) : (
-          <div className="overflow-hidden mt-3 border border-neutral-100 rounded-md">
-            <table className="w-full text-left border-collapse text-sm">
+          <div className="overflow-x-auto mt-3 border border-neutral-100 rounded-md">
+            <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0">
               <thead>
-                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-xs uppercase tracking-wider">
+                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-450 font-normal text-xs uppercase tracking-wider">
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Invoice ID</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Project Scope</th>
-                  <th className="py-3 px-4 first:pl-5 last:pr-5">Client Representative</th>
+                  <th className="py-3 px-4 first:pl-5 last:pr-5">Client Name</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Amount</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Settlement</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Invoice</th>
@@ -339,7 +341,7 @@ export default function AdminPaymentsPage() {
                   })
                   .map((pay) => (
                     <tr key={pay.id} className="hover:bg-neutral-50/40 transition-colors">
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-mono text-xs text-neutral-900">
+                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-mono text-sm text-neutral-900">
                         {pay.invoice_number}
                       </td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900">
@@ -352,7 +354,7 @@ export default function AdminPaymentsPage() {
                         ₹{Number(pay.amount).toLocaleString('en-IN')}
                       </td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold border uppercase ${pay.status === 'completed'
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold border uppercase ${pay.status === 'completed'
                           ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
                           : pay.status === 'failed'
                             ? 'bg-rose-50 border-rose-100 text-rose-700'
@@ -364,7 +366,7 @@ export default function AdminPaymentsPage() {
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
                         <button
                           onClick={() => setSelectedInvoice(pay)}
-                          className="inline-flex items-center px-3 py-1.5 hover:bg-neutral-50 text-neutral-600 hover:text-amber-600 border border-neutral-200 rounded-md transition-colors cursor-pointer text-xs font-bold"
+                          className="inline-flex items-center px-3 py-1.5 hover:bg-neutral-50 text-neutral-600 hover:text-amber-600 border border-neutral-200 rounded-md transition-colors cursor-pointer text-sm font-semibold"
                           title="View Detailed Invoice"
                         >
                           <i className="bx bx-receipt text-sm mr-1.5"></i>
@@ -385,18 +387,18 @@ export default function AdminPaymentsPage() {
           <div className="bg-white border border-neutral-200 rounded-lg max-w-2xl w-full shadow-2xl overflow-hidden print-invoice-card">
             {/* Modal Actions Bar (hidden during print) */}
             <div className="bg-neutral-50 px-6 py-3 border-b border-neutral-200 flex justify-between items-center print:hidden">
-              <span className="text-xs font-bold text-neutral-650 uppercase tracking-wider">Invoice Statement</span>
+              <span className="text-base font-semibold text-neutral-650 uppercase tracking-wider">Invoice Statement</span>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => window.print()}
-                  className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded transition-colors flex items-center space-x-1 cursor-pointer"
+                  className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-base rounded transition-colors flex items-center space-x-1 cursor-pointer"
                 >
-                  <i className="bx bx-printer text-sm"></i>
+                  <i className="bx bx-printer text-base"></i>
                   <span>Print / PDF</span>
                 </button>
                 <button
                   onClick={() => setSelectedInvoice(null)}
-                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 font-bold text-xs rounded transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 font-semibold text-base rounded transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -410,57 +412,57 @@ export default function AdminPaymentsPage() {
               <div className="flex justify-between items-start pb-6 border-b border-neutral-200">
                 <div className="space-y-1">
                   <div className="flex items-center space-x-1.5">
-                    <span className="font-extrabold text-neutral-900 text-lg uppercase tracking-tight">Kelvin Lightings</span>
+                    <span className="font-semibold text-neutral-900 text-lg uppercase tracking-tight">Lightlab</span>
                   </div>
-                  <div className="text-[11px] text-neutral-500 space-y-0.5 font-medium">
+                  <div className="text-base text-neutral-500 space-y-0.5 font-medium">
                     <p className="font-semibold text-neutral-700">Office 402, Signature Plaza</p>
                     <p>Bandra Kurla Complex, Mumbai, MH, 400051</p>
                   </div>
                 </div>
 
-                <div className="text-right text-[11px] text-neutral-500 space-y-0.5 font-medium">
+                <div className="text-right text-base text-neutral-500 space-y-0.5 font-medium">
                   <p><span className="font-semibold text-neutral-700">Phone:</span> +91 22 6123 4567</p>
-                  <p><span className="font-semibold text-neutral-700">Email:</span> billing@kelvinlightings.com</p>
-                  <p><span className="font-semibold text-neutral-700">Website:</span> www.kelvinlightings.com</p>
+                  <p><span className="font-semibold text-neutral-700">Email:</span> billing@lightlab.com</p>
+                  <p><span className="font-semibold text-neutral-700">Website:</span> www.lightlab.com</p>
                 </div>
               </div>
 
               {/* Bill to / Details Panel (Minimalist Layout) */}
-              <div className="mt-8 border border-neutral-200 bg-neutral-50/50 rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 gap-8 text-xs text-neutral-600 print-invoice-details-grid">
+              <div className="mt-8 border border-neutral-200 bg-neutral-50/50 rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 gap-8 text-base text-neutral-600 print-invoice-details-grid">
                 <div className="space-y-6">
                   <div>
-                    <span className="font-bold text-neutral-400 block text-[9px] uppercase tracking-wider mb-1">BILL TO</span>
-                    <p className="font-extrabold text-neutral-900 text-sm">{selectedInvoice.projects?.client_name || 'Client Representative'}</p>
+                    <span className="font-semibold text-neutral-400 block text-base uppercase tracking-wider mb-1">BILL TO</span>
+                    <p className="font-semibold text-neutral-900 text-base">{selectedInvoice.projects?.client_name || 'Client Name'}</p>
                     <p className="text-neutral-500 font-medium mt-0.5">Partner Architect Portal Client</p>
                   </div>
 
                   <div>
-                    <span className="font-bold text-neutral-400 block text-[9px] uppercase tracking-wider mb-1">SHIP TO / SITE LOCATION</span>
-                    <p className="font-extrabold text-neutral-800">{selectedInvoice.projects?.project_name || 'Project Scope'}</p>
-                    <p className="text-neutral-500 font-medium mt-0.5">Project ID: <span className="font-mono font-bold text-neutral-800">{selectedInvoice.projects?.project_id_serial || 'N/A'}</span></p>
+                    <span className="font-semibold text-neutral-400 block text-base uppercase tracking-wider mb-1">SHIP TO / SITE LOCATION</span>
+                    <p className="font-semibold text-neutral-800">{selectedInvoice.projects?.project_name || 'Project Scope'}</p>
+                    <p className="text-neutral-500 font-medium mt-0.5">Project ID: <span className="font-mono font-semibold text-neutral-800">{selectedInvoice.projects?.project_id_serial || 'N/A'}</span></p>
                   </div>
                 </div>
 
                 <div className="flex flex-col justify-between md:items-end space-y-4">
                   <div className="w-full md:w-auto min-w-[220px]">
-                    <span className="font-bold text-neutral-400 block text-[9px] uppercase tracking-wider mb-2 md:text-right">DETAILS</span>
+                    <span className="font-semibold text-neutral-400 block text-base uppercase tracking-wider mb-2 md:text-right">DETAILS</span>
                     <table className="w-full text-left md:text-right border-collapse">
                       <tbody>
                         <tr>
                           <td className="py-1 text-neutral-500 pr-4 md:pr-0 md:text-left">Invoice No:</td>
-                          <td className="py-1 font-bold text-neutral-900 font-mono text-right">{selectedInvoice.invoice_number || 'INV-2026-8879'}</td>
+                          <td className="py-1 font-semibold text-neutral-900 font-mono text-right">{selectedInvoice.invoice_number || 'INV-2026-8879'}</td>
                         </tr>
                         <tr>
                           <td className="py-1 text-neutral-500 pr-4 md:pr-0 md:text-left">Invoice Date:</td>
-                          <td className="py-1 font-bold text-neutral-900 text-right">{new Date(selectedInvoice.created_at).toLocaleDateString()}</td>
+                          <td className="py-1 font-semibold text-neutral-900 text-right">{new Date(selectedInvoice.created_at).toLocaleDateString()}</td>
                         </tr>
                         <tr>
                           <td className="py-1 text-neutral-500 pr-4 md:pr-0 md:text-left">Due Date:</td>
-                          <td className="py-1 font-bold text-neutral-900 text-right">{new Date(new Date(selectedInvoice.created_at).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString()}</td>
+                          <td className="py-1 font-semibold text-neutral-900 text-right">{new Date(new Date(selectedInvoice.created_at).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString()}</td>
                         </tr>
                         <tr>
                           <td className="py-1 text-neutral-550 pr-4 md:pr-0 md:text-left">Status:</td>
-                          <td className="py-1 text-right whitespace-nowrap font-bold uppercase text-[11px]">
+                          <td className="py-1 text-right whitespace-nowrap font-semibold uppercase text-base">
                             <span className={
                               selectedInvoice.status === 'completed'
                                 ? 'text-emerald-600'
@@ -477,10 +479,10 @@ export default function AdminPaymentsPage() {
               </div>
 
               {/* Line Items Table (Clean Table Style) */}
-              <div className="mt-8">
-                <table className="w-full text-left border-collapse text-xs">
+              <div className="mt-8 overflow-x-auto">
+                <table className="w-full text-left border-collapse text-base min-w-[600px] md:min-w-0">
                   <thead>
-                    <tr className="border-t border-b border-neutral-300 text-neutral-500 font-bold uppercase tracking-wider">
+                    <tr className="border-t border-b border-neutral-300 text-neutral-500 font-semibold uppercase tracking-wider">
                       <th className="py-2.5 px-2 w-1/2">Product / Service</th>
                       <th className="py-2.5 px-2 text-right">Quantity</th>
                       <th className="py-2.5 px-2 text-right">Rate</th>
@@ -490,8 +492,8 @@ export default function AdminPaymentsPage() {
                   <tbody className="divide-y divide-neutral-100 text-neutral-700 font-semibold">
                     <tr>
                       <td className="py-4 px-2">
-                        <p className="font-bold text-neutral-900">{selectedInvoice.projects?.pricing_plans?.name || 'Onboarding Package Fee'}</p>
-                        <p className="text-[10px] text-neutral-400 font-medium mt-0.5">Professional custom lighting layouts & Lux simulation configurations.</p>
+                        <p className="font-semibold text-neutral-900">{selectedInvoice.projects?.pricing_plans?.name || 'Onboarding Package Fee'}</p>
+                        <p className="text-base text-neutral-400 font-medium mt-0.5">Professional custom lighting layouts & Lux simulation configurations.</p>
                       </td>
                       <td className="py-4 px-2 text-right font-sans text-neutral-600 whitespace-nowrap">
                         {Number(selectedInvoice.projects?.area_sq_ft || 0).toLocaleString()} sq ft
@@ -499,7 +501,7 @@ export default function AdminPaymentsPage() {
                       <td className="py-4 px-2 text-right font-sans text-neutral-600 whitespace-nowrap">
                         ₹{Number(selectedInvoice.projects?.pricing_plans?.base_price_per_sq_ft || 0).toFixed(2)}/sq ft
                       </td>
-                      <td className="py-4 px-2 text-right font-sans font-bold text-neutral-900 whitespace-nowrap">
+                      <td className="py-4 px-2 text-right font-sans font-semibold text-neutral-900 whitespace-nowrap">
                         ₹{Number(selectedInvoice.amount).toLocaleString('en-IN')}
                       </td>
                     </tr>
@@ -510,32 +512,32 @@ export default function AdminPaymentsPage() {
               {/* Bottom Footer Section */}
               <div className="mt-12 flex justify-between items-start pt-6 border-t border-neutral-200">
                 <div className="max-w-xs space-y-1.5 text-left">
-                  <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Customer Message</span>
-                  <p className="text-[10px] text-neutral-400 font-medium leading-relaxed">
+                  <span className="text-base text-neutral-400 font-semibold uppercase tracking-wider block">Customer Message</span>
+                  <p className="text-base text-neutral-400 font-medium leading-relaxed">
                     Hello!<br />
                     Thank you for your purchase. Please return <br /> this invoice with payment.<br />
                     Thanks!
                   </p>
                 </div>
 
-                <div className="w-80 text-xs text-neutral-500 font-semibold pr-1">
+                <div className="w-80 text-base text-neutral-500 font-semibold pr-1">
                   <table className="w-full text-right border-collapse">
                     <tbody>
                       <tr>
                         <td className="py-1 px-1 text-left text-neutral-500">Subtotal</td>
-                        <td className="py-1 px-1 font-bold text-neutral-855 whitespace-nowrap">₹{Number(selectedInvoice.amount).toLocaleString('en-IN')}</td>
+                        <td className="py-1 px-1 font-semibold text-neutral-855 whitespace-nowrap">₹{Number(selectedInvoice.amount).toLocaleString('en-IN')}</td>
                       </tr>
                       <tr>
                         <td className="py-1 px-1 text-left text-neutral-500">Sales Tax (0%)</td>
-                        <td className="py-1 px-1 font-bold text-neutral-855 whitespace-nowrap">₹0.00</td>
+                        <td className="py-1 px-1 font-semibold text-neutral-855 whitespace-nowrap">₹0.00</td>
                       </tr>
                       <tr>
                         <td className="py-1 px-1 text-left text-neutral-500">Shipping</td>
-                        <td className="py-1 px-1 font-bold text-neutral-855 whitespace-nowrap">₹0.00</td>
+                        <td className="py-1 px-1 font-semibold text-neutral-855 whitespace-nowrap">₹0.00</td>
                       </tr>
                       <tr className="border-t border-neutral-300">
-                        <td className="py-3 px-1 text-left text-[10px] uppercase font-extrabold text-neutral-900">Total</td>
-                        <td className="py-3 px-1 font-extrabold text-lg text-neutral-900 whitespace-nowrap">₹{Number(selectedInvoice.amount).toLocaleString('en-IN')}</td>
+                        <td className="py-3 px-1 text-left text-base uppercase font-semibold text-neutral-900">Total</td>
+                        <td className="py-3 px-1 font-semibold text-lg text-neutral-900 whitespace-nowrap">₹{Number(selectedInvoice.amount).toLocaleString('en-IN')}</td>
                       </tr>
                     </tbody>
                   </table>

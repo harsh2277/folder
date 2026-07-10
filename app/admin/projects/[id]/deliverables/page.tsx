@@ -162,12 +162,12 @@ export default function AdminProjectDeliverables() {
     <div className="space-y-8">
       {/* Navigation */}
       <div>
-        <Link href={`/admin/projects/${project.id}`} className="inline-flex items-center space-x-1 text-xs font-semibold text-neutral-500 hover:text-neutral-900 transition-colors">
+        <Link href={`/admin/projects/${project.id}`} className="inline-flex items-center space-x-1 text-sm font-semibold text-neutral-500 hover:text-neutral-900 transition-colors">
           <i className="bx bx-left-arrow-alt text-sm"></i>
           <span>Back to Project Specifications</span>
         </Link>
         <div className="flex items-center space-x-3 mt-2">
-          <h2 className="text-xl font-bold text-neutral-900">Manage Project Deliverables</h2>
+          <h2 className="text-xl font-semibold text-neutral-900">Manage Project Deliverables</h2>
           <span className="font-mono text-xs px-2 py-0.5 bg-neutral-100 border border-neutral-300 text-neutral-600 rounded-md font-semibold">
             {project.project_id_serial}
           </span>
@@ -178,12 +178,12 @@ export default function AdminProjectDeliverables() {
         
         {/* Left Side: Upload new deliverable */}
         <div className="bg-white border border-neutral-200 rounded-md p-6 space-y-6">
-          <h3 className="text-sm font-bold text-neutral-900 border-b border-neutral-100 pb-3 uppercase tracking-wider">
+          <h3 className="text-sm font-semibold text-neutral-900 border-b border-neutral-100 pb-3 uppercase tracking-wider">
             Upload Deliverable
           </h3>
 
           {message && (
-            <div className={`p-3 rounded-md text-xs font-semibold ${
+            <div className={`p-3 rounded-md text-sm font-semibold ${
               message.startsWith('Upload error') || message.startsWith('Delete error')
                 ? 'bg-red-50 border border-red-200 text-red-800' 
                 : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
@@ -218,9 +218,9 @@ export default function AdminProjectDeliverables() {
                 type="file"
                 required
                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm text-neutral-800 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-neutral-900 file:text-white hover:file:bg-neutral-800 transition-colors"
+                className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm text-neutral-800 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-neutral-900 file:text-white hover:file:bg-neutral-800 transition-colors"
               />
-              <p className="text-xs text-neutral-400 mt-2">Supported types: PDF, DWG, ZIP, Images, Excel</p>
+              <p className="text-sm text-neutral-450 mt-2">Supported types: PDF, DWG, ZIP, Images, Excel</p>
             </div>
 
             <button
@@ -235,12 +235,12 @@ export default function AdminProjectDeliverables() {
 
         {/* Right Side: List of current deliverables */}
         <div className="lg:col-span-2 bg-white border border-neutral-200 rounded-md p-6 space-y-6">
-          <h3 className="text-sm font-bold text-neutral-900 border-b border-neutral-100 pb-3 uppercase tracking-wider">
+          <h3 className="text-sm font-semibold text-neutral-900 border-b border-neutral-100 pb-3 uppercase tracking-wider">
             Current Deliverables
           </h3>
 
           {deliverables.length === 0 ? (
-            <p className="text-sm text-neutral-400 text-center py-8">No design deliverables uploaded for this project yet.</p>
+            <p className="text-sm text-neutral-450 text-center py-8">No design deliverables uploaded for this project yet.</p>
           ) : (
             <div className="divide-y divide-neutral-200">
               {deliverables.map((del) => (
@@ -248,7 +248,7 @@ export default function AdminProjectDeliverables() {
                   <div className="flex items-start space-x-3">
                     <i className="bx bx-file text-neutral-400 text-lg mt-0.5"></i>
                     <div>
-                      <p className="font-bold text-neutral-800">{del.file_name}</p>
+                      <p className="font-semibold text-neutral-800">{del.file_name}</p>
                       <p className="text-xs text-neutral-400 uppercase">
                         {categoryLabels[del.category as keyof typeof categoryLabels]} • {del.file_type} • {(Number(del.file_size) / 1024 / 1024).toFixed(2)} MB
                       </p>
@@ -259,13 +259,13 @@ export default function AdminProjectDeliverables() {
                       href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${del.file_path}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs font-semibold text-amber-600 hover:underline"
+                      className="text-sm font-semibold text-amber-600 hover:underline"
                     >
                       Download
                     </a>
                     <button
                       onClick={() => handleDelete(del.id, del.file_path)}
-                      className="text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
+                      className="text-sm font-semibold text-red-600 hover:text-red-700 transition-colors"
                     >
                       Delete
                     </button>

@@ -87,7 +87,7 @@ export default function LoginPage() {
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Lighting Design Portal</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-neutral-900">Lighting Design Portal</h1>
           <p className="text-sm text-neutral-500 mt-2">Sign in to your account</p>
 
           {/* Quick Demo Login Auto-fill buttons */}
@@ -95,21 +95,21 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => { setEmail('admin@gmail.com'); setPassword('admin123'); }}
-              className="px-2.5 py-1 text-xs font-bold text-neutral-700 bg-neutral-100 border border-neutral-200 rounded hover:bg-neutral-200 transition-all cursor-pointer"
+              className="px-2.5 py-1 text-sm font-semibold text-neutral-700 bg-neutral-100 border border-neutral-200 rounded hover:bg-neutral-200 transition-all cursor-pointer"
             >
               🔑 Admin
             </button>
             <button
               type="button"
               onClick={() => { setEmail('design@gmail.com'); setPassword('design123'); }}
-              className="px-2.5 py-1 text-xs font-bold text-cyan-700 bg-cyan-50 border border-cyan-100 rounded hover:bg-cyan-100 transition-all cursor-pointer"
+              className="px-2.5 py-1 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded hover:bg-amber-100 transition-all cursor-pointer"
             >
               🔑 Architect
             </button>
             <button
               type="button"
               onClick={() => { setEmail('design123@gmail.com'); setPassword('design123'); }}
-              className="px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded hover:bg-emerald-100 transition-all cursor-pointer"
+              className="px-2.5 py-1 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded hover:bg-amber-100 transition-all cursor-pointer"
             >
               🔑 Designer
             </button>

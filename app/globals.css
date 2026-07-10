@@ -19,6 +19,30 @@ html, body {
   background-color: #ffffff !important;
   color: #171717 !important;
   font-family: "Google Sans Flex" !important;
+  /* Fluid base font: 15px on mobile → 16px on desktop */
+  font-size: clamp(15px, 1.1vw, 16px);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Responsive container utility — caps content width at 1920px */
+.content-container {
+  width: 100%;
+  max-width: 1920px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Ensure text never wraps unexpectedly in badges, buttons, tabs */
+.no-wrap {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive table: always allow horizontal scroll on small screens */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 @theme {
@@ -32,4 +56,166 @@ html, body {
   --shadow-xl: none;
   --shadow-2xl: none;
   --shadow-inner: none;
+
+  /* Custom breakpoints matching user's spec */
+  --breakpoint-xs: 375px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1440px;
+  --breakpoint-2xl: 1920px;
+}
+
+/* =============================================
+   Responsive Typography Scale
+   375px  → text-xs/sm
+   768px  → text-sm/base  
+   1024px → text-sm/base
+   1440px → text-sm/base (comfortable)
+   1920px → text-base/lg (spacious)
+   ============================================= */
+
+/* Page section headings */
+.page-title {
+  font-size: 1.125rem;   /* 18px — 375px base */
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 768px) {
+  .page-title { font-size: 1.25rem; } /* 20px */
+}
+
+@media (min-width: 1440px) {
+  .page-title { font-size: 1.375rem; } /* 22px */
+}
+
+@media (min-width: 1920px) {
+  .page-title { font-size: 1.5rem; } /* 24px */
+}
+
+/* Card / section sub-headings */
+.section-title {
+  font-size: 1rem;     /* 16px */
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 1440px) {
+  .section-title { font-size: 1.125rem; } /* 18px */
+}
+
+/* KPI big numbers */
+.kpi-number {
+  font-size: 1.5rem;    /* 24px — mobile */
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .kpi-number { font-size: 1.75rem; }  /* 28px */
+}
+
+@media (min-width: 1440px) {
+  .kpi-number { font-size: 2rem; }     /* 32px */
+}
+
+@media (min-width: 1920px) {
+  .kpi-number { font-size: 2.25rem; } /* 36px */
+}
+
+/* Table header cells */
+.table-th {
+  font-size: 0.75rem;   /* 12px mobile */
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .table-th { font-size: 0.75rem; }  /* 12px */
+}
+
+@media (min-width: 1440px) {
+  .table-th { font-size: 0.8125rem; } /* 13px */
+}
+
+/* Table body cells */
+.table-td {
+  font-size: 0.875rem;  /* 14px mobile */
+}
+
+@media (min-width: 768px) {
+  .table-td { font-size: 0.9375rem; } /* 15px */
+}
+
+@media (min-width: 1440px) {
+  .table-td { font-size: 0.9375rem; } /* 15px */
+}
+
+/* Badge/chip text */
+.badge-text {
+  font-size: 0.75rem;  /* 12px */
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .badge-text { font-size: 0.75rem; } /* 12px */
+}
+
+/* Sidebar nav items */
+.nav-label {
+  font-size: 0.875rem;  /* 14px */
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 1440px) {
+  .nav-label { font-size: 0.9375rem; } /* 15px */
+}
+
+/* Form labels */
+.form-label {
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .form-label { font-size: 0.875rem; } /* 14px */
+}
+
+@media (min-width: 1440px) {
+  .form-label { font-size: 0.9375rem; } /* 15px */
+}
+
+/* =============================================
+   Main content padding scale
+   ============================================= */
+.main-padding {
+  padding: 12px;
+}
+
+@media (min-width: 768px) {
+  .main-padding { padding: 16px; }
+}
+
+@media (min-width: 1024px) {
+  .main-padding { padding: 20px; }
+}
+
+@media (min-width: 1440px) {
+  .main-padding { padding: 24px; }
+}
+
+@media (min-width: 1920px) {
+  .main-padding { padding: 32px; }
 }
