@@ -1,4 +1,5 @@
 import React from 'react';
+import Portal from './Portal';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -17,14 +18,15 @@ export default function ConfirmModal({
 }: ConfirmModalProps) {
   if (!isOpen) return null;
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-modal-title"
-    >
-      <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6">
-        <h2 id="confirm-modal-title" className="text-lg font-semibold text-neutral-900 mb-4">
+    <Portal>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/60 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
+      >
+      <div className="bg-white rounded-md max-w-sm w-full p-6">
+        <h2 id="confirm-modal-title" className="text-lg font-medium text-neutral-900 mb-4">
           {title}
         </h2>
         <p className="text-neutral-600 mb-6">{message}</p>
@@ -47,5 +49,6 @@ export default function ConfirmModal({
         </div>
       </div>
     </div>
+  </Portal>
   );
 }

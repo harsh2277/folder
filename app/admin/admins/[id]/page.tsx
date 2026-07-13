@@ -102,7 +102,7 @@ export default function AdminAdminDetailPage() {
   if (!admin) {
     return (
       <div className="text-center py-12 text-sm">
-        <h2 className="text-lg font-semibold text-neutral-900">Admin profile not found.</h2>
+        <h2 className="text-lg font-medium text-neutral-900">Admin profile not found.</h2>
         <Link href="/admin/users" className="mt-4 inline-flex items-center text-amber-600 hover:underline">
           <i className="bx bx-left-arrow-alt mr-1"></i> Back to User Directory
         </Link>
@@ -122,7 +122,7 @@ export default function AdminAdminDetailPage() {
             <i className="bx bx-left-arrow-alt text-xl"></i>
           </Link>
           <div>
-            <h2 className="text-xl font-semibold text-neutral-900 font-sans">{admin.name}</h2>
+            <h2 className="text-xl font-medium text-neutral-900 font-sans">{admin.name}</h2>
             <p className="text-sm text-neutral-400 mt-0.5 font-medium">Administrator profile and system metrics.</p>
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function AdminAdminDetailPage() {
         <div className="flex items-center space-x-2">
           <a
             href={`mailto:${admin.email}`}
-            className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 bg-white font-semibold text-sm rounded-md transition-colors flex items-center space-x-1.5 text-neutral-700 font-sans"
+            className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 bg-white font-medium text-sm rounded-md transition-colors flex items-center space-x-1.5 text-neutral-700 font-sans"
           >
             <i className="bx bx-envelope text-base"></i>
             <span>Email</span>
@@ -139,30 +139,30 @@ export default function AdminAdminDetailPage() {
       </div>
 
       {/* Profile Details Block */}
-      <div className="bg-white border border-neutral-200 rounded-md p-5 shadow-sm">
-        <h3 className="text-base font-semibold text-neutral-900 mb-4 font-sans">Contact & Account Details</h3>
+      <div className="bg-white border border-neutral-200 rounded-md p-5">
+        <h3 className="text-base font-medium text-neutral-900 mb-4 font-sans">Contact & Account Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <span className="text-neutral-400 font-semibold block mb-0.5">Email Address</span>
-            <span className="text-neutral-800 font-semibold">{admin.email}</span>
+            <span className="text-neutral-400 font-medium block mb-0.5">Email Address</span>
+            <span className="text-neutral-800 font-medium">{admin.email}</span>
           </div>
           <div>
-            <span className="text-neutral-400 font-semibold block mb-0.5">Phone Number</span>
-            <span className="text-neutral-800 font-semibold font-sans">{admin.mobile_number || 'Not Provided'}</span>
+            <span className="text-neutral-400 font-medium block mb-0.5">Phone Number</span>
+            <span className="text-neutral-800 font-medium font-sans">{admin.mobile_number || 'Not Provided'}</span>
           </div>
           <div>
-            <span className="text-neutral-400 font-semibold block mb-0.5">Role Authorization</span>
-            <span className="text-neutral-800 font-semibold capitalize">{admin.role}</span>
+            <span className="text-neutral-400 font-medium block mb-0.5">Role Authorization</span>
+            <span className="text-neutral-800 font-medium capitalize">{admin.role}</span>
           </div>
         </div>
       </div>
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between shadow-sm">
+        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-sm font-semibold text-neutral-400 block">Global Project Directory</span>
-            <span className="text-2xl font-semibold text-neutral-900 font-sans">{globalStats.totalProjects}</span>
+            <span className="text-sm font-medium text-neutral-400 block">Global Project Directory</span>
+            <span className="text-2xl font-medium text-neutral-900 font-sans">{globalStats.totalProjects}</span>
             <span className="text-xs text-neutral-400 block">Total projects registered</span>
           </div>
           <div className="w-12 h-12 bg-blue-50 rounded-md flex items-center justify-center text-blue-600 border border-blue-100">
@@ -170,10 +170,10 @@ export default function AdminAdminDetailPage() {
           </div>
         </div>
 
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between shadow-sm">
+        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-sm font-semibold text-neutral-400 block">Workspace User Accounts</span>
-            <span className="text-2xl font-semibold text-neutral-900 font-sans">{globalStats.totalUsers}</span>
+            <span className="text-sm font-medium text-neutral-400 block">Workspace User Accounts</span>
+            <span className="text-2xl font-medium text-neutral-900 font-sans">{globalStats.totalUsers}</span>
             <span className="text-xs text-neutral-400 block">All system login credentials</span>
           </div>
           <div className="w-12 h-12 bg-emerald-50 rounded-md flex items-center justify-center text-emerald-600 border border-emerald-100">
@@ -181,10 +181,10 @@ export default function AdminAdminDetailPage() {
           </div>
         </div>
 
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between shadow-sm">
+        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-sm font-semibold text-neutral-400 block">Approved Projects</span>
-            <span className="text-2xl font-semibold text-neutral-900 font-sans">{globalStats.approvedProjects}</span>
+            <span className="text-sm font-medium text-neutral-400 block">Approved Projects</span>
+            <span className="text-2xl font-medium text-neutral-900 font-sans">{globalStats.approvedProjects}</span>
             <span className="text-xs text-neutral-400 block">Successfully approved workspaces</span>
           </div>
           <div className="w-12 h-12 bg-indigo-50 rounded-md flex items-center justify-center text-indigo-600 border border-indigo-100">
@@ -192,10 +192,10 @@ export default function AdminAdminDetailPage() {
           </div>
         </div>
 
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between shadow-sm">
+        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-sm font-semibold text-neutral-400 block">Global Settled Volume</span>
-            <span className="text-2xl font-semibold text-neutral-900 font-sans">₹{(globalStats.totalRevenue / 100000).toFixed(2)}L</span>
+            <span className="text-sm font-medium text-neutral-400 block">Global Settled Volume</span>
+            <span className="text-2xl font-medium text-neutral-900 font-sans">₹{(globalStats.totalRevenue / 100000).toFixed(2)}L</span>
             <span className="text-xs text-neutral-400 block">Total payment volume</span>
           </div>
           <div className="w-12 h-12 bg-amber-50 rounded-md flex items-center justify-center text-amber-600 border border-amber-100">

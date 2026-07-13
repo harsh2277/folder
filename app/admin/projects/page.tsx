@@ -5,7 +5,9 @@ import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import EmptyState from '@/components/ui/EmptyState';
+import EmptyState from '../../../components/ui/EmptyState';
+import CustomSelect from '../../../components/ui/CustomSelect';
+import LayoutToggle from '../../../components/ui/LayoutToggle';
 
 export default function AdminProjectsList() {
   const supabase = createClient();
@@ -135,7 +137,7 @@ export default function AdminProjectsList() {
       {/* Title block */}
       <div className="flex justify-between items-center print:hidden">
         <div>
-          <h2 className="text-xl font-semibold text-neutral-900 font-sans">Project Directory</h2>
+          <h2 className="text-xl font-medium text-neutral-900 font-sans">Project Directory</h2>
           <p className="text-sm text-neutral-400 mt-0.5">Review onboarding questionnaires, assign designers, and update statuses.</p>
         </div>
 
@@ -143,7 +145,7 @@ export default function AdminProjectsList() {
         <div className="relative">
           <button
             onClick={() => setShowExportDropdown(!showExportDropdown)}
-            className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-md text-sm font-semibold transition-all flex items-center space-x-2 cursor-pointer shadow-sm"
+            className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-md text-sm font-medium transition-all flex items-center space-x-2 cursor-pointer"
             aria-label="Export options"
           >
             <i className="bx bx-download text-sm"></i>
@@ -157,7 +159,7 @@ export default function AdminProjectsList() {
                 className="fixed inset-0 z-10"
                 onClick={() => setShowExportDropdown(false)}
               />
-              <div className="absolute right-0 mt-1.5 w-40 bg-white border border-neutral-200 rounded-md shadow-lg py-1 z-20">
+              <div className="absolute right-0 mt-1.5 w-40 bg-white border border-neutral-200 rounded-md py-1 z-20">
                 <button
                   onClick={() => {
                     handleExport('csv');
@@ -194,37 +196,35 @@ export default function AdminProjectsList() {
             placeholder="Search by ID, name, or representative..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+            className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
           />
         </div>
 
         <div className="flex items-center space-x-2">
-          <select
+          <CustomSelect
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="bg-neutral-50 border border-neutral-200 rounded-md px-3 py-2 text-sm font-semibold text-neutral-600 focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
-          >
-            <option value="newest">Sort by: Newest</option>
-            <option value="area-desc">Area: High to Low</option>
-            <option value="area-asc">Area: Low to High</option>
-          </select>
+            onChange={setSortBy}
+            options={[
+              { value: 'newest', label: 'Sort by: Newest' },
+              { value: 'area-desc', label: 'Area: High to Low' },
+              { value: 'area-asc', label: 'Area: Low to High' }
+            ]}
+          />
 
-          <select
+          <CustomSelect
             value={selectedArchitectId}
-            onChange={(e) => setSelectedArchitectId(e.target.value)}
-            className="bg-neutral-50 border border-neutral-200 rounded-md px-3 py-2 text-sm font-semibold text-neutral-600 focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
-          >
-            <option value="All">All Architects</option>
-            {architects.map(a => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
+            onChange={setSelectedArchitectId}
+            options={[
+              { value: 'All', label: 'All Architects' },
+              ...architects.map(a => ({ value: a.id, label: a.name }))
+            ]}
+          />
 
           {/* Filter Popover */}
           <div className="relative">
             <button
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className={`px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm font-semibold text-neutral-600 hover:text-neutral-900 transition-colors flex items-center space-x-1.5 cursor-pointer ${selectedStatus !== 'All' ? 'border-amber-500 text-amber-600 bg-amber-50/20' : ''}`}
+              className={`px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors flex items-center space-x-1.5 cursor-pointer ${selectedStatus !== 'All' ? 'border-amber-500 text-amber-600 bg-amber-50/20' : ''}`}
               aria-label="Filter projects"
             >
               <i className="bx bx-filter text-base"></i>
@@ -237,8 +237,8 @@ export default function AdminProjectsList() {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowFilterDropdown(false)}
                 />
-                <div className="absolute right-0 mt-1.5 w-56 bg-white border border-neutral-200 rounded-md shadow-lg py-1 z-20">
-                  <div className="px-3 py-1.5 text-sm font-semibold text-neutral-400 uppercase tracking-wider border-b border-neutral-50">
+                <div className="absolute right-0 mt-1.5 w-56 bg-white border border-neutral-200 rounded-md py-1 z-20">
+                  <div className="px-3 py-1.5 text-sm font-medium text-neutral-400 border-b border-neutral-50">
                     Filter by Status
                   </div>
                   <div className="max-h-60 overflow-y-auto py-1">
@@ -249,10 +249,7 @@ export default function AdminProjectsList() {
                           setSelectedStatus(status);
                           setShowFilterDropdown(false);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${selectedStatus === status
-                          ? 'bg-amber-50 text-amber-700 font-semibold'
-                          : 'text-neutral-700 hover:bg-neutral-50'
-                          }`}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${selectedStatus === status ? 'bg-amber-50 text-amber-700 font-medium' : 'text-neutral-700 hover:bg-neutral-50' }`}
                       >
                         <span>{status}</span>
                         {selectedStatus === status && <i className="bx bx-check text-sm"></i>}
@@ -265,24 +262,7 @@ export default function AdminProjectsList() {
           </div>
 
           {/* View Layout Toggle */}
-          <div className="flex items-center bg-neutral-50 border border-neutral-200 rounded-md p-0.5">
-            <button
-              onClick={() => setViewMode('table')}
-              title="Table View"
-              className={`p-1.5 rounded transition-all flex items-center justify-center ${viewMode === 'table' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-555 hover:text-neutral-900'}`}
-              aria-label="Table view"
-            >
-              <i className="bx bx-list-ul text-sm"></i>
-            </button>
-            <button
-              onClick={() => setViewMode('card')}
-              title="Card View"
-              className={`p-1.5 rounded transition-all flex items-center justify-center ${viewMode === 'card' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-555 hover:text-neutral-900'}`}
-              aria-label="Card view"
-            >
-              <i className="bx bx-grid-alt text-sm"></i>
-            </button>
-          </div>
+          <LayoutToggle viewMode={viewMode} onChange={setViewMode} />
         </div>
       </div>
 
@@ -295,33 +275,26 @@ export default function AdminProjectsList() {
             {filteredProjects.map((proj) => (
               <div
                 key={proj.id}
-                className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 hover:shadow-sm transition-all duration-200"
+                className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 hover: transition-all duration-200"
               >
                 <div className="space-y-2">
                   <div className="flex justify-between items-start">
-                    <span className="font-mono text-sm font-semibold text-neutral-400">
+                    <span className="text-sm font-medium text-neutral-400">
                       {proj.project_id_serial || 'KL-2025-XXXX'}
                     </span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${proj.status === 'Approved' || proj.status === 'Closed'
-                      ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                      : proj.status === 'In Design'
-                        ? 'bg-indigo-50 border-indigo-100 text-indigo-700'
-                        : proj.status === 'Under Review'
-                          ? 'bg-blue-50 border-blue-100 text-blue-700'
-                          : 'bg-neutral-50 border-neutral-200 text-neutral-600'
-                      }`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${proj.status === 'Approved' || proj.status === 'Closed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.status === 'In Design' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : proj.status === 'Under Review' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
                       {proj.status}
                     </span>
                   </div>
-                  <h3 className="text-sm font-semibold text-neutral-900 line-clamp-1">{proj.project_name}</h3>
+                  <h3 className="text-sm font-medium text-neutral-900 line-clamp-1">{proj.project_name}</h3>
                   <p className="text-sm text-neutral-500 font-medium">Representative: {proj.client_name}</p>
                   {proj.site_location && (
-                    <p className="text-sm text-neutral-400 font-semibold flex items-center mt-1">
+                    <p className="text-sm text-neutral-400 font-medium flex items-center mt-1">
                       <i className="bx bx-map mr-1 text-sm text-neutral-500"></i> {proj.site_location}
                     </p>
                   )}
                   {proj.profiles?.name ? (
-                    <p className="text-sm text-neutral-400 font-semibold flex items-center mt-1">
+                    <p className="text-sm text-neutral-400 font-medium flex items-center mt-1">
                       <i className="bx bx-buildings mr-1 text-sm text-neutral-500"></i>
                       <span>Architect:{' '}</span>
                       <Link
@@ -333,7 +306,7 @@ export default function AdminProjectsList() {
                       </Link>
                     </p>
                   ) : (
-                    <p className="text-sm text-neutral-400 font-semibold flex items-center mt-1">
+                    <p className="text-sm text-neutral-400 font-medium flex items-center mt-1">
                       <i className="bx bx-buildings mr-1 text-sm text-neutral-500"></i>
                       <span>Architect: Unassigned</span>
                     </p>
@@ -341,18 +314,13 @@ export default function AdminProjectsList() {
                 </div>
 
                 <div className="pt-3 border-t border-neutral-50 space-y-2.5">
-                  <div className="flex justify-between items-center text-sm font-semibold text-neutral-500">
+                  <div className="flex justify-between items-center text-sm font-medium text-neutral-500">
                     <span>Total Area</span>
                     <span className="font-sans text-neutral-855">{Number(proj.area_sq_ft).toLocaleString()} sq ft</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm font-semibold text-neutral-500">
+                  <div className="flex justify-between items-center text-sm font-medium text-neutral-500">
                     <span>Payment</span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${proj.payment_status === 'paid'
-                      ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                      : proj.payment_status === 'failed'
-                        ? 'bg-rose-50 border-rose-100 text-rose-700'
-                        : 'bg-amber-50 border-amber-100 text-amber-700'
-                      }`}>
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium border ${proj.payment_status === 'paid' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.payment_status === 'failed' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-amber-50 border-amber-100 text-amber-700' }`}>
                       {proj.payment_status}
                     </span>
                   </div>
@@ -363,14 +331,14 @@ export default function AdminProjectsList() {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleDelete(proj.id)}
-                        className="inline-flex items-center px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-sm border border-rose-200 rounded-md transition-colors cursor-pointer"
+                        className="inline-flex items-center px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium text-sm border border-rose-200 rounded-md transition-colors cursor-pointer"
                         aria-label={`Delete project ${proj.project_name}`}
                       >
                         Delete
                       </button>
                       <Link
                         href={`/admin/projects/${proj.id}`}
-                        className="inline-flex items-center px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-semibold text-sm border border-neutral-200 rounded-md transition-colors"
+                        className="inline-flex items-center px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-medium text-sm border border-neutral-200 rounded-md transition-colors"
                         aria-label={`Manage project ${proj.project_name}`}
                       >
                         Manage
@@ -385,7 +353,7 @@ export default function AdminProjectsList() {
           <div className="overflow-x-auto mt-3 border border-neutral-100 rounded-md">
             <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0">
               <thead>
-                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-450 font-normal text-xs uppercase tracking-wider">
+                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-450 font-normal text-xs">
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Project Name</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Client Name</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Location</th>
@@ -404,11 +372,11 @@ export default function AdminProjectsList() {
                     onClick={() => router.push(`/admin/projects/${proj.id}`)}
                     className="hover:bg-neutral-50/40 transition-colors cursor-pointer"
                   >
-                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900 font-semibold">{proj.project_name}</td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900 font-medium">{proj.project_name}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-550">{proj.client_name}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{proj.site_location || 'N/A'}</td>
                     <td
-                      className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-600 font-semibold"
+                      className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-600 font-medium"
                       onClick={(e) => {
                         if (proj.architect_id) {
                           e.stopPropagation();
@@ -424,24 +392,12 @@ export default function AdminProjectsList() {
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-sans">{Number(proj.area_sq_ft).toLocaleString()} sq ft</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${proj.payment_status === 'paid'
-                        ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                        : proj.payment_status === 'failed'
-                          ? 'bg-rose-50 border-rose-100 text-rose-700'
-                          : 'bg-amber-50 border-amber-100 text-amber-700'
-                        }`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${proj.payment_status === 'paid' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.payment_status === 'failed' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-amber-50 border-amber-100 text-amber-700' }`}>
                         {proj.payment_status}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold border ${proj.status === 'Approved' || proj.status === 'Closed'
-                        ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                        : proj.status === 'In Design'
-                          ? 'bg-indigo-50 border-indigo-100 text-indigo-700'
-                          : proj.status === 'Under Review'
-                            ? 'bg-blue-50 border-blue-100 text-blue-700'
-                            : 'bg-neutral-50 border-neutral-200 text-neutral-600'
-                        }`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border ${proj.status === 'Approved' || proj.status === 'Closed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.status === 'In Design' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : proj.status === 'Under Review' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
                         {proj.status}
                       </span>
                     </td>
@@ -455,14 +411,14 @@ export default function AdminProjectsList() {
                             e.stopPropagation();
                             handleDelete(proj.id);
                           }}
-                          className="inline-flex items-center px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-sm border border-rose-200 rounded-md transition-colors cursor-pointer"
+                          className="inline-flex items-center px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium text-sm border border-rose-200 rounded-md transition-colors cursor-pointer"
                         >
                           Delete
                         </button>
                         <Link
                           href={`/admin/projects/${proj.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-semibold text-sm border border-neutral-200 rounded-md transition-colors"
+                          className="inline-flex items-center px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-medium text-sm border border-neutral-200 rounded-md transition-colors"
                         >
                           Manage
                         </Link>
@@ -494,8 +450,41 @@ export default function AdminProjectsList() {
           setShowConfirm(false);
           setProjectToDelete(null);
         }}
-        onCancel={() => { setShowConfirm(false); setProjectToDelete(null); }}
+        onClose={() => { setShowConfirm(false); setProjectToDelete(null); }}
       />
+    </div>
+  );
+}
+
+function SkeletonLoader() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="flex justify-between items-center pb-4 border-b border-neutral-100">
+        <div className="space-y-2">
+          <div className="h-6 w-48 bg-neutral-200 rounded"></div>
+          <div className="h-4 w-80 bg-neutral-100 rounded"></div>
+        </div>
+        <div className="h-10 w-24 bg-neutral-200 rounded"></div>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="h-10 w-64 bg-neutral-100 rounded"></div>
+        <div className="flex space-x-2">
+          <div className="h-10 w-32 bg-neutral-100 rounded"></div>
+          <div className="h-10 w-32 bg-neutral-100 rounded"></div>
+          <div className="h-10 w-20 bg-neutral-100 rounded"></div>
+        </div>
+      </div>
+      <div className="border border-neutral-100 rounded-md p-4 bg-white space-y-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex justify-between items-center py-2 border-b last:border-0 border-neutral-50">
+            <div className="space-y-2 flex-1">
+              <div className="h-4 w-1/4 bg-neutral-200 rounded"></div>
+              <div className="h-3 w-1/6 bg-neutral-100 rounded"></div>
+            </div>
+            <div className="h-4 w-20 bg-neutral-200 rounded"></div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

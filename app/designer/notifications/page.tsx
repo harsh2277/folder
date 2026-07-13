@@ -9,62 +9,42 @@ interface NotificationItem {
   description: string;
   time: string;
   read: boolean;
-  category: 'account' | 'project' | 'finance' | 'system';
+  category: 'assignment' | 'remarks' | 'revision' | 'system';
   icon: string;
   color: string;
 }
 
-export default function AdminNotificationsPage() {
+export default function DesignerNotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: 1,
-      title: 'New architect registration: Amit Patel',
-      description: 'Architect Amit Patel completed onboarding profile verification. Awaiting document audit.',
-      time: '10 mins ago',
+      title: 'New project assigned: Modern Penthouse',
+      description: 'You have been assigned to design the CAD lighting layout and simulation for Suresh Kumar.',
+      time: '15 mins ago',
       read: false,
-      category: 'account',
-      icon: 'bx-user-plus',
+      category: 'assignment',
+      icon: 'bx-folder-plus',
       color: 'text-amber-600 bg-amber-50 border-amber-100'
     },
     {
       id: 2,
-      title: 'New onboarding project: Modern Penthouse',
-      description: 'Project request for 4,200 sq ft onboarding package submitted by Suresh Kumar.',
-      time: '1 hour ago',
+      title: 'Architect submitted design remarks for Luxury Residence',
+      description: 'Architect Amit Patel submitted special instructions regarding layout expectations and lighting mood.',
+      time: '3 hours ago',
       read: false,
-      category: 'project',
-      icon: 'bx-folder-plus',
+      category: 'remarks',
+      icon: 'bx-comment-detail',
       color: 'text-blue-600 bg-blue-50 border-blue-100'
     },
     {
       id: 3,
-      title: 'Payment completed for project KL-2025-0001',
-      description: 'Transaction invoice statement marked as completed. Amount: ₹3,50,000.',
-      time: '3 hours ago',
-      read: true,
-      category: 'finance',
-      icon: 'bx-credit-card',
-      color: 'text-emerald-600 bg-emerald-50 border-emerald-100'
-    },
-    {
-      id: 4,
-      title: 'Revision requested for project KL-2025-0003',
-      description: 'Architect Suresh Kumar requested CAD draft updates on standard fixture placement.',
+      title: 'Revision instructions uploaded for project KL-2025-0003',
+      description: 'A new revision request was assigned. Check specifications tab for feedback.',
       time: '1 day ago',
       read: true,
-      category: 'system',
+      category: 'revision',
       icon: 'bx-git-pull-request',
       color: 'text-rose-600 bg-rose-50 border-rose-100'
-    },
-    {
-      id: 5,
-      title: 'Database optimization successful',
-      description: 'System scheduled backups and index rebuilds completed successfully.',
-      time: '3 days ago',
-      read: true,
-      category: 'system',
-      icon: 'bx-server',
-      color: 'text-neutral-600 bg-neutral-50 border-neutral-100'
     }
   ]);
 
@@ -93,8 +73,8 @@ export default function AdminNotificationsPage() {
       {/* Title Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-neutral-100 gap-4">
         <div>
-          <h1 className="text-xl font-medium text-neutral-900 tracking-tight">System Notifications</h1>
-          <p className="text-sm text-neutral-450 mt-0.5">Audit activity logs, registration queries, and billing transactions.</p>
+          <h1 className="text-xl font-medium text-neutral-900 tracking-tight">Staff Notifications</h1>
+          <p className="text-sm text-neutral-455 mt-0.5">Track project assignments, architect design briefs, and system revision request cues.</p>
         </div>
         <div className="flex items-center space-x-2 shrink-0">
           <button
@@ -104,7 +84,7 @@ export default function AdminNotificationsPage() {
             Mark all as read
           </button>
           <Link
-            href="/admin/dashboard"
+            href="/designer/dashboard"
             className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs rounded-md transition-all cursor-pointer active:scale-[0.98]"
           >
             Back to Dashboard
@@ -134,7 +114,7 @@ export default function AdminNotificationsPage() {
       {/* Notification List Container */}
       <div className="bg-white border border-neutral-200 rounded-md overflow-hidden">
         {filteredNotifications.length === 0 ? (
-          <div className="py-16 text-center text-sm text-neutral-450 font-medium space-y-2 bg-neutral-50/20">
+          <div className="py-16 text-center text-sm text-neutral-455 font-medium space-y-2 bg-neutral-50/20">
             <i className="bx bx-bell-off text-4xl text-neutral-300"></i>
             <p className="font-medium">No notifications here.</p>
             <p className="text-xs text-neutral-400">Everything matches your filters.</p>

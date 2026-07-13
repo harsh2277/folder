@@ -87,7 +87,7 @@ export default function LoginPage() {
               />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold tracking-tight text-neutral-900">Lighting Design Portal</h1>
+          <h1 className="text-xl font-medium tracking-tight text-neutral-900">Lighting Design Portal</h1>
           <p className="text-sm text-neutral-500 mt-2">Sign in to your account</p>
 
           {/* Quick Demo Login Auto-fill buttons */}
@@ -95,21 +95,21 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => { setEmail('admin@gmail.com'); setPassword('admin123'); }}
-              className="px-2.5 py-1 text-sm font-semibold text-neutral-700 bg-neutral-100 border border-neutral-200 rounded hover:bg-neutral-200 transition-all cursor-pointer"
+              className="px-2.5 py-1 text-sm font-medium text-neutral-700 bg-neutral-100 border border-neutral-200 rounded hover:bg-neutral-200 transition-all cursor-pointer"
             >
               🔑 Admin
             </button>
             <button
               type="button"
               onClick={() => { setEmail('design@gmail.com'); setPassword('design123'); }}
-              className="px-2.5 py-1 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded hover:bg-amber-100 transition-all cursor-pointer"
+              className="px-2.5 py-1 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded hover:bg-amber-100 transition-all cursor-pointer"
             >
               🔑 Architect
             </button>
             <button
               type="button"
               onClick={() => { setEmail('design123@gmail.com'); setPassword('design123'); }}
-              className="px-2.5 py-1 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded hover:bg-amber-100 transition-all cursor-pointer"
+              className="px-2.5 py-1 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded hover:bg-amber-100 transition-all cursor-pointer"
             >
               🔑 Designer
             </button>
@@ -140,7 +140,7 @@ export default function LoginPage() {
         {/* Sign In Form */}
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label htmlFor="email" className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-2">
+            <label htmlFor="email" className="block text-xs font-medium text-neutral-600 mb-2">
               Email Address
             </label>
             <input
@@ -158,7 +158,7 @@ export default function LoginPage() {
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <label htmlFor="current-password" className="block text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+              <label htmlFor="current-password" className="block text-xs font-medium text-neutral-600">
                 Password
               </label>
             </div>
@@ -196,7 +196,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 mt-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
+            className="w-full py-3 mt-4 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
           >
             {loading ? (
               <span className="flex items-center justify-center space-x-2">

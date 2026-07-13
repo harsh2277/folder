@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import CustomSelect from '../../../../components/ui/CustomSelect';
+import Portal from '../../../../components/ui/Portal';
 
 interface PricingPlan {
   id: string;
@@ -163,6 +165,22 @@ export default function AdminProjectCreationWizard() {
     return planPrice + addonsPrice;
   };
 
+  const handleAreaChange = (val: string) => {
+    setProjectDetails(prev => ({ ...prev, areaSqFt: val }));
+    const num = Number(val);
+    if (!isNaN(num) && num > 0) {
+      if (num <= 1500) {
+        setSelectedPlanId('essential');
+      } else if (num <= 5000) {
+        setSelectedPlanId('professional');
+      } else if (num <= 10000) {
+        setSelectedPlanId('premium');
+      } else {
+        setSelectedPlanId('enterprise');
+      }
+    }
+  };
+
   const handleNext = () => {
     setErrorMsg('');
     if (activeStep === 1) {
@@ -253,28 +271,19 @@ export default function AdminProjectCreationWizard() {
 
       // 4. Upload File if any
       if (uploadedFile) {
-        const fileExt = uploadedFile.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `projects/${project.id}/${fileName}`;
+        try {
+          const formData = new FormData();
+          formData.append('file', uploadedFile);
+          formData.append('category', fileCategory);
 
-        const { error: storageError } = await supabase.storage
-          .from('project-assets')
-          .upload(filePath, uploadedFile);
-
-        if (storageError) {
+          const uploadRes = await fetch(`/api/projects/${project.id}/files`, {
+            method: 'POST',
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData.error) throw new Error(uploadData.error);
+        } catch (storageError) {
           console.error('Storage upload error:', storageError);
-        } else {
-          await supabase
-            .from('project_files')
-            .insert({
-              project_id: project.id,
-              uploaded_by: user.id,
-              file_name: uploadedFile.name,
-              file_path: filePath,
-              file_size: uploadedFile.size,
-              file_type: uploadedFile.type,
-              category: fileCategory,
-            });
         }
       }
 
@@ -341,11 +350,11 @@ export default function AdminProjectCreationWizard() {
 
       {/* Top Clean Heading (No Breadcrumbs) */}
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-neutral-900 tracking-tight">Configure New Project Layout</h2>
+        <h2 className="text-xl font-medium text-neutral-900 tracking-tight">Configure New Project Layout</h2>
       </div>
 
       {errorMsg && (
-        <div className="p-4 bg-red-55 border border-red-200 rounded-xl text-red-800 text-sm font-semibold flex items-center space-x-2 max-w-3xl mx-auto">
+        <div className="p-4 bg-red-55 border border-red-200 rounded-md text-red-800 text-sm font-medium flex items-center space-x-2 max-w-3xl mx-auto">
           <i className="bx bx-error-circle text-lg animate-pulse"></i>
           <span>{errorMsg}</span>
         </div>
@@ -374,16 +383,10 @@ export default function AdminProjectCreationWizard() {
                 disabled={s.num > activeStep}
                 className="relative z-10 flex flex-col items-center focus:outline-none"
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 border-2 ${isActive
-                    ? 'bg-neutral-950 border-neutral-950 text-amber-500 shadow-sm ring-4 ring-neutral-950/10'
-                    : isCompleted
-                      ? 'bg-amber-500 border-amber-500 text-neutral-950'
-                      : 'bg-white border-neutral-200 text-neutral-400'
-                  }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 border-2 ${isActive ? 'bg-neutral-950 border-neutral-950 text-amber-500 ring-4 ring-neutral-950/10' : isCompleted ? 'bg-amber-500 border-amber-500 text-neutral-950' : 'bg-white border-neutral-200 text-neutral-400' }`}>
                   {isCompleted ? <i className="bx bx-check text-sm"></i> : s.num}
                 </div>
-                <span className={`absolute top-10 text-sm uppercase tracking-wider font-semibold whitespace-nowrap transition-colors duration-300 ${isActive ? 'text-neutral-900 font-semibold' : 'text-neutral-400'
-                  }`}>
+                <span className={`absolute top-10 text-sm font-medium whitespace-nowrap transition-colors duration-300 ${isActive ? 'text-neutral-900 font-medium' : 'text-neutral-400' }`}>
                   {s.label}
                 </span>
               </button>
@@ -397,12 +400,12 @@ export default function AdminProjectCreationWizard() {
 
         {/* Left Side: Active Step Card Only / Full Width for Step 1 */}
         <div className={activeStep === 1 ? "w-full space-y-4" : "lg:col-span-2 space-y-4"}>
-          <div className="bg-white border border-neutral-200 rounded-md p-6.5 shadow-xs min-h-[420px] transition-all duration-300">
+          <div className="bg-white border border-neutral-200 rounded-md p-6.5 min-h-[420px] transition-all duration-300">
             {/* STEP 1: Select Plan */}
             {activeStep === 1 && (
               <div className="space-y-6 animate-fade-in">
                 <div>
-                  <h2 className="text-xl font-semibold text-neutral-900 font-sans">Choose Your Amplex Plan</h2>
+                  <h2 className="text-xl font-medium text-neutral-900 font-sans">Choose Your Amplex Plan</h2>
                   <p className="text-sm text-neutral-450 mt-0.5">Select a plan based on your project size. Pricing is auto-calculated — no negotiations.</p>
                 </div>
 
@@ -414,36 +417,34 @@ export default function AdminProjectCreationWizard() {
                       <div
                         key={p.id}
                         onClick={() => setSelectedPlanId(p.id)}
-                        className={`border rounded-lg p-6 bg-white flex flex-col justify-between space-y-6 hover:shadow-md transition-all duration-200 relative h-full cursor-pointer ${
-                          isSelected ? 'border-amber-500 ring-1 ring-amber-500' : 'border-neutral-200 hover:border-neutral-300'
-                        }`}
+                        className={`border rounded-md p-6 bg-white flex flex-col justify-between space-y-6 hover: transition-all duration-200 relative h-full cursor-pointer ${ isSelected ? 'border-amber-500 ring-1 ring-amber-500' : 'border-neutral-200 hover:border-neutral-300' }`}
                       >
                         {p.popular && (
-                          <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-sm bg-amber-500 text-white px-2.5 py-0.5 rounded font-semibold uppercase tracking-wider z-10 whitespace-nowrap shadow-sm">
+                          <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-sm bg-amber-500 text-white px-2.5 py-0.5 rounded font-medium z-10 whitespace-nowrap">
                             Most Popular
                           </span>
                         )}
 
                         <div className="space-y-4">
                           <div className="flex justify-between items-start">
-                            <span className="text-sm font-semibold text-neutral-400 tracking-wider uppercase">{p.sqft}</span>
+                            <span className="text-sm font-medium text-neutral-400">{p.sqft}</span>
                             {p.discount && (
-                              <span className="px-2 py-0.5 rounded text-sm font-semibold border bg-emerald-50 border-emerald-100 text-emerald-700">
+                              <span className="px-2 py-0.5 rounded text-sm font-medium border bg-emerald-50 border-emerald-100 text-emerald-700">
                                 {p.discount}
                               </span>
                             )}
                           </div>
 
-                          <h3 className="text-sm font-semibold text-neutral-900 leading-snug">{p.name}</h3>
+                          <h3 className="text-sm font-medium text-neutral-900 leading-snug">{p.name}</h3>
 
                           <div className="pt-4 border-t border-neutral-100 space-y-1">
-                            <span className="text-sm text-neutral-400 font-semibold uppercase tracking-wider block">Rate</span>
+                            <span className="text-sm text-neutral-400 font-medium block">Rate</span>
                             {p.customQuote ? (
-                              <span className="text-lg font-semibold text-neutral-900">Custom Quote</span>
+                              <span className="text-lg font-medium text-neutral-900">Custom Quote</span>
                             ) : (
                               <div className="space-y-0.5">
                                 <div className="flex items-baseline gap-1">
-                                  <span className="text-[24px] font-semibold text-neutral-900 leading-none">₹{p.price?.toLocaleString()}</span>
+                                  <span className="text-[24px] font-medium text-neutral-900 leading-none">₹{p.price?.toLocaleString()}</span>
                                   <span className="text-sm text-neutral-400 font-medium"> / flat</span>
                                 </div>
                                 {p.originalPrice && (
@@ -467,7 +468,7 @@ export default function AdminProjectCreationWizard() {
                           {p.bottomFeatures && (
                             <div className="border-t border-neutral-100 pt-3 mt-4 text-left">
                               {p.bottomFeatures.map((bf, idx) => (
-                                <div key={idx} className="text-sm text-neutral-500 font-semibold flex items-center justify-start gap-1.5 mt-0.5">
+                                <div key={idx} className="text-sm text-neutral-500 font-medium flex items-center justify-start gap-1.5 mt-0.5">
                                   <i className="bx bx-sync text-neutral-400 text-sm"></i>
                                   <span>{bf}</span>
                                 </div>
@@ -482,11 +483,7 @@ export default function AdminProjectCreationWizard() {
                                 e.stopPropagation();
                                 setSelectedPlanId(p.id);
                               }}
-                              className={`w-full py-2 text-sm font-semibold rounded transition-colors cursor-pointer text-center ${
-                                isSelected
-                                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                                  : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700 border border-neutral-200'
-                              }`}
+                              className={`w-full py-2.5 text-xs font-medium rounded-md transition-all duration-200 cursor-pointer text-center active:scale-[0.98] ${ isSelected ? 'bg-amber-500 hover:bg-amber-600 text-white ' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200' }`}
                             >
                               {isSelected ? 'Selected' : 'Select Plan'}
                             </button>
@@ -500,7 +497,7 @@ export default function AdminProjectCreationWizard() {
                 {/* Add-ons Row */}
                 <div className="border-t border-neutral-100 pt-6 space-y-4">
                   <div>
-                    <h3 className="text-sm font-semibold text-neutral-900 font-sans">Add-on Services</h3>
+                    <h3 className="text-sm font-medium text-neutral-900 font-sans">Add-on Services</h3>
                     <p className="text-sm text-neutral-450 mt-0.5">Optional services to enhance your project delivery.</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -510,26 +507,20 @@ export default function AdminProjectCreationWizard() {
                         <div
                           key={addon.id}
                           onClick={() => handleAddonToggle(addon.id)}
-                          className={`border rounded-lg p-4 flex items-center justify-between cursor-pointer transition-all duration-200 ${
-                            isChecked
-                              ? 'border-amber-500 bg-amber-50/20'
-                              : 'border-neutral-200 hover:border-neutral-300'
-                          }`}
+                          className={`border rounded-md p-4 flex items-center justify-between cursor-pointer transition-all duration-200 ${ isChecked ? 'border-amber-500 bg-amber-50/20' : 'border-neutral-200 hover:border-neutral-300' }`}
                         >
                           <div className="flex items-center space-x-3.5">
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${
-                              isChecked ? 'bg-amber-500 border-amber-500 text-white' : 'border-neutral-300'
-                            }`}>
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${ isChecked ? 'bg-amber-500 border-amber-500 text-white' : 'border-neutral-300' }`}>
                               {isChecked && <i className="bx bx-check text-sm"></i>}
                             </div>
                             <div>
-                              <span className="text-sm font-semibold text-neutral-700 block">{addon.name}</span>
+                              <span className="text-sm font-medium text-neutral-700 block">{addon.name}</span>
                               <span className="text-sm text-neutral-400 mt-0.5 block">
                                 {addon.id === '3d_vis' ? 'Photorealistic 3D render of lighting design' : 'On-site consultation with our lighting expert'}
                               </span>
                             </div>
                           </div>
-                          <span className="text-sm font-semibold text-amber-600">
+                          <span className="text-sm font-medium text-amber-600">
                             +₹{addon.price.toLocaleString()}
                           </span>
                         </div>
@@ -539,7 +530,7 @@ export default function AdminProjectCreationWizard() {
                 </div>
 
                 {!selectedPlanId && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold rounded-md flex items-center space-x-2">
+                  <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-sm font-medium rounded-md flex items-center space-x-2">
                     <i className="bx bx-info-circle text-lg"></i>
                     <span>Please select a plan to continue to project details.</span>
                   </div>
@@ -550,11 +541,7 @@ export default function AdminProjectCreationWizard() {
                     type="button"
                     onClick={handleNext}
                     disabled={!selectedPlanId}
-                    className={`px-4 py-2 text-sm font-semibold rounded transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm ${
-                      selectedPlanId
-                        ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium rounded transition-colors flex items-center gap-1.5 cursor-pointer ${ selectedPlanId ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-neutral-200 text-neutral-400 cursor-not-allowed' }`}
                   >
                     <span>Continue to Project Details</span>
                     <i className="bx bx-chevron-right text-sm"></i>
@@ -567,169 +554,171 @@ export default function AdminProjectCreationWizard() {
             {activeStep === 2 && (
               <div className="space-y-4 animate-fade-in">
                 <div>
-                  <h3 className="text-sm font-semibold text-neutral-800 uppercase tracking-wider">2. Project Details</h3>
+                  <h3 className="text-sm font-medium text-neutral-800">2. Project Details</h3>
                   <p className="text-sm text-neutral-450 mt-0.5">Provide client layout specifications and dimensions.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="block text-sm font-semibold text-neutral-600">Project Name *</label>
+                    <label className="block text-sm font-medium text-neutral-600">Project Name *</label>
                     <input
                       type="text"
                       value={projectDetails.projectName}
                       onChange={(e) => setProjectDetails(prev => ({ ...prev, projectName: e.target.value }))}
                       placeholder="e.g. Oberoi Residency"
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-sm font-semibold text-neutral-600">Client Name *</label>
+                    <label className="block text-sm font-medium text-neutral-600">Client Name *</label>
                     <input
                       type="text"
                       value={projectDetails.clientName}
                       onChange={(e) => setProjectDetails(prev => ({ ...prev, clientName: e.target.value }))}
                       placeholder="e.g. Mr. Aditya Oberoi"
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-neutral-600 mb-1">Assign Architect</label>
-                      <select
+                      <label className="block text-sm font-medium text-neutral-600 mb-1">Assign Architect</label>
+                      <CustomSelect
                         value={assignedArchitectId}
-                        onChange={(e) => setAssignedArchitectId(e.target.value)}
-                        className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold cursor-pointer"
-                      >
-                        <option value="">Unassigned</option>
-                        {architects.map(a => (
-                          <option key={a.id} value={a.id}>{a.name}</option>
-                        ))}
-                      </select>
+                        onChange={setAssignedArchitectId}
+                        options={[
+                          { value: '', label: 'Unassigned' },
+                          ...architects.map(a => ({ value: a.id, label: a.name }))
+                        ]}
+                        className="w-full"
+                      />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-neutral-600 mb-1">Assign Designer</label>
-                      <select
+                      <label className="block text-sm font-medium text-neutral-600 mb-1">Assign Designer</label>
+                      <CustomSelect
                         value={assignedDesignerId}
-                        onChange={(e) => setAssignedDesignerId(e.target.value)}
-                        className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold cursor-pointer"
-                      >
-                        <option value="">Unassigned</option>
-                        {designers.map(d => (
-                          <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                      </select>
+                        onChange={setAssignedDesignerId}
+                        options={[
+                          { value: '', label: 'Unassigned' },
+                          ...designers.map(d => ({ value: d.id, label: d.name }))
+                        ]}
+                        className="w-full"
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-sm font-semibold text-neutral-600">Project Type *</label>
-                    <select
+                    <label className="block text-sm font-medium text-neutral-600">Project Type *</label>
+                    <CustomSelect
                       value={projectDetails.projectType}
-                      onChange={(e) => setProjectDetails(prev => ({ ...prev, projectType: e.target.value }))}
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold cursor-pointer"
-                    >
-                      <option value="">Select type...</option>
-                      <option value="Residential Villa">Residential Villa</option>
-                      <option value="Residential Apartment">Residential Apartment</option>
-                      <option value="Office Space">Office Space</option>
-                      <option value="Retail Store">Retail Store</option>
-                      <option value="Hotel / Hospitality">Hotel / Hospitality</option>
-                      <option value="Restaurant / Café">Restaurant / Café</option>
-                      <option value="Showroom">Showroom</option>
-                      <option value="Industrial / Warehouse">Industrial / Warehouse</option>
-                      <option value="Healthcare Facility">Healthcare Facility</option>
-                      <option value="Educational Institution">Educational Institution</option>
-                      <option value="Other">Other</option>
-                    </select>
+                      onChange={(val) => setProjectDetails(prev => ({ ...prev, projectType: val }))}
+                      options={[
+                        { value: '', label: 'Select type...' },
+                        { value: 'Residential Villa', label: 'Residential Villa' },
+                        { value: 'Residential Apartment', label: 'Residential Apartment' },
+                        { value: 'Office Space', label: 'Office Space' },
+                        { value: 'Retail Store', label: 'Retail Store' },
+                        { value: 'Hotel / Hospitality', label: 'Hotel / Hospitality' },
+                        { value: 'Restaurant / Café', label: 'Restaurant / Café' },
+                        { value: 'Showroom', label: 'Showroom' },
+                        { value: 'Industrial / Warehouse', label: 'Industrial / Warehouse' },
+                        { value: 'Healthcare Facility', label: 'Healthcare Facility' },
+                        { value: 'Educational Institution', label: 'Educational Institution' },
+                        { value: 'Other', label: 'Other' }
+                      ]}
+                      className="w-full"
+                    />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-sm font-semibold text-neutral-600">Site Location *</label>
+                    <label className="block text-sm font-medium text-neutral-600">Site Location *</label>
                     <input
                       type="text"
                       value={projectDetails.siteLocation}
                       onChange={(e) => setProjectDetails(prev => ({ ...prev, siteLocation: e.target.value }))}
                       placeholder="City, State"
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-sm font-semibold text-neutral-600">Total Area (sq.ft.) *</label>
+                    <label className="block text-sm font-medium text-neutral-600">Total Area (sq.ft.) *</label>
                     <input
                       type="number"
                       value={projectDetails.areaSqFt}
-                      onChange={(e) => setProjectDetails(prev => ({ ...prev, areaSqFt: e.target.value }))}
+                      onChange={(e) => handleAreaChange(e.target.value)}
                       placeholder="e.g. 2500"
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-sm font-semibold text-neutral-600">Fixture Budget Range</label>
-                    <select
+                    <label className="block text-sm font-medium text-neutral-600">Fixture Budget Range</label>
+                    <CustomSelect
                       value={projectDetails.budgetRange}
-                      onChange={(e) => setProjectDetails(prev => ({ ...prev, budgetRange: e.target.value }))}
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-550 transition-colors font-semibold cursor-pointer"
-                    >
-                      <option value="">Select range...</option>
-                      <option value="Under ₹5 Lakhs">Under ₹5 Lakhs</option>
-                      <option value="₹5 – 15 Lakhs">₹5 – 15 Lakhs</option>
-                      <option value="₹15 – 30 Lakhs">₹15 – 30 Lakhs</option>
-                      <option value="₹30 – 60 Lakhs">₹30 – 60 Lakhs</option>
-                      <option value="₹60 Lakhs – 1 Crore">₹60 Lakhs – 1 Crore</option>
-                      <option value="Above ₹1 Crore">Above ₹1 Crore</option>
-                    </select>
+                      onChange={(val) => setProjectDetails(prev => ({ ...prev, budgetRange: val }))}
+                      options={[
+                        { value: '', label: 'Select range...' },
+                        { value: 'Under ₹5 Lakhs', label: 'Under ₹5 Lakhs' },
+                        { value: '₹5 – 15 Lakhs', label: '₹5 – 15 Lakhs' },
+                        { value: '₹15 – 30 Lakhs', label: '₹15 – 30 Lakhs' },
+                        { value: '₹30 – 60 Lakhs', label: '₹30 – 60 Lakhs' },
+                        { value: '₹60 Lakhs – 1 Crore', label: '₹60 Lakhs – 1 Crore' },
+                        { value: 'Above ₹1 Crore', label: 'Above ₹1 Crore' }
+                      ]}
+                      className="w-full"
+                    />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-sm font-semibold text-neutral-600">Delivery Timeline *</label>
-                    <select
+                    <label className="block text-sm font-medium text-neutral-600">Delivery Timeline *</label>
+                    <CustomSelect
                       value={projectDetails.timeline}
-                      onChange={(e) => setProjectDetails(prev => ({ ...prev, timeline: e.target.value }))}
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-555 transition-colors font-semibold cursor-pointer"
-                    >
-                      <option value="">Select timeline...</option>
-                      <option value="Within 1 week">Within 1 week</option>
-                      <option value="1 – 2 weeks">1 – 2 weeks</option>
-                      <option value="2 – 4 weeks">2 – 4 weeks</option>
-                      <option value="1 – 2 months">1 – 2 months</option>
-                      <option value="Flexible">Flexible</option>
-                    </select>
+                      onChange={(val) => setProjectDetails(prev => ({ ...prev, timeline: val }))}
+                      options={[
+                        { value: '', label: 'Select timeline...' },
+                        { value: 'Within 1 week', label: 'Within 1 week' },
+                        { value: '1 – 2 weeks', label: '1 – 2 weeks' },
+                        { value: '2 – 4 weeks', label: '2 – 4 weeks' },
+                        { value: '1 – 2 months', label: '1 – 2 months' },
+                        { value: 'Flexible', label: 'Flexible' }
+                      ]}
+                      className="w-full"
+                    />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-sm font-semibold text-neutral-600">Style Preference</label>
-                    <select
+                    <label className="block text-sm font-medium text-neutral-600">Style Preference</label>
+                    <CustomSelect
                       value={projectDetails.stylePreference}
-                      onChange={(e) => setProjectDetails(prev => ({ ...prev, stylePreference: e.target.value }))}
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold cursor-pointer"
-                    >
-                      <option value="">Select style...</option>
-                      <option value="Modern">Modern</option>
-                      <option value="Minimalist">Minimalist</option>
-                      <option value="Luxury">Luxury</option>
-                      <option value="Industrial">Industrial</option>
-                      <option value="Traditional">Traditional</option>
-                      <option value="Scandinavian">Scandinavian</option>
-                      <option value="Art Deco">Art Deco</option>
-                      <option value="Mid-Century Modern">Mid-Century Modern</option>
-                      <option value="Other">Other</option>
-                    </select>
+                      onChange={(val) => setProjectDetails(prev => ({ ...prev, stylePreference: val }))}
+                      options={[
+                        { value: '', label: 'Select style...' },
+                        { value: 'Modern', label: 'Modern' },
+                        { value: 'Minimalist', label: 'Minimalist' },
+                        { value: 'Luxury', label: 'Luxury' },
+                        { value: 'Industrial', label: 'Industrial' },
+                        { value: 'Traditional', label: 'Traditional' },
+                        { value: 'Scandinavian', label: 'Scandinavian' },
+                        { value: 'Art Deco', label: 'Art Deco' },
+                        { value: 'Mid-Century Modern', label: 'Mid-Century Modern' },
+                        { value: 'Other', label: 'Other' }
+                      ]}
+                      className="w-full"
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 pt-2">
-                  <label className="block text-sm font-semibold text-neutral-600">Notes / Remarks</label>
+                  <label className="block text-sm font-medium text-neutral-600">Notes / Remarks</label>
                   <textarea
                     rows={3}
                     value={projectDetails.notes}
                     onChange={(e) => setProjectDetails(prev => ({ ...prev, notes: e.target.value }))}
                     placeholder="Share details or requirements..."
-                    className="w-full px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
+                    className="w-full px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
                   />
                 </div>
 
@@ -737,14 +726,14 @@ export default function AdminProjectCreationWizard() {
                   <button
                     type="button"
                     onClick={() => setActiveStep(1)}
-                    className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-sm font-semibold text-neutral-600 cursor-pointer"
+                    className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-sm font-medium text-neutral-600 cursor-pointer"
                   >
                     Back
                   </button>
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-neutral-950 text-sm font-semibold rounded-md transition-colors shadow-xs cursor-pointer"
+                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-neutral-950 text-sm font-medium rounded-md transition-colors cursor-pointer"
                   >
                     Continue to Preferences
                   </button>
@@ -756,12 +745,12 @@ export default function AdminProjectCreationWizard() {
             {activeStep === 3 && (
               <div className="space-y-5 animate-fade-in">
                 <div>
-                  <h3 className="text-sm font-semibold text-neutral-800 uppercase tracking-wider">3. Preferences & Attachments</h3>
+                  <h3 className="text-sm font-medium text-neutral-800">3. Preferences & Attachments</h3>
                   <p className="text-sm text-neutral-450 mt-0.5">Submit architectural blueprints and design criteria preferences.</p>
                 </div>
 
                 <div className="space-y-3.5">
-                  <span className="text-sm font-semibold text-neutral-555 block">Design Concepts (Select all that apply)</span>
+                  <span className="text-sm font-medium text-neutral-555 block">Design Concepts (Select all that apply)</span>
                   <div className="flex flex-wrap gap-2">
                     {[
                       'Ambient General Lighting',
@@ -781,10 +770,7 @@ export default function AdminProjectCreationWizard() {
                           key={pref}
                           type="button"
                           onClick={() => handlePreferenceToggle(pref)}
-                          className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-all cursor-pointer ${isChecked
-                              ? 'bg-amber-500 text-neutral-950 border-amber-500'
-                              : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border-neutral-200'
-                            }`}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${isChecked ? 'bg-amber-500 text-neutral-950 border-amber-500' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border-neutral-200' }`}
                         >
                           {pref}
                         </button>
@@ -795,19 +781,19 @@ export default function AdminProjectCreationWizard() {
 
                 <div className="border-t border-neutral-100 pt-4 space-y-4">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <span className="text-sm font-semibold text-neutral-555 block">Attach Floor Layout Plan / Blueprints</span>
+                    <span className="text-sm font-medium text-neutral-555 block">Attach Floor Layout Plan / Blueprints</span>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-neutral-500 font-semibold whitespace-nowrap">File Category:</span>
-                      <select
+                      <span className="text-sm text-neutral-500 font-medium whitespace-nowrap">File Category:</span>
+                      <CustomSelect
                         value={fileCategory}
-                        onChange={(e) => setFileCategory(e.target.value)}
-                        className="px-3 py-1.5 bg-white border border-neutral-200 rounded-md text-sm focus:outline-none focus:border-amber-500 transition-colors font-semibold cursor-pointer"
-                      >
-                        <option value="layout">Architectural Layout</option>
-                        <option value="electrical">Electrical Grid Map</option>
-                        <option value="moodboard">Moodboard Reference</option>
-                        <option value="other">Other Reference File</option>
-                      </select>
+                        onChange={setFileCategory}
+                        options={[
+                          { value: 'layout', label: 'Architectural Layout' },
+                          { value: 'electrical', label: 'Electrical Grid Map' },
+                          { value: 'moodboard', label: 'Moodboard Reference' },
+                          { value: 'other', label: 'Other Reference File' }
+                        ]}
+                      />
                     </div>
                   </div>
 
@@ -820,12 +806,12 @@ export default function AdminProjectCreationWizard() {
                     <i className="bx bx-cloud-upload text-4xl text-neutral-400 mb-2 group-hover:text-amber-500 transition-colors"></i>
                     {uploadedFile ? (
                       <div>
-                        <p className="text-sm font-semibold text-neutral-800">{uploadedFile.name}</p>
+                        <p className="text-sm font-medium text-neutral-800">{uploadedFile.name}</p>
                         <p className="text-sm text-neutral-400 mt-0.5">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                       </div>
                     ) : (
                       <div>
-                        <p className="text-sm font-semibold text-neutral-700">Drag & Drop blueprint layout files or browse</p>
+                        <p className="text-sm font-medium text-neutral-700">Drag & Drop blueprint layout files or browse</p>
                         <p className="text-sm text-neutral-400 mt-0.5">Supports PDF, DWG, DXF, PNG, JPG (Max 25MB)</p>
                       </div>
                     )}
@@ -836,7 +822,7 @@ export default function AdminProjectCreationWizard() {
                   <button
                     type="button"
                     onClick={() => setActiveStep(2)}
-                    className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-sm font-semibold text-neutral-600 cursor-pointer"
+                    className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-sm font-medium text-neutral-600 cursor-pointer"
                   >
                     Back
                   </button>
@@ -844,11 +830,11 @@ export default function AdminProjectCreationWizard() {
                     type="button"
                     onClick={handleSubmit}
                     disabled={submitting}
-                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-neutral-955 font-semibold text-sm rounded-md transition-colors shadow-sm cursor-pointer flex items-center space-x-1.5"
+                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-medium text-sm rounded-md transition-colors cursor-pointer flex items-center space-x-1.5"
                   >
                     {submitting ? (
                       <>
-                        <svg className="animate-spin h-4 w-4 text-neutral-955" fill="none" viewBox="0 0 24 24">
+                        <svg className="animate-spin h-4 w-4 text-neutral-950" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
@@ -871,19 +857,19 @@ export default function AdminProjectCreationWizard() {
         {/* Right Side: STICKY Live Summary & Pricing Sidebar */}
         {activeStep !== 1 && (
           <div className="lg:col-span-1 lg:sticky lg:top-6">
-            <div className="bg-neutral-900 text-white rounded-md p-6.5 shadow-md border border-neutral-800 space-y-5">
+            <div className="bg-neutral-900 text-white rounded-md p-6.5 border border-neutral-800 space-y-5">
 
               <div className="border-b border-white/10 pb-3 flex justify-between items-center">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-white">Live Summary</h3>
-                <span className="text-sm bg-amber-500 text-neutral-950 font-semibold px-2 py-0.5 rounded-full uppercase">Configurator</span>
+                <h3 className="text-sm font-medium text-white">Live Summary</h3>
+                <span className="text-sm bg-amber-500 text-neutral-950 font-medium px-2 py-0.5 rounded-full">Configurator</span>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <span className="text-sm text-neutral-400 font-semibold uppercase tracking-wider block">Package Selection</span>
+                  <span className="text-sm text-neutral-400 font-medium block">Package Selection</span>
                   <div className="flex justify-between items-center bg-white/5 p-3 rounded-md border border-white/10">
-                    <span className="text-sm font-semibold text-white">{selectedPlan?.name}</span>
-                    <span className="text-sm text-amber-400 font-semibold">{selectedPlan?.sqft}</span>
+                    <span className="text-sm font-medium text-white">{selectedPlan?.name}</span>
+                    <span className="text-sm text-amber-400 font-medium">{selectedPlan?.sqft}</span>
                   </div>
                 </div>
 
@@ -893,25 +879,25 @@ export default function AdminProjectCreationWizard() {
                     {projectDetails.projectName && (
                       <div className="flex justify-between">
                         <span className="text-neutral-400">Project Name:</span>
-                        <span className="font-semibold text-white">{projectDetails.projectName}</span>
+                        <span className="font-medium text-white">{projectDetails.projectName}</span>
                       </div>
                     )}
                     {projectDetails.clientName && (
                       <div className="flex justify-between">
                         <span className="text-neutral-400">Client:</span>
-                        <span className="font-semibold text-white">{projectDetails.clientName}</span>
+                        <span className="font-medium text-white">{projectDetails.clientName}</span>
                       </div>
                     )}
                     {projectDetails.areaSqFt && (
                       <div className="flex justify-between">
                         <span className="text-neutral-400">Dimensions:</span>
-                        <span className="font-semibold text-white">{Number(projectDetails.areaSqFt).toLocaleString()} sq ft</span>
+                        <span className="font-medium text-white">{Number(projectDetails.areaSqFt).toLocaleString()} sq ft</span>
                       </div>
                     )}
                     {assignedArchitectId && (
                       <div className="flex justify-between">
                         <span className="text-neutral-400">Architect:</span>
-                        <span className="font-semibold text-white">
+                        <span className="font-medium text-white">
                           {architects.find(a => a.id === assignedArchitectId)?.name || 'Assigned'}
                         </span>
                       </div>
@@ -919,7 +905,7 @@ export default function AdminProjectCreationWizard() {
                     {assignedDesignerId && (
                       <div className="flex justify-between">
                         <span className="text-neutral-400">Designer:</span>
-                        <span className="font-semibold text-white">
+                        <span className="font-medium text-white">
                           {designers.find(d => d.id === assignedDesignerId)?.name || 'Assigned'}
                         </span>
                       </div>
@@ -930,14 +916,14 @@ export default function AdminProjectCreationWizard() {
                 {/* Selected Add-ons */}
                 {selectedAddons.length > 0 && (
                   <div className="space-y-2">
-                    <span className="text-sm text-neutral-455 font-semibold uppercase tracking-wider block">Add-ons Selected</span>
+                    <span className="text-sm text-neutral-455 font-medium block">Add-ons Selected</span>
                     <div className="space-y-1.5">
                       {selectedAddons.map(id => {
                         const item = ADDONS_DATA.find(a => a.id === id);
                         return (
                           <div key={id} className="flex justify-between items-center text-sm bg-white/5 px-2.5 py-1.5 rounded-md border border-white/10">
                             <span className="text-neutral-300 font-medium">{item?.name}</span>
-                            <span className="text-neutral-200 font-semibold">₹{item?.price.toLocaleString()}</span>
+                            <span className="text-neutral-200 font-medium">₹{item?.price.toLocaleString()}</span>
                           </div>
                         );
                       })}
@@ -966,12 +952,12 @@ export default function AdminProjectCreationWizard() {
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center text-sm font-semibold text-white border-t border-white/5 pt-3.5">
+                  <div className="flex justify-between items-center text-sm font-medium text-white border-t border-white/5 pt-3.5">
                     <span>Grand Total Estimate:</span>
                     {selectedPlan?.customQuote ? (
-                      <span className="text-amber-400 font-semibold">Custom Quote</span>
+                      <span className="text-amber-400 font-medium">Custom Quote</span>
                     ) : (
-                      <span className="text-amber-400 font-semibold">₹{Math.round(calculateTotalPrice() * 1.18).toLocaleString()}</span>
+                      <span className="text-amber-400 font-medium">₹{Math.round(calculateTotalPrice() * 1.18).toLocaleString()}</span>
                     )}
                   </div>
                 </div>
@@ -984,61 +970,63 @@ export default function AdminProjectCreationWizard() {
 
       {/* Payment Confirmation Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 shadow-2xl space-y-6">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-amber-55/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-100">
-                <i className="bx bx-credit-card-front text-2xl"></i>
+        <Portal>
+          <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+            <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-6">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-amber-55/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-100">
+                  <i className="bx bx-credit-card-front text-2xl"></i>
+                </div>
+                <h3 className="text-lg font-medium text-neutral-900">Verify Project Payment</h3>
+                <p className="text-sm text-neutral-455 mt-1">Confirm the payment status for <strong>{projectDetails.projectName}</strong> before submitting.</p>
               </div>
-              <h3 className="text-lg font-semibold text-neutral-900">Verify Project Payment</h3>
-              <p className="text-sm text-neutral-455 mt-1">Confirm the payment status for <strong>{projectDetails.projectName}</strong> before submitting.</p>
-            </div>
 
-            <div className="bg-neutral-50 rounded-md p-4 border border-neutral-100 flex justify-between items-center text-sm">
-              <div>
-                <span className="text-sm text-neutral-400 font-semibold uppercase tracking-wider block">Plan Amount</span>
-                <span className="text-sm font-semibold text-neutral-800">{selectedPlan?.name}</span>
+              <div className="bg-neutral-50 rounded-md p-4 border border-neutral-100 flex justify-between items-center text-sm">
+                <div>
+                  <span className="text-sm text-neutral-400 font-medium block">Plan Amount</span>
+                  <span className="text-sm font-medium text-neutral-800">{selectedPlan?.name}</span>
+                </div>
+                <span className="text-sm font-medium text-neutral-900">₹{calculateTotalPrice().toLocaleString()}</span>
               </div>
-              <span className="text-sm font-semibold text-neutral-900">₹{calculateTotalPrice().toLocaleString()}</span>
-            </div>
 
-            <div className="flex flex-col space-y-2">
-              <button
-                onClick={async () => {
-                  setShowPaymentModal(false);
-                  setSubmitting(true);
-                  await saveProject(true);
-                }}
-                disabled={submitting}
-                className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-neutral-955 font-semibold text-sm rounded-md transition-colors shadow-sm flex items-center justify-center space-x-1.5"
-              >
-                <i className="bx bx-check-circle text-sm"></i>
-                <span>Yes, Payment Completed</span>
-              </button>
+              <div className="flex flex-col space-y-2">
+                <button
+                  onClick={async () => {
+                    setShowPaymentModal(false);
+                    setSubmitting(true);
+                    await saveProject(true);
+                  }}
+                  disabled={submitting}
+                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
+                >
+                  <i className="bx bx-check-circle text-sm"></i>
+                  <span>Yes, Payment Completed</span>
+                </button>
 
-              <button
-                onClick={async () => {
-                  setShowPaymentModal(false);
-                  setSubmitting(true);
-                  await saveProject(false);
-                }}
-                disabled={submitting}
-                className="w-full py-2.5 bg-white border border-neutral-200 hover:bg-neutral-55 text-neutral-700 font-semibold text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
-              >
-                <i className="bx bx-time text-sm"></i>
-                <span>No, Pay Later (Pending)</span>
-              </button>
+                <button
+                  onClick={async () => {
+                    setShowPaymentModal(false);
+                    setSubmitting(true);
+                    await saveProject(false);
+                  }}
+                  disabled={submitting}
+                  className="w-full py-2.5 bg-white border border-neutral-200 hover:bg-neutral-55 text-neutral-700 font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
+                >
+                  <i className="bx bx-time text-sm"></i>
+                  <span>No, Pay Later (Pending)</span>
+                </button>
 
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                disabled={submitting}
-                className="w-full py-2 text-sm font-semibold text-neutral-450 hover:text-neutral-600 transition-colors text-center"
-              >
-                Cancel & Review
-              </button>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  disabled={submitting}
+                  className="w-full py-2 text-sm font-medium text-neutral-450 hover:text-neutral-600 transition-colors text-center"
+                >
+                  Cancel & Review
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );

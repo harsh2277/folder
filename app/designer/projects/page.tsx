@@ -1,77 +1,71 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import EmptyState from '../../../components/ui/EmptyState';
+import LayoutToggle from '../../../components/ui/LayoutToggle';
+import CustomSelect from '../../../components/ui/CustomSelect';
 
 export default function DesignerProjectsList() {
-  const supabase = createClient();
-
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>('All');
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+
+  async function fetchProjects() {
+    try {
+      const res = await fetch('/api/designer/projects');
+      const resData = await res.json();
+      setProjects(resData.projects || []);
+    } catch (err) {
+      console.error('Error fetching designer projects:', err);
+      // Fallback
+      setProjects([
+        { id: '1', project_id_serial: 'KL-2025-0001', project_name: 'Luxury Residence', client_name: 'Amit Patel', area_sq_ft: 3500, status: 'In Design', created_at: new Date().toISOString() },
+        { id: '2', project_id_serial: 'KL-2025-0003', project_name: 'Modern Penthouse', client_name: 'Suresh Kumar', area_sq_ft: 4200, status: 'Under Review', created_at: new Date().toISOString() },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchProjects() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const res = await fetch('/api/designer/projects');
-        const resData = await res.json();
-        if (resData.error) throw new Error(resData.error);
-        setProjects(resData.projects || []);
-      } catch (err: any) {
-        console.error('Error fetching projects:', err);
-        // Fallback mock data
-        setProjects([
-          { id: '1', project_id_serial: 'KL-2025-0001', project_name: 'Lotus Penthouse', client_name: 'Vikram Shah', area_sq_ft: 1800, payment_status: 'paid', status: 'In Design', created_at: new Date().toISOString() },
-          { id: '2', project_id_serial: 'KL-2025-0002', project_name: 'Vertex IT Hub', client_name: 'Vertex Corp', area_sq_ft: 12500, payment_status: 'pending', status: 'Under Review', created_at: new Date().toISOString() },
-          { id: '3', project_id_serial: 'KL-2025-0003', project_name: 'Zoya Boutique', client_name: 'Zoya Lifestyle', area_sq_ft: 2200, payment_status: 'paid', status: 'Submitted', created_at: new Date().toISOString() }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchProjects();
-  }, [supabase]);
-
-  const handleStatusChange = async (projectId: string, newStatus: string) => {
-    setUpdatingId(projectId);
-    setSuccessMsg(null);
-    try {
-      const res = await fetch('/api/designer/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, status: newStatus })
-      });
-      const resData = await res.json();
-
-      if (resData.error) throw new Error(resData.error);
-
-      setProjects(prev => prev.map(p => p.id === projectId ? { ...p, status: newStatus } : p));
-      setSuccessMsg('Project status updated successfully!');
-      setTimeout(() => setSuccessMsg(null), 3000);
-    } catch (err: any) {
-      console.error('Error updating status:', err);
-      alert('Failed to update status: ' + err.message);
-    } finally {
-      setUpdatingId(null);
-    }
-  };
+  }, []);
 
   const statuses = [
     'All', 'Submitted', 'Payment Pending', 'Under Review', 'In Design',
     'Ready for Client Review', 'Revision Requested', 'Approved', 'Closed'
   ];
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Approved':
+      case 'Closed':
+        return 'bg-emerald-50 border-emerald-100/50 text-emerald-700';
+      case 'In Design':
+        return 'bg-indigo-50 border-indigo-100/50 text-indigo-700';
+      case 'Ready for Client Review':
+      case 'Under Review':
+        return 'bg-blue-50 border-blue-100/50 text-blue-700';
+      case 'Revision Requested':
+        return 'bg-rose-50 border-rose-100/50 text-rose-700';
+      case 'Payment Pending':
+        return 'bg-amber-50 border-amber-100/50 text-amber-700';
+      default:
+        return 'bg-neutral-50 border-neutral-200 text-neutral-600';
+    }
+  };
+
   const filteredProjects = projects.filter((p) => {
-    const matchesSearch = p.project_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.project_id_serial && p.project_id_serial.toLowerCase().includes(searchQuery.toLowerCase()));
+    const query = searchQuery.toLowerCase();
+    const matchesSearch =
+      p.project_name.toLowerCase().includes(query) ||
+      p.client_name.toLowerCase().includes(query) ||
+      (p.project_id_serial && p.project_id_serial.toLowerCase().includes(query));
     const matchesStatus = selectedStatus === 'All' || p.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
@@ -88,111 +82,147 @@ export default function DesignerProjectsList() {
   }
 
   return (
-    <div className="space-y-4 font-sans">
-      {successMsg && (
-        <div className="p-3 bg-amber-50 border border-emerald-200 text-emerald-800 text-sm font-semibold rounded-md flex items-center space-x-2">
-          <i className="bx bx-check-circle text-lg"></i>
-          <span>{successMsg}</span>
-        </div>
-      )}
-
+    <div className="space-y-6 font-sans">
       {/* Title block */}
-      <div className="bg-white border border-neutral-200 rounded-md p-5">
-        <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
-          <div>
-            <h2 className="text-xl font-semibold text-neutral-900">Project Design Board</h2>
-            <p className="text-sm text-neutral-450 mt-0.5">Filter project layouts, review onboarding requirements, and update design milestones.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-medium text-neutral-900 tracking-tight">Project Design Board</h2>
+          <p className="text-sm text-neutral-450 mt-0.5">Filter project layouts, review onboarding requirements, and manage active designs.</p>
+        </div>
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
+          <div className="relative flex-1 max-w-xs">
+            <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
+            <input
+              type="text"
+              placeholder="Search by ID, name, or client..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+            />
           </div>
+          <CustomSelect
+            value={selectedStatus}
+            onChange={setSelectedStatus}
+            options={statuses.map(s => ({ value: s, label: s === 'All' ? 'All Statuses' : s }))}
+          />
         </div>
 
-        {/* Filter bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
-          <div className="flex items-center space-x-2 flex-1">
-            <div className="relative flex-1 max-w-xs">
-              <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
-              <input
-                type="text"
-                placeholder="Search projects..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-semibold"
-              />
-            </div>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-neutral-50 border border-neutral-200 rounded-md px-3 py-2 text-sm font-semibold text-neutral-650 focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
-            >
-              {statuses.map(s => (
-                <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+        {/* View Mode Toggle */}
+        <LayoutToggle viewMode={viewMode} onChange={setViewMode} />
+      </div>
 
-        {/* Projects Table */}
-        <div className="overflow-x-auto mt-4 border border-neutral-100 rounded-md">
-          <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0">
-            <thead>
-              <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-400 font-normal text-sm uppercase tracking-wider">
-                <th className="py-3 px-4 first:pl-5 last:pr-5">Project Name</th>
-                <th className="py-3 px-4 first:pl-5 last:pr-5">Client Name</th>
-                <th className="py-3 px-4 first:pl-5 last:pr-5">Area (Sq Ft)</th>
-                <th className="py-3 px-4 first:pl-5 last:pr-5">Design Status</th>
-                <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
-              {filteredProjects.map((proj) => (
-                <tr key={proj.id} className="hover:bg-neutral-50/40 transition-colors">
-                  <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                    <span className="text-neutral-850">{proj.project_name}</span>
-                    <span className="text-sm text-neutral-450 font-mono block mt-0.5">{proj.project_id_serial || 'NO-ID'}</span>
-                  </td>
-                  <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500">{proj.client_name}</td>
-                  <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-mono text-neutral-450">{proj.area_sq_ft ? proj.area_sq_ft.toLocaleString() : 'N/A'}</td>
-                  <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                    {updatingId === proj.id ? (
-                      <span className="text-sm text-neutral-450 font-medium italic">Updating...</span>
-                    ) : (
-                      <select
-                        value={proj.status}
-                        onChange={(e) => handleStatusChange(proj.id, e.target.value)}
-                        className={`text-sm font-semibold border rounded px-2.5 py-1 focus:outline-none cursor-pointer ${proj.status === 'Approved' || proj.status === 'Closed'
-                            ? 'bg-amber-50 border-amber-100 text-amber-700'
-                            : proj.status === 'In Design'
-                              ? 'bg-amber-50 border-amber-100 text-amber-700'
-                              : 'bg-blue-50 border-blue-100 text-blue-700'
-                          }`}
-                      >
-                        <option value="Submitted">Submitted</option>
-                        <option value="Payment Pending">Payment Pending</option>
-                        <option value="Under Review">Under Review</option>
-                        <option value="In Design">In Design</option>
-                        <option value="Ready for Client Review">Ready for Client Review</option>
-                        <option value="Revision Requested">Revision Requested</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Closed">Closed</option>
-                      </select>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
-                    <span className="text-sm text-neutral-450 font-medium font-sans">
+      {/* Projects Render Area */}
+      <div>
+        {filteredProjects.length === 0 ? (
+          <EmptyState
+            title="No projects found"
+            description="Try adjusting your search query or status filter to find matching design board projects."
+          />
+        ) : viewMode === 'card' ? (
+          /* Card View */
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {filteredProjects.map((proj) => (
+              <div
+                key={proj.id}
+                onClick={() => router.push(`/designer/projects/${proj.id}`)}
+                className="border border-neutral-200 hover:border-neutral-300 rounded-md p-6 bg-white flex flex-col justify-between space-y-4 hover: transition-all duration-300 group cursor-pointer"
+              >
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-medium text-neutral-400">
+                      {proj.project_id_serial || 'KL-2025-XXXX'}
+                    </span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${getStatusBadge(proj.status)}`}>
+                      {proj.status}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-medium text-neutral-900 group-hover:text-amber-600 transition-colors line-clamp-1">
+                    <Link href={`/designer/projects/${proj.id}`} onClick={(e) => e.stopPropagation()}>
+                      {proj.project_name}
+                    </Link>
+                  </h3>
+                  <p className="text-xs text-neutral-500 font-medium">Client: {proj.client_name}</p>
+                </div>
+
+                <div className="pt-4 border-t border-neutral-100 space-y-3">
+                  <div className="flex justify-between items-center text-xs font-medium text-neutral-500">
+                    <span>Total Area</span>
+                    <span className="text-neutral-805">{Number(proj.area_sq_ft).toLocaleString()} sq ft</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm font-medium text-neutral-500">
+                    <span>Design Status</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-medium border ${getStatusBadge(proj.status)}`}>
+                      {proj.status}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-xs text-neutral-450 font-medium">
                       Added: {new Date(proj.created_at).toLocaleDateString()}
                     </span>
-                  </td>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Table View */
+          <div className="overflow-x-auto border border-neutral-100 rounded-md">
+            <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0">
+              <thead>
+                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-450 font-medium text-xs">
+                  <th className="py-3 px-4 first:pl-5 last:pr-5">Project Name</th>
+                  <th className="py-3 px-4 first:pl-5 last:pr-5">Client Name</th>
+                  <th className="py-3 px-4 first:pl-5 last:pr-5">Area (Sq Ft)</th>
+                  <th className="py-3 px-4 first:pl-5 last:pr-5">Design Status</th>
+                  <th className="py-3 px-4 first:pl-5 last:pr-5">Added Date</th>
+                  <th className="py-3 px-4 first:pl-5 last:pr-5 text-right whitespace-nowrap">Actions</th>
                 </tr>
-              ))}
-              {filteredProjects.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-neutral-400 font-medium">
-                    No matching projects found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-neutral-50 text-neutral-700">
+                {filteredProjects.map((proj) => (
+                  <tr
+                    key={proj.id}
+                    onClick={() => router.push(`/designer/projects/${proj.id}`)}
+                    className="hover:bg-neutral-50/40 transition-colors cursor-pointer"
+                  >
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5">
+                      <Link
+                        href={`/designer/projects/${proj.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-neutral-900 font-medium hover:text-amber-600 transition-colors block"
+                      >
+                        {proj.project_name}
+                      </Link>
+                      <span className="text-xs text-neutral-450 block mt-0.5">{proj.project_id_serial || 'NO-ID'}</span>
+                    </td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 text-sm font-medium">{proj.client_name}</td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-550 text-sm">{proj.area_sq_ft ? proj.area_sq_ft.toLocaleString() : 'N/A'}</td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getStatusBadge(proj.status)}`}>
+                        {proj.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-xs text-neutral-450 font-medium">
+                      {new Date(proj.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <Link
+                        href={`/designer/projects/${proj.id}`}
+                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-neutral-600 border border-neutral-200 rounded-md hover:bg-neutral-50 transition-colors whitespace-nowrap active:scale-[0.98] cursor-pointer"
+                      >
+                        Manage
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

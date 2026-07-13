@@ -78,7 +78,7 @@ html, body {
 /* Page section headings */
 .page-title {
   font-size: 1.125rem;   /* 18px — 375px base */
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
@@ -100,7 +100,7 @@ html, body {
 /* Card / section sub-headings */
 .section-title {
   font-size: 1rem;     /* 16px */
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -113,7 +113,7 @@ html, body {
 /* KPI big numbers */
 .kpi-number {
   font-size: 1.5rem;    /* 24px — mobile */
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -133,9 +133,7 @@ html, body {
 /* Table header cells */
 .table-th {
   font-size: 0.75rem;   /* 12px mobile */
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -173,7 +171,7 @@ html, body {
 /* Sidebar nav items */
 .nav-label {
   font-size: 0.875rem;  /* 14px */
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -186,7 +184,7 @@ html, body {
 /* Form labels */
 .form-label {
   font-size: 0.8125rem; /* 13px */
-  font-weight: 600;
+  font-weight: 500;
 }
 
 @media (min-width: 768px) {
@@ -209,13 +207,43 @@ html, body {
 }
 
 @media (min-width: 1024px) {
-  .main-padding { padding: 20px; }
+  .main-padding { padding: 16px; }
 }
 
 @media (min-width: 1440px) {
-  .main-padding { padding: 24px; }
+  .main-padding { padding: 16px; }
 }
 
 @media (min-width: 1920px) {
-  .main-padding { padding: 32px; }
+  .main-padding { padding: 16px; }
+}
+
+/* Override section gaps to 16px */
+.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1rem * (1 - var(--tw-space-y-reverse))) !important;
+  margin-bottom: calc(1rem * var(--tw-space-y-reverse)) !important;
+}
+
+.gap-6 {
+  gap: 1rem !important;
+}
+
+.space-y-8 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1rem * (1 - var(--tw-space-y-reverse))) !important;
+  margin-bottom: calc(1rem * var(--tw-space-y-reverse)) !important;
+}
+
+.gap-8 {
+  gap: 1rem !important;
+}
+
+/* Ensure all filter selects, dropdowns, options, and buttons show the pointer cursor */
+select,
+option,
+button,
+[role="button"],
+.cursor-pointer {
+  cursor: pointer !important;
 }

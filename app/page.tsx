@@ -60,17 +60,17 @@ export default async function Home() {
             />
             <span className="text-slate-500 text-lg font-light">+</span>
             <div className="flex items-center gap-2">
-              <span className="text-emerald-400 font-semibold text-xl tracking-tight">Supabase</span>
+              <span className="text-emerald-400 font-medium text-xl tracking-tight">Supabase</span>
             </div>
           </div>
-          <span className="text-base font-mono px-3 py-1 bg-slate-900 border border-slate-800 rounded-full text-slate-400">
+          <span className="text-base px-3 py-1 bg-slate-900 border border-slate-800 rounded-full text-slate-400">
             Next.js 16 + Supabase SSR
           </span>
         </div>
 
         {/* Hero Section */}
         <div className="space-y-6 mb-12">
-          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl sm:text-5xl font-medium tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-500 bg-clip-text text-transparent">
             Serverless Database Configured
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl leading-relaxed">
@@ -79,14 +79,14 @@ export default async function Home() {
         </div>
 
         {/* Connection Status Card */}
-        <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-6 sm:p-8 backdrop-blur-sm mb-12 shadow-xl shadow-black/20">
+        <div className="bg-slate-900/50 border border-slate-800/80 rounded-md p-6 sm:p-8 backdrop-blur-sm mb-12 -black/20">
           <div className="flex items-start gap-4">
             <div className={`mt-1 flex-shrink-0 w-3.5 h-3.5 rounded-full ${status.connected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
             <div className="space-y-2">
-              <h3 className="font-semibold text-lg text-slate-200">
+              <h3 className="font-medium text-lg text-slate-200">
                 Connection Status: {status.connected ? 'Connected' : 'Connection Error'}
               </h3>
-              <p className="text-base text-slate-400 font-mono leading-relaxed bg-slate-950/60 p-4 rounded-lg border border-slate-800">
+              <p className="text-base text-slate-400 leading-relaxed bg-slate-950/60 p-4 rounded-md border border-slate-800">
                 {status.message}
               </p>
             </div>
@@ -95,11 +95,11 @@ export default async function Home() {
 
         {/* Integration Details / Next Steps */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-slate-900/30 border border-slate-800/50 hover:border-slate-700/60 transition-all duration-300 rounded-xl p-6">
-            <h3 className="text-base font-semibold text-slate-200 mb-3 flex items-center gap-2">
+          <div className="bg-slate-900/30 border border-slate-800/50 hover:border-slate-700/60 transition-all duration-300 rounded-md p-6">
+            <h3 className="text-base font-medium text-slate-200 mb-3 flex items-center gap-2">
               <span className="text-emerald-400 text-lg">📁</span> Folder Structure
             </h3>
-            <ul className="text-base text-slate-400 space-y-2 font-mono">
+            <ul className="text-base text-slate-400 space-y-2">
               <li>
                 <span className="text-emerald-500/80">utils/supabase/</span>
                 <ul className="pl-4 border-l border-slate-800 mt-1 space-y-1">
@@ -112,15 +112,15 @@ export default async function Home() {
             </ul>
           </div>
 
-          <div className="bg-slate-900/30 border border-slate-800/50 hover:border-slate-700/60 transition-all duration-300 rounded-xl p-6">
-            <h3 className="text-base font-semibold text-slate-200 mb-3 flex items-center gap-2">
+          <div className="bg-slate-900/30 border border-slate-800/50 hover:border-slate-700/60 transition-all duration-300 rounded-md p-6">
+            <h3 className="text-base font-medium text-slate-200 mb-3 flex items-center gap-2">
               <span className="text-emerald-400 text-lg">💡</span> How to use
             </h3>
             <div className="space-y-4 text-base text-slate-400">
               <p>
-                Import <code className="text-emerald-300 font-mono bg-slate-950 px-1.5 py-0.5 rounded">createClient</code> from server or client utilities depending on your component type:
+                Import <code className="text-emerald-300 bg-slate-950 px-1.5 py-0.5 rounded">createClient</code> from server or client utilities depending on your component type:
               </p>
-              <pre className="text-base bg-slate-950/80 p-3 rounded-lg border border-slate-800 font-mono text-emerald-400/90 overflow-x-auto">
+              <pre className="text-base bg-slate-950/80 p-3 rounded-md border border-slate-800 text-emerald-400/90 overflow-x-auto">
 {`// In Server Components/Actions:
 import { createClient } from '@/utils/supabase/server';
 const supabase = await createClient();
