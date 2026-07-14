@@ -383,101 +383,98 @@ export default function AdminPaymentsPage() {
 
             {/* Printable Invoice Page */}
             <div className="p-8 space-y-8 print:p-0 print-invoice-area">
-
               {/* Top Minimalist Header Section */}
               <div className="flex justify-between items-start pb-6 border-b border-neutral-200">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-1.5">
-                    <span className="font-medium text-neutral-900 text-lg tracking-tight">Lightlab</span>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded bg-amber-500 text-neutral-950 flex items-center justify-center font-black text-lg">L</div>
+                    <span className="font-extrabold text-neutral-900 text-xl tracking-tight uppercase">Lightlab</span>
                   </div>
-                  <div className="text-base text-neutral-500 space-y-0.5 font-medium">
-                    <p className="font-medium text-neutral-700">Office 402, Signature Plaza</p>
+                  <div className="text-xs text-neutral-500 space-y-0.5 leading-relaxed font-medium">
+                    <p className="font-semibold text-neutral-800">Office 402, Signature Plaza</p>
                     <p>Bandra Kurla Complex, Mumbai, MH, 400051</p>
                   </div>
                 </div>
 
-                <div className="text-right text-base text-neutral-500 space-y-0.5 font-medium">
-                  <p><span className="font-medium text-neutral-700">Phone:</span> +91 22 6123 4567</p>
-                  <p><span className="font-medium text-neutral-700">Email:</span> billing@lightlab.com</p>
-                  <p><span className="font-medium text-neutral-700">Website:</span> www.lightlab.com</p>
+                <div className="text-right text-xs text-neutral-500 space-y-1.5 leading-relaxed font-medium pt-2">
+                  <p><span className="text-neutral-400 font-bold uppercase text-[9px] tracking-wider mr-1.5">Phone</span> +91 22 6123 4567</p>
+                  <p><span className="text-neutral-400 font-bold uppercase text-[9px] tracking-wider mr-1.5">Email</span> billing@lightlab.com</p>
+                  <p><span className="text-neutral-400 font-bold uppercase text-[9px] tracking-wider mr-1.5">Website</span> lightlab.com</p>
                 </div>
               </div>
 
-              {/* Bill to / Details Panel (Minimalist Layout) */}
-              <div className="mt-8 border border-neutral-200 bg-neutral-50/50 rounded-md p-6 grid grid-cols-1 md:grid-cols-2 gap-8 text-base text-neutral-600 print-invoice-details-grid">
-                <div className="space-y-6">
+              {/* Bill to / Details Panel (Modern 2-Card Layout) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 print-invoice-details-grid">
+                <div className="bg-neutral-50/50 border border-neutral-200/80 rounded-lg p-5 space-y-4">
                   <div>
-                    <span className="font-medium text-neutral-400 block text-base mb-1">BILL TO</span>
-                    <p className="font-medium text-neutral-900 text-base">{selectedInvoice.projects?.client_name || 'Client Name'}</p>
-                    <p className="text-neutral-500 font-medium mt-0.5">Partner Architect Portal Client</p>
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-1">Bill To</span>
+                    <p className="font-bold text-neutral-800 text-sm">{selectedInvoice.projects?.client_name || 'Client Name'}</p>
+                    <p className="text-neutral-500 font-medium text-xs">Partner Architect Client</p>
                   </div>
-
-                  <div>
-                    <span className="font-medium text-neutral-400 block text-base mb-1">SHIP TO / SITE LOCATION</span>
-                    <p className="font-medium text-neutral-800">{selectedInvoice.projects?.project_name || 'Project Scope'}</p>
-                    <p className="text-neutral-500 font-medium mt-0.5">Project ID: <span className="font-medium text-neutral-800">{selectedInvoice.projects?.project_id_serial || 'N/A'}</span></p>
+                  <div className="border-t border-neutral-200/50 pt-3">
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-1">Project Scope</span>
+                    <p className="font-bold text-neutral-800 text-sm truncate">{selectedInvoice.projects?.project_name || 'Project Scope'}</p>
+                    <p className="text-neutral-500 font-medium text-xs mt-0.5">ID: <span className="font-bold text-neutral-700">{selectedInvoice.projects?.project_id_serial || 'N/A'}</span></p>
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-between md:items-end space-y-4">
-                  <div className="w-full md:w-auto min-w-[220px]">
-                    <span className="font-medium text-neutral-400 block text-base mb-2 md:text-right">DETAILS</span>
-                    <table className="w-full text-left md:text-right border-collapse">
-                      <tbody>
-                        <tr>
-                          <td className="py-1 text-neutral-500 pr-4 md:pr-0 md:text-left">Invoice No:</td>
-                          <td className="py-1 font-medium text-neutral-900 text-right">{selectedInvoice.invoice_number || 'INV-2026-8879'}</td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-neutral-500 pr-4 md:pr-0 md:text-left">Invoice Date:</td>
-                          <td className="py-1 font-medium text-neutral-900 text-right">{new Date(selectedInvoice.created_at).toLocaleDateString()}</td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-neutral-500 pr-4 md:pr-0 md:text-left">Due Date:</td>
-                          <td className="py-1 font-medium text-neutral-900 text-right">{new Date(new Date(selectedInvoice.created_at).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString()}</td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-neutral-550 pr-4 md:pr-0 md:text-left">Status:</td>
-                          <td className="py-1 text-right whitespace-nowrap font-medium text-base">
-                            <span className={
-                              selectedInvoice.status === 'completed'
-                                ? 'text-emerald-600'
-                                : selectedInvoice.status === 'failed'
-                                  ? 'text-rose-600'
-                                  : 'text-amber-600'
-                            }>{selectedInvoice.status === 'completed' ? 'Paid' : selectedInvoice.status}</span>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                <div className="bg-neutral-50/50 border border-neutral-200/80 rounded-lg p-5 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-3">Statement Summary</span>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-500">Invoice No:</span>
+                        <span className="font-bold text-neutral-800">{selectedInvoice.invoice_number}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-500">Issue Date:</span>
+                        <span className="font-medium text-neutral-700">{new Date(selectedInvoice.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-500">Due Date:</span>
+                        <span className="font-medium text-neutral-700">{new Date(new Date(selectedInvoice.created_at).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-t border-neutral-200/50 pt-3 mt-3 flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">Status</span>
+                    <span className={`px-2.5 py-0.5 text-[10px] font-black rounded-full uppercase tracking-wider border ${
+                      selectedInvoice.status === 'completed' 
+                        ? 'bg-emerald-50 border-emerald-250 text-emerald-700' 
+                        : selectedInvoice.status === 'failed' 
+                          ? 'bg-rose-50 border-rose-250 text-rose-700' 
+                          : 'bg-amber-50 border-amber-250 text-amber-705'
+                    }`}>
+                      {selectedInvoice.status === 'completed' ? 'Paid' : selectedInvoice.status}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Line Items Table (Clean Table Style) */}
+              {/* Line Items Table */}
               <div className="mt-8 overflow-x-auto">
-                <table className="w-full text-left border-collapse text-base min-w-[600px] md:min-w-0">
+                <table className="w-full text-left border-collapse text-sm min-w-[600px] md:min-w-0">
                   <thead>
-                    <tr className="border-t border-b border-neutral-300 text-neutral-500 font-medium">
-                      <th className="py-2.5 px-2 w-1/2">Product / Service</th>
-                      <th className="py-2.5 px-2 text-right">Quantity</th>
-                      <th className="py-2.5 px-2 text-right">Rate</th>
-                      <th className="py-2.5 px-2 text-right">Amount</th>
+                    <tr className="bg-neutral-900 text-white text-[10px] font-bold uppercase tracking-wider rounded-t-md">
+                      <th className="py-3 px-4 rounded-l-md w-1/2">Product / Service</th>
+                      <th className="py-3 px-4 text-right">Quantity</th>
+                      <th className="py-3 px-4 text-right">Rate</th>
+                      <th className="py-3 px-4 text-right rounded-r-md">Amount</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100 text-neutral-700 font-medium">
-                    <tr>
-                      <td className="py-4 px-2">
-                        <p className="font-medium text-neutral-900">{selectedInvoice.projects?.pricing_plans?.name || 'Onboarding Package Fee'}</p>
-                        <p className="text-base text-neutral-400 font-medium mt-0.5">Professional custom lighting layouts & Lux simulation configurations.</p>
+                    <tr className="hover:bg-neutral-50/20 transition-colors">
+                      <td className="py-5 px-4">
+                        <p className="font-bold text-neutral-900">{selectedInvoice.projects?.pricing_plans?.name || 'Onboarding Package Fee'}</p>
+                        <p className="text-xs text-neutral-500 mt-1 font-normal leading-relaxed max-w-sm">Professional custom lighting layouts & Lux simulation configurations.</p>
                       </td>
-                      <td className="py-4 px-2 text-right font-sans text-neutral-600 whitespace-nowrap">
+                      <td className="py-5 px-4 text-right text-neutral-600 whitespace-nowrap">
                         {Number(selectedInvoice.projects?.area_sq_ft || 0).toLocaleString()} sq ft
                       </td>
-                      <td className="py-4 px-2 text-right font-sans text-neutral-600 whitespace-nowrap">
+                      <td className="py-5 px-4 text-right text-neutral-600 whitespace-nowrap">
                         ₹{Number(selectedInvoice.projects?.pricing_plans?.base_price_per_sq_ft || 0).toFixed(2)}/sq ft
                       </td>
-                      <td className="py-4 px-2 text-right font-sans font-medium text-neutral-900 whitespace-nowrap">
+                      <td className="py-5 px-4 text-right font-bold text-neutral-900 whitespace-nowrap">
                         ₹{Number(selectedInvoice.amount).toLocaleString('en-IN')}
                       </td>
                     </tr>
@@ -486,37 +483,33 @@ export default function AdminPaymentsPage() {
               </div>
 
               {/* Bottom Footer Section */}
-              <div className="mt-12 flex justify-between items-start pt-6 border-t border-neutral-200">
-                <div className="max-w-xs space-y-1.5 text-left">
-                  <span className="text-base text-neutral-400 font-medium block">Customer Message</span>
-                  <p className="text-base text-neutral-400 font-medium leading-relaxed">
-                    Hello!<br />
-                    Thank you for your purchase. Please return <br /> this invoice with payment.<br />
-                    Thanks!
+              <div className="mt-12 flex flex-col md:flex-row justify-between items-start gap-8 pt-6 border-t border-neutral-200">
+                <div className="max-w-xs space-y-2 text-left text-xs">
+                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">Customer Note</span>
+                  <p className="text-neutral-550 leading-relaxed font-medium">
+                    Thank you for choosing Lightlab for your architectural lighting design needs. Let us know if you have any questions about this statement.
                   </p>
                 </div>
 
-                <div className="w-80 text-base text-neutral-500 font-medium pr-1">
-                  <table className="w-full text-right border-collapse">
-                    <tbody>
-                      <tr>
-                        <td className="py-1 px-1 text-left text-neutral-500">Subtotal</td>
-                        <td className="py-1 px-1 font-medium text-neutral-855 whitespace-nowrap">₹{Number(selectedInvoice.amount).toLocaleString('en-IN')}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 px-1 text-left text-neutral-500">Sales Tax (0%)</td>
-                        <td className="py-1 px-1 font-medium text-neutral-855 whitespace-nowrap">₹0.00</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 px-1 text-left text-neutral-500">Shipping</td>
-                        <td className="py-1 px-1 font-medium text-neutral-855 whitespace-nowrap">₹0.00</td>
-                      </tr>
-                      <tr className="border-t border-neutral-300">
-                        <td className="py-3 px-1 text-left text-base font-medium text-neutral-900">Total</td>
-                        <td className="py-3 px-1 font-medium text-lg text-neutral-900 whitespace-nowrap">₹{Number(selectedInvoice.amount).toLocaleString('en-IN')}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div className="w-full md:w-80 text-xs text-neutral-500 font-medium pr-1">
+                  <div className="bg-neutral-50/50 border border-neutral-200/80 rounded-lg p-5 space-y-2.5">
+                    <div className="flex justify-between text-neutral-500">
+                      <span>Subtotal</span>
+                      <span className="font-semibold text-neutral-700">₹{Number(selectedInvoice.amount).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between text-neutral-500">
+                      <span>Sales Tax (0%)</span>
+                      <span className="font-semibold text-neutral-700">₹0.00</span>
+                    </div>
+                    <div className="flex justify-between text-neutral-500">
+                      <span>Shipping & Handling</span>
+                      <span className="font-semibold text-neutral-700">₹0.00</span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-neutral-200/60 pt-3">
+                      <span className="text-sm font-bold text-neutral-900">Total</span>
+                      <span className="text-xl font-black text-amber-600">₹{Number(selectedInvoice.amount).toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

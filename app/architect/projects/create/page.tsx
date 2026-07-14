@@ -93,6 +93,12 @@ export default function ArchitectProjectCreationWizard() {
   const [fileCategory, setFileCategory] = useState('layout');
 
   useEffect(() => {
+    // Dynamic load Razorpay checkout script
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+
     async function loadPlans() {
       try {
         const { data, error } = await supabase
@@ -114,6 +120,10 @@ export default function ArchitectProjectCreationWizard() {
       }
     }
     loadPlans();
+
+    return () => {
+      document.body.removeChild(script);
+    };
   }, [supabase]);
 
   const getDbPlanId = () => {
@@ -181,7 +191,7 @@ export default function ArchitectProjectCreationWizard() {
     );
   };
 
-  const saveProject = async (isPaid: boolean) => {
+  const saveProject = async (isPaid: boolean, bypassRedirect = false) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User session not found.');
@@ -265,12 +275,111 @@ export default function ArchitectProjectCreationWizard() {
         });
       if (paymentError) throw paymentError;
 
-      router.push('/architect/projects');
+      if (!bypassRedirect) {
+        router.push('/architect/projects');
+      }
+      return project;
     } catch (err: any) {
       console.error('Error saving project:', err);
       setErrorMsg(err.message || 'Something went wrong while saving the project.');
       setSubmitting(false);
+      throw err;
     }
+  };
+
+  const handleRazorpayCheckout = async () => {
+    if (typeof (window as any).Razorpay === 'undefined') {
+      alert('Razorpay SDK is loading, please wait a moment.');
+      return;
+    }
+
+    setShowPaymentModal(false);
+    setSubmitting(true);
+    setErrorMsg('');
+
+    let project: any;
+    try {
+      // First save the project in 'pending' status
+      project = await saveProject(false, true);
+    } catch (err) {
+      // Error handled inside saveProject
+      return;
+    }
+
+    // Now trigger Razorpay Checkout
+    const totalCost = calculateTotalPrice();
+    
+    // Retrieve user email/name for prefill
+    let userEmail = "";
+    let userName = "";
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        userEmail = user.email || "";
+        const { data: userProf } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+        if (userProf) {
+          userName = userProf.name || "";
+        }
+      }
+    } catch (e) {
+      console.error("Prefill error:", e);
+    }
+
+    const options = {
+      key: "rzp_test_TBHxoNcpPx7OW9",
+      amount: totalCost * 100, // in paise
+      currency: "INR",
+      name: "LightLab",
+      description: `Payment for ${project.project_name}`,
+      handler: async function (response: any) {
+        try {
+          // Update project status to paid
+          await supabase
+            .from('projects')
+            .update({
+              payment_status: 'paid',
+              status: 'Under Review'
+            })
+            .eq('id', project.id);
+
+          // Update payment details
+          await supabase
+            .from('payments')
+            .update({
+              status: 'completed',
+              transaction_id: response.razorpay_payment_id
+            })
+            .eq('project_id', project.id);
+
+          // Redirect to success page!
+          router.push(`/architect/payments/success?project_id=${project.id}&amount=${totalCost}&transaction_id=${response.razorpay_payment_id}`);
+        } catch (err) {
+          console.error("Error updating payment in handler:", err);
+          // Still go to success since payment went through, but log error
+          router.push(`/architect/payments/success?project_id=${project.id}&amount=${totalCost}&transaction_id=${response.razorpay_payment_id}`);
+        }
+      },
+      prefill: {
+        name: userName,
+        email: userEmail,
+      },
+      theme: {
+        color: "#F59E0B"
+      },
+      modal: {
+        ondismiss: function() {
+          // If dismissed/cancelled, redirect to failure page!
+          router.push(`/architect/payments/failed?project_id=${project.id}&amount=${totalCost}`);
+        }
+      }
+    };
+
+    const rzp = new (window as any).Razorpay(options);
+    rzp.open();
   };
 
   const handleSubmit = async () => {
@@ -904,23 +1013,28 @@ export default function ArchitectProjectCreationWizard() {
                 <p className="text-sm text-neutral-500 mt-1">Confirm the payment status for <strong>{projectDetails.projectName}</strong> before submitting.</p>
               </div>
 
-              <div className="bg-neutral-50 rounded-md p-4 border border-neutral-100 flex justify-between items-center text-sm">
-                <div>
-                  <span className="text-sm text-neutral-400 font-medium block">Plan</span>
-                  <span className="text-sm font-medium text-neutral-800">{selectedPlan?.name}</span>
+              <div className="bg-neutral-50 rounded-md p-4 border border-neutral-100 space-y-2.5 text-sm">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-neutral-500 font-medium">Plan ({selectedPlan?.name}):</span>
+                  <span className="text-neutral-700 font-semibold">{selectedPlan?.customQuote ? 'Custom Quote' : `₹${calculateTotalPrice().toLocaleString()}`}</span>
                 </div>
-                <span className="text-sm font-medium text-neutral-900">
-                  {selectedPlan?.customQuote ? 'Custom Quote' : `₹${calculateTotalPrice().toLocaleString()}`}
-                </span>
+                {!selectedPlan?.customQuote && (
+                  <>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-neutral-500 font-medium">GST (18%):</span>
+                      <span className="text-neutral-700 font-semibold">₹{Math.round(calculateTotalPrice() * 0.18).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-neutral-200/60 pt-2 text-sm font-bold">
+                      <span className="text-neutral-900">Grand Total:</span>
+                      <span className="text-amber-600">₹{Math.round(calculateTotalPrice() * 1.18).toLocaleString()}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex flex-col space-y-2">
                 <button
-                  onClick={async () => {
-                    setShowPaymentModal(false);
-                    setSubmitting(true);
-                    await saveProject(true);
-                  }}
+                  onClick={handleRazorpayCheckout}
                   disabled={submitting}
                   className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
                 >

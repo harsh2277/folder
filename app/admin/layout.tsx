@@ -32,11 +32,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { id: 4, title: 'Revision requested for project KL-2025-0003', time: '1d ago', read: true, icon: 'bx-git-pull-request', color: 'text-rose-600 bg-rose-50' }
   ]);
   const notifRef = useRef<HTMLDivElement>(null);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -180,27 +185,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
         </div>
 
-        {/* User Card & Logout */}
-        <div className={`bg-neutral-900/10 border-t border-neutral-900 flex flex-col items-center ${(isCollapsed && !isMobileOpen) ? 'p-2 py-4 space-y-3.5' : 'p-3 xl:p-4'}`}>
-          <div className={`flex items-center w-full ${(isCollapsed && !isMobileOpen) ? 'justify-center' : 'mb-3 space-x-2.5'}`}>
-            <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center font-medium text-xs flex-shrink-0">
-              {profile?.name ? profile.name.substring(0, 2).toUpperCase() : 'AD'}
-            </div>
-            {(!isCollapsed || isMobileOpen) && (
-              <div className="truncate min-w-0">
-                <p className="text-xs font-medium text-white truncate">{profile?.name}</p>
-                <p className="text-xs text-neutral-500 truncate">{profile?.email}</p>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={handleSignOut}
-            className={`flex items-center justify-center bg-neutral-900 hover:bg-neutral-800 hover:text-white text-neutral-300 text-xs font-medium rounded-md transition-colors ${(isCollapsed && !isMobileOpen) ? 'w-8 h-8' : 'w-full space-x-2 px-3 py-2' }`}
-          >
-            <i className="bx bx-log-out text-sm"></i>
-            {(!isCollapsed || isMobileOpen) && <span>Sign Out</span>}
-          </button>
-        </div>
+
       </aside>
 
       {/* Main Content Area */}
@@ -294,12 +279,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {/* Divider */}
             <div className="w-px h-4 bg-neutral-200 hidden sm:block"></div>
 
-            {/* Profile */}
-            <div className="flex items-center space-x-1.5 cursor-pointer">
-              <div className="w-7 h-7 rounded-full bg-neutral-200 border border-neutral-300 flex items-center justify-center font-medium text-xs text-neutral-700">
-                {profile?.name.substring(0, 1).toUpperCase()}
-              </div>
-              <i className="bx bx-chevron-down text-neutral-400 text-xs hidden sm:block"></i>
+            {/* Profile Dropdown Container */}
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="flex items-center space-x-1.5 cursor-pointer focus:outline-none"
+              >
+                <div className="w-7 h-7 rounded-full bg-neutral-200 border border-neutral-300 flex items-center justify-center font-medium text-xs text-neutral-700">
+                  {profile?.name ? profile.name.substring(0, 1).toUpperCase() : 'A'}
+                </div>
+                <i className="bx bx-chevron-down text-neutral-400 text-xs hidden sm:block"></i>
+              </button>
+
+              {showProfileDropdown && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-neutral-200 rounded-md py-1 z-50 text-neutral-800 font-sans shadow-lg select-none">
+                  <div className="px-4 py-2.5 border-b border-neutral-100 bg-neutral-50/50">
+                    <p className="text-xs font-bold text-neutral-800 truncate">{profile?.name || 'Admin'}</p>
+                    <p className="text-[10px] text-neutral-500 truncate mt-0.5">{profile?.email || ''}</p>
+                  </div>
+                  <div className="p-1">
+                    <Link
+                      href="/admin/profile"
+                      onClick={() => setShowProfileDropdown(false)}
+                      className="flex items-center space-x-2 px-3 py-2 text-xs text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950 rounded transition-colors"
+                    >
+                      <i className="bx bx-user text-sm"></i>
+                      <span>Profile</span>
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        handleSignOut();
+                      }}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded transition-colors text-left"
+                    >
+                      <i className="bx bx-log-out text-sm"></i>
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>

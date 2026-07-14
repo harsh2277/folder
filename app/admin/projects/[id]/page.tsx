@@ -348,7 +348,7 @@ export default function AdminProjectDetail() {
   return (
     <div className="space-y-6">
       {/* Secondary Top Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white border-b border-neutral-100 px-6 py-4 mx-[-12px] md:mx-[-16px] mt-[-12px] md:mt-[-16px] gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white border-b border-neutral-100 px-6 py-4 gap-4">
         <div className="flex items-center space-x-3">
           <Link
             href="/admin/projects"
@@ -475,10 +475,10 @@ export default function AdminProjectDetail() {
                     <div className={`absolute top-[16px] left-[50%] w-full h-[2px] z-0 ${idx < activeStepIndex ? 'bg-amber-500' : 'bg-neutral-200'}`} />
                   )}
                   {/* Circle Dot */}
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border font-sans text-xs font-medium relative z-10 transition-all duration-300 ${ isCompleted ? 'bg-amber-500 border-amber-500 text-white' : isActive ? 'bg-neutral-900 border-neutral-900 text-white ring-4 ring-neutral-900/10' : 'bg-white border-neutral-200 text-neutral-400' }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border font-sans text-xs font-medium relative z-10 transition-all duration-300 ${isCompleted ? 'bg-amber-500 border-amber-500 text-white' : isActive ? 'bg-neutral-900 border-neutral-900 text-white ring-4 ring-neutral-900/10' : 'bg-white border-neutral-200 text-neutral-400'}`}>
                     {isCompleted ? <i className="bx bx-check text-base"></i> : idx + 1}
                   </div>
-                  <span className={`text-[10px] sm:text-xs mt-2 font-medium transition-colors duration-200 text-center relative z-10 ${ isActive ? 'text-neutral-900 font-medium' : isCompleted ? 'text-neutral-600 font-medium' : 'text-neutral-400 font-medium' }`}>
+                  <span className={`text-[10px] sm:text-xs mt-2 font-medium transition-colors duration-200 text-center relative z-10 ${isActive ? 'text-neutral-900 font-medium' : isCompleted ? 'text-neutral-600 font-medium' : 'text-neutral-400 font-medium'}`}>
                     {step.name}
                   </span>
                 </div>
@@ -737,17 +737,17 @@ export default function AdminProjectDetail() {
                         const isResolved = !!designerNotesPart;
                         const isPending = rev.status === 'pending';
                         const isApprovedForwarded = rev.status === 'approved' && !isResolved;
-                        
+
                         return (
-                          <div key={rev.id} className={`relative border p-4 rounded-md space-y-3 transition-colors ${ isPending ? 'bg-amber-50/30 border-amber-200 hover:border-amber-300' : isResolved ? 'bg-emerald-50/20 border-emerald-100' : 'bg-neutral-50/50 border-neutral-200' }`}>
+                          <div key={rev.id} className={`relative border p-4 rounded-md space-y-3 transition-colors ${isPending ? 'bg-amber-50/30 border-amber-200 hover:border-amber-300' : isResolved ? 'bg-emerald-50/20 border-emerald-100' : 'bg-neutral-50/50 border-neutral-200'}`}>
                             {/* Dot Accent */}
-                            <div className={`absolute -left-[31px] top-4 w-2.5 h-2.5 rounded-full ring-4 ring-white ${ isPending ? 'bg-amber-500 animate-pulse' : isResolved ? 'bg-emerald-500' : isApprovedForwarded ? 'bg-blue-400' : 'bg-neutral-400' }`}></div>
+                            <div className={`absolute -left-[31px] top-4 w-2.5 h-2.5 rounded-full ring-4 ring-white ${isPending ? 'bg-amber-500 animate-pulse' : isResolved ? 'bg-emerald-500' : isApprovedForwarded ? 'bg-blue-400' : 'bg-neutral-400'}`}></div>
 
                             <div className="flex justify-between items-start text-xs">
                               <div className="space-y-0.5">
                                 <span className="font-medium text-neutral-500 block">Requested: {new Date(rev.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                               </div>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border uppercase tracking-wide ${ isPending ? 'bg-amber-50 border-amber-100 text-amber-700' : isResolved ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : isApprovedForwarded ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-rose-50 border-rose-100 text-rose-700' }`}>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border uppercase tracking-wide ${isPending ? 'bg-amber-50 border-amber-100 text-amber-700' : isResolved ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : isApprovedForwarded ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
                                 {isPending ? '⏳ Pending Review' : isResolved ? '✓ Resolved by Designer' : isApprovedForwarded ? '→ Forwarded to Designer' : 'Declined'}
                               </span>
                             </div>
@@ -766,27 +766,27 @@ export default function AdminProjectDetail() {
                               </div>
                             )}
 
-                          {/* Approve / Decline buttons for pending revisions */}
-                          {rev.status === 'pending' && (
-                            <div className="flex items-center space-x-2 pt-1">
-                              <button
-                                onClick={() => handleApproveRevision(rev.id)}
-                                disabled={updating}
-                                className="flex-1 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1.5 disabled:opacity-50 cursor-pointer"
-                              >
-                                <i className="bx bx-check text-sm"></i>
-                                <span>Approve & Forward to Designer</span>
-                              </button>
-                              <button
-                                onClick={() => handleDeclineRevision(rev.id)}
-                                disabled={updating}
-                                className="px-3 py-1.5 border border-rose-200 hover:bg-rose-50 text-rose-700 text-xs font-medium rounded-md transition-colors flex items-center space-x-1 disabled:opacity-50 cursor-pointer"
-                              >
-                                <i className="bx bx-x text-sm"></i>
-                                <span>Decline</span>
-                              </button>
-                            </div>
-                          )}
+                            {/* Approve / Decline buttons for pending revisions */}
+                            {rev.status === 'pending' && (
+                              <div className="flex items-center space-x-2 pt-1">
+                                <button
+                                  onClick={() => handleApproveRevision(rev.id)}
+                                  disabled={updating}
+                                  className="flex-1 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1.5 disabled:opacity-50 cursor-pointer"
+                                >
+                                  <i className="bx bx-check text-sm"></i>
+                                  <span>Approve & Forward to Designer</span>
+                                </button>
+                                <button
+                                  onClick={() => handleDeclineRevision(rev.id)}
+                                  disabled={updating}
+                                  className="px-3 py-1.5 border border-rose-200 hover:bg-rose-50 text-rose-700 text-xs font-medium rounded-md transition-colors flex items-center space-x-1 disabled:opacity-50 cursor-pointer"
+                                >
+                                  <i className="bx bx-x text-sm"></i>
+                                  <span>Decline</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
