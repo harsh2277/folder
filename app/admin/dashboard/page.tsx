@@ -57,7 +57,7 @@ export default function AdminDashboard() {
 
         const allProjects = projects || [];
         setRecentProjects(allProjects.slice(0, 5));
-        setPendingProjects(allProjects.filter((p: any) => p.status === 'Submitted'));
+        setPendingProjects(allProjects.filter((p: any) => p.status === 'Under Review' || p.status === 'Submitted'));
 
         // Sort approved/closed by updated_at desc (most recently approved first)
         const approved = allProjects
@@ -140,7 +140,7 @@ export default function AdminDashboard() {
       const { error } = await supabase
         .from('projects')
         .update({
-          status: 'Under Review',
+          status: 'In Design',
           assigned_designer_id: designerId
         })
         .eq('id', id);
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
       if (error) throw error;
 
       setPendingProjects(prev => prev.filter(p => p.id !== id));
-      setRecentProjects(prev => prev.map(p => p.id === id ? { ...p, status: 'Under Review' } : p));
+      setRecentProjects(prev => prev.map(p => p.id === id ? { ...p, status: 'In Design' } : p));
     } catch (err: any) {
       alert('Failed to approve project: ' + err.message);
     }

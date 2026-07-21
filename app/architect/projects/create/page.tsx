@@ -146,6 +146,11 @@ export default function ArchitectProjectCreationWizard() {
     return planPrice + addonsPrice;
   };
 
+  const calculateGrandTotal = () => {
+    const subtotal = calculateTotalPrice();
+    return Math.round(subtotal * 1.18);
+  };
+
   const handleAreaChange = (val: string) => {
     setProjectDetails(prev => ({ ...prev, areaSqFt: val }));
     const num = Number(val);
@@ -198,7 +203,7 @@ export default function ArchitectProjectCreationWizard() {
 
       const serial = `KL-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
       const clientUsername = `client_${projectDetails.clientName.toLowerCase().replace(/\s+/g, '')}_${Math.floor(100 + Math.random() * 900)}`;
-      const totalCost = calculateTotalPrice();
+      const totalCost = calculateGrandTotal();
 
       // 1. Insert Project
       const { data: project, error: projectError } = await supabase
@@ -307,7 +312,7 @@ export default function ArchitectProjectCreationWizard() {
     }
 
     // Now trigger Razorpay Checkout
-    const totalCost = calculateTotalPrice();
+    const totalCost = calculateGrandTotal();
     
     // Retrieve user email/name for prefill
     let userEmail = "";
@@ -334,7 +339,7 @@ export default function ArchitectProjectCreationWizard() {
       amount: totalCost * 100, // in paise
       currency: "INR",
       name: "LightLab",
-      description: `Payment for ${project.project_name}`,
+      description: `Grand Total for ${project.project_name} (incl. 18% GST)`,
       handler: async function (response: any) {
         try {
           // Update project status to paid

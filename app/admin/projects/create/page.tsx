@@ -165,6 +165,11 @@ export default function AdminProjectCreationWizard() {
     return planPrice + addonsPrice;
   };
 
+  const calculateGrandTotal = () => {
+    const subtotal = calculateTotalPrice();
+    return Math.round(subtotal * 1.18);
+  };
+
   const handleAreaChange = (val: string) => {
     setProjectDetails(prev => ({ ...prev, areaSqFt: val }));
     const num = Number(val);
@@ -217,7 +222,7 @@ export default function AdminProjectCreationWizard() {
 
       const serial = `KL-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
       const clientUsername = `client_${projectDetails.clientName.toLowerCase().replace(/\s+/g, '')}_${Math.floor(100 + Math.random() * 905)}`;
-      const totalCost = calculateTotalPrice();
+      const totalCost = calculateGrandTotal();
 
       // 1. Insert Project
       const { data: project, error: projectError } = await supabase

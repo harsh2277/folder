@@ -311,7 +311,7 @@ export default function ArchitectLayout({ children }: { children: React.ReactNod
         {pathname.startsWith('/architect/projects/') && !pathname.endsWith('/create') ? (
           children
         ) : (
-          <main className="flex-1 overflow-y-auto main-padding bg-neutral-50/70">
+          <main className="flex-1 overflow-y-auto p-4 bg-neutral-50/70">
             <div className="content-container">
               {children}
             </div>

@@ -555,7 +555,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
 
                   {/* Lighting preferences pills */}
                   <div className="pt-6 border-t border-neutral-100 px-6">
-                    <span className="text-[10px] font-bold text-neutral-450 uppercase tracking-widest block mb-3">LIGHTING PREFERENCES</span>
+                    <span className="text-xs font-bold text-neutral-450 tracking-wide block mb-3">Lighting Preferences</span>
                     {preferences.length === 0 ? (
                       <p className="text-xs text-neutral-400 italic">No specific preferences selected.</p>
                     ) : (
@@ -571,11 +571,30 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                       </div>
                     )}
                   </div>
+                  {/* Additional Design Remarks */}
+                  {remarks && (
+                    <div className="pt-6 border-t border-neutral-100 px-6">
+                      <span className="text-xs font-bold text-neutral-450 tracking-wide block mb-4">Additional Design Remarks</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4">
+                        {[
+                          { label: 'Lighting Mood', val: remarks.lighting_mood },
+                          { label: 'Expectations', val: remarks.expectations },
+                          { label: 'Inspiration Ideas', val: remarks.inspiration_ideas },
+                          { label: 'Functional Requirements', val: remarks.functional_requirements }
+                        ].filter(item => item.val).map((item, idx) => (
+                          <div key={idx}>
+                            <span className="text-xs text-neutral-400 font-medium block">{item.label}</span>
+                            <span className="text-sm font-semibold text-neutral-800 mt-1 block whitespace-pre-line">{item.val}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Additional notes/remarks if any */}
                   {project.project_notes && (
                     <div className="pt-6 border-t border-neutral-100 px-6">
-                      <span className="text-[10px] font-bold text-neutral-450 uppercase tracking-widest block mb-2">Project Notes</span>
+                      <span className="text-xs font-bold text-neutral-450 tracking-wide block mb-2">Project Notes</span>
                       <div className="bg-neutral-50/50 border border-neutral-200/80 rounded-xl p-4 text-xs text-neutral-600 font-medium leading-relaxed">
                         {project.project_notes}
                       </div>
@@ -656,7 +675,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
               )}
 
               {activeTab === 'Revisions' && (
-                <div className="space-y-4">
+                <div className="space-y-4 px-6">
                   {revisions.length === 0 ? (
                     <div className="py-12 text-center text-sm text-neutral-450 font-medium space-y-2 bg-neutral-50 rounded-xl border border-dashed border-neutral-200">
                       <i className="bx bx-comment-detail text-3xl text-neutral-300"></i>
@@ -671,7 +690,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                         const isPending = rev.status === 'pending';
 
                         return (
-                          <div key={rev.id} className="space-y-3 px-6 border-b border-neutral-200 pb-6 last:border-b-0 last:pb-0">
+                          <div key={rev.id} className="space-y-3 border-b border-neutral-200 pb-6 last:border-b-0 last:pb-0">
                             {/* Header row: Date + Status */}
                             <div className="flex justify-between items-center text-xs">
                               <span className="text-neutral-400 font-medium">

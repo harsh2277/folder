@@ -41,11 +41,11 @@ export default function ArchitectRevisionRequest({ params }: PageProps) {
 
       if (insertError) throw insertError;
 
-      // 2. Update project status to indicate a revision is requested/under review
+      // 2. Update project status to indicate a revision is requested
       const { error: updateError } = await supabase
         .from('projects')
         .update({
-          status: 'Under Review'
+          status: 'Revision Requested'
         })
         .eq('id', id);
 
