@@ -100,7 +100,7 @@ export default function ArchitectDashboard() {
         <div className="flex items-center flex-wrap gap-2 shrink-0">
           <Link
             href="/architect/projects/create"
-            className="px-3 py-1.5 xl:px-4 xl:py-2 bg-amber-500 hover:bg-amber-600 text-neutral-950 rounded-md text-xs xl:text-sm font-medium transition-all flex items-center space-x-1.5 whitespace-nowrap active:scale-[0.98]"
+            className="px-3 py-1.5 xl:px-4 xl:py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs xl:text-sm font-medium transition-all flex items-center space-x-1.5 whitespace-nowrap active:scale-[0.98]"
           >
             <i className="bx bx-plus text-sm"></i>
             <span>Add Project</span>

@@ -97,7 +97,7 @@ export default function PaymentFailedPage() {
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Link
             href={projectId ? `/architect/projects/${projectId}` : '/architect/projects'}
-            className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-semibold text-sm rounded-xl text-center shadow-md transition-all active:scale-[0.99]"
+            className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm rounded-xl text-center shadow-md transition-all active:scale-[0.99]"
           >
             Retry Payment
           </Link>

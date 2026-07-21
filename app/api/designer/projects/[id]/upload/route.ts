@@ -1,10 +1,5 @@
 import { createClient as createCookieClient } from '@/utils/supabase/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET_KEY!
-);
+import { getSupabaseAdmin } from '@/utils/supabase/admin';
 
 async function checkDesignerAuth() {
   const supabase = await createCookieClient();
@@ -31,6 +26,7 @@ export async function POST(
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabaseAdmin = getSupabaseAdmin();
     const { id } = await params;
 
     // 1. Verify project assignment
@@ -101,6 +97,7 @@ export async function DELETE(
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabaseAdmin = getSupabaseAdmin();
     const { id } = await params;
     const { fileId, filePath } = await request.json();
 

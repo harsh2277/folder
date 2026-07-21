@@ -458,7 +458,7 @@ export default function ArchitectProjectCreationWizard() {
                 disabled={s.num > activeStep}
                 className="relative z-10 flex flex-col items-center focus:outline-none"
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 border-2 ${ isActive ? 'bg-neutral-950 border-neutral-950 text-amber-500 ring-4 ring-neutral-950/10' : isCompleted ? 'bg-amber-500 border-amber-500 text-neutral-950' : 'bg-white border-neutral-200 text-neutral-400' }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 border-2 ${ isActive ? 'bg-neutral-950 border-neutral-950 text-amber-500 ring-4 ring-neutral-950/10' : isCompleted ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-neutral-200 text-neutral-400' }`}>
                   {isCompleted ? <i className="bx bx-check text-sm"></i> : s.num}
                 </div>
                 <span className={`absolute top-10 text-sm font-medium whitespace-nowrap transition-colors duration-300 ${ isActive ? 'text-neutral-900 font-medium' : 'text-neutral-400' }`}>
@@ -780,7 +780,7 @@ export default function ArchitectProjectCreationWizard() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-neutral-950 text-sm font-medium rounded-md transition-colors cursor-pointer"
+                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-md transition-colors cursor-pointer"
                   >
                     Continue to Preferences
                   </button>
@@ -817,7 +817,7 @@ export default function ArchitectProjectCreationWizard() {
                           key={pref}
                           type="button"
                           onClick={() => handlePreferenceToggle(pref)}
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${ isChecked ? 'bg-amber-500 text-neutral-950 border-amber-500' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border-neutral-200' }`}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${ isChecked ? 'bg-amber-500 text-white border-amber-500' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border-neutral-200' }`}
                         >
                           {pref}
                         </button>
@@ -877,11 +877,11 @@ export default function ArchitectProjectCreationWizard() {
                     type="button"
                     onClick={handleSubmit}
                     disabled={submitting}
-                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-medium text-sm rounded-md transition-colors cursor-pointer flex items-center space-x-1.5"
+                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm rounded-md transition-colors cursor-pointer flex items-center space-x-1.5"
                   >
                     {submitting ? (
                       <>
-                        <svg className="animate-spin h-4 w-4 text-neutral-950" fill="none" viewBox="0 0 24 24">
+                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
@@ -908,7 +908,7 @@ export default function ArchitectProjectCreationWizard() {
               
               <div className="border-b border-white/10 pb-3 flex justify-between items-center">
                 <h3 className="text-sm font-medium text-white">Live Summary</h3>
-                <span className="text-sm bg-amber-500 text-neutral-950 font-medium px-2 py-0.5 rounded-full">Configurator</span>
+                <span className="text-sm bg-amber-500 text-white font-medium px-2 py-0.5 rounded-full">Configurator</span>
               </div>
 
               <div className="space-y-4">
@@ -1041,7 +1041,7 @@ export default function ArchitectProjectCreationWizard() {
                 <button
                   onClick={handleRazorpayCheckout}
                   disabled={submitting}
-                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
+                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
                 >
                   <i className="bx bx-check-circle text-sm"></i>
                   <span>Yes, Payment Completed</span>

@@ -200,12 +200,15 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
 
     setIsProcessingPayment(true);
 
+    const baseAmount = Number(payment?.amount || 5899);
+    const grandTotal = Math.round(baseAmount * 1.18);
+
     const options = {
       key: "rzp_test_TBHxoNcpPx7OW9",
-      amount: Number(payment?.amount || 5899) * 100, // Amount in paise
+      amount: grandTotal * 100, // Amount in paise (Grand Total including 18% GST)
       currency: "INR",
       name: "LightLab",
-      description: `Payment for ${project?.project_name || 'Project'}`,
+      description: `Payment for ${project?.project_name || 'Project'} (incl. 18% GST)`,
       handler: async function (response: any) {
         try {
           // 1. Update project status and payment status in supabase
@@ -224,6 +227,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
             .from('payments')
             .update({
               status: 'completed',
+              amount: grandTotal,
               transaction_id: response.razorpay_payment_id
             })
             .eq('project_id', id);
@@ -239,13 +243,14 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
           setPayment((prev: any) => ({
             ...prev,
             status: 'completed',
+            amount: grandTotal,
             transaction_id: response.razorpay_payment_id
           }));
           setCheckoutOpen(false);
-          router.push(`/architect/payments/success?project_id=${id}&transaction_id=${response.razorpay_payment_id}`);
+          router.push(`/architect/payments/success?project_id=${id}&amount=${grandTotal}&transaction_id=${response.razorpay_payment_id}`);
         } catch (err) {
           console.error('Payment callback error:', err);
-          router.push(`/architect/payments/failed?project_id=${id}&amount=${payment?.amount || 5899}`);
+          router.push(`/architect/payments/failed?project_id=${id}&amount=${grandTotal}`);
         } finally {
           setIsProcessingPayment(false);
         }
@@ -260,7 +265,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
       modal: {
         ondismiss: function () {
           setIsProcessingPayment(false);
-          router.push(`/architect/payments/failed?project_id=${id}&amount=${payment?.amount || 5899}`);
+          router.push(`/architect/payments/failed?project_id=${id}&amount=${grandTotal}`);
         }
       }
     };
@@ -394,7 +399,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                 <div className="flex items-center h-full">
                   <Link
                     href={`/architect/projects/${id}/revision-request`}
-                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 rounded-sm text-sm font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer shadow-sm shadow-amber-500/10"
+                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-sm text-sm font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer shadow-sm shadow-amber-500/10"
                   >
                     <i className="bx bx-comment-edit text-base"></i>
                     <span>Request Revision</span>
@@ -468,7 +473,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
 
                             <button
                               onClick={handleMockPayment}
-                              className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-xs uppercase tracking-wider rounded-sm transition-all shadow-md shadow-amber-500/10 active:scale-[0.98] cursor-pointer text-center"
+                              className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider rounded-sm transition-all shadow-md shadow-amber-500/10 active:scale-[0.98] cursor-pointer text-center"
                             >
                               Pay Invoice
                             </button>
@@ -763,9 +768,17 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                 <span className="text-neutral-500 font-medium">Plan Tier</span>
                 <span className="text-neutral-850 font-semibold">{project.pricing_plans?.name || 'N/A'}</span>
               </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-neutral-500 font-medium">Subtotal</span>
+                <span className="text-neutral-850 font-semibold">₹{Number(payment?.amount || 5899).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-neutral-500 font-medium">Estimated GST (18%)</span>
+                <span className="text-neutral-850 font-semibold">₹{Math.round(Number(payment?.amount || 5899) * 0.18).toLocaleString('en-IN')}</span>
+              </div>
               <div className="pt-3 border-t border-neutral-200 flex justify-between items-baseline">
-                <span className="text-sm font-semibold text-neutral-800">Total Amount</span>
-                <span className="text-lg font-bold text-neutral-900">₹{Number(payment?.amount || 5899).toLocaleString('en-IN')}</span>
+                <span className="text-sm font-semibold text-neutral-800">Grand Total</span>
+                <span className="text-lg font-bold text-amber-600">₹{Math.round(Number(payment?.amount || 5899) * 1.18).toLocaleString('en-IN')}</span>
               </div>
             </div>
 

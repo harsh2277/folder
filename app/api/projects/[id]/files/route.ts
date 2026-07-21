@@ -1,10 +1,5 @@
 import { createClient as createCookieClient } from '@/utils/supabase/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET_KEY!
-);
+import { getSupabaseAdmin } from '@/utils/supabase/admin';
 
 async function checkUserAuth(projectId: string) {
   const supabase = await createCookieClient();
@@ -24,6 +19,8 @@ async function checkUserAuth(projectId: string) {
   if (profile.role === 'admin') {
     return { user, role: 'admin' };
   }
+
+  const supabaseAdmin = getSupabaseAdmin();
 
   // Fetch project details to check ownership/assignment
   const { data: project } = await supabaseAdmin
@@ -55,6 +52,8 @@ export async function POST(
     if (!auth) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -139,6 +138,8 @@ export async function DELETE(
     if (!auth) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     const { fileId, filePath } = await request.json();
     if (!fileId || !filePath) {

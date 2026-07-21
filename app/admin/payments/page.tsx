@@ -109,7 +109,7 @@ export default function AdminPaymentsPage() {
         @media print {
           @page {
             size: portrait;
-            margin: 12mm 15mm;
+            margin: 0;
           }
 
           /* Force colors and backgrounds to render */
@@ -148,16 +148,16 @@ export default function AdminPaymentsPage() {
             box-shadow: none !important;
           }
 
+          /* Force modal card container to span full width cleanly */
           .print-invoice-card {
             border: none !important;
             box-shadow: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
             max-width: 100% !important;
-            display: block !important;
-            overflow: visible !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background: transparent !important;
+            overflow: visible !important;
           }
 
           /* Force 2 columns on the details panel during print */
@@ -172,13 +172,13 @@ export default function AdminPaymentsPage() {
             background: transparent !important;
           }
 
-          /* Force printable sheet to fill viewport width */
+          /* Printable Invoice Area Page Styling */
           .print-invoice-area {
             position: static !important;
             width: 100% !important;
             max-width: 100% !important;
             background: white !important;
-            padding: 0 !important;
+            padding: 15mm !important;
             margin: 0 !important;
             box-sizing: border-box !important;
             overflow: visible !important;
@@ -436,11 +436,11 @@ export default function AdminPaymentsPage() {
                     </div>
                     <div>
                       <span className="text-xs font-bold text-neutral-400 tracking-wide inline-block mr-2">Status:</span>
-                      <span className={`inline-block ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full border ${selectedInvoice.status === 'completed'
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                      <span className={`font-bold capitalize ${selectedInvoice.status === 'completed'
+                        ? 'text-emerald-600'
                         : selectedInvoice.status === 'failed'
-                          ? 'bg-rose-50 border-rose-200 text-rose-700'
-                          : 'bg-amber-50 border-amber-200 text-amber-700'
+                          ? 'text-rose-600'
+                          : 'text-amber-600'
                         }`}>
                         {selectedInvoice.status === 'completed' ? 'Paid' : selectedInvoice.status}
                       </span>

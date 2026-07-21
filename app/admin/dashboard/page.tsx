@@ -49,6 +49,12 @@ export default function AdminDashboard() {
         }
 
         const res = await fetch('/api/admin/dashboard');
+        if (!res.ok) {
+          const text = await res.text();
+          let jsonError;
+          try { jsonError = JSON.parse(text); } catch {}
+          throw new Error(jsonError?.error || `Request failed with status ${res.status}`);
+        }
         const resData = await res.json();
         if (resData.error) throw new Error(resData.error);
 
@@ -194,7 +200,7 @@ export default function AdminDashboard() {
         <div className="flex items-center flex-wrap gap-2 shrink-0">
           <Link
             href="/admin/projects"
-            className="px-3 py-1.5 xl:px-4 xl:py-2 bg-amber-500 hover:bg-amber-600 text-neutral-950 rounded-md text-xs xl:text-sm font-medium transition-all flex items-center space-x-1.5 whitespace-nowrap"
+            className="px-3 py-1.5 xl:px-4 xl:py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs xl:text-sm font-medium transition-all flex items-center space-x-1.5 whitespace-nowrap"
           >
             <i className="bx bx-folder text-sm"></i>
             <span>View Projects</span>

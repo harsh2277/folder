@@ -1,11 +1,5 @@
 import { createClient as createCookieClient } from '@/utils/supabase/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase Admin Client using the secret role key to bypass RLS
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET_KEY!
-);
+import { getSupabaseAdmin } from '@/utils/supabase/admin';
 
 async function checkDesignerAuth() {
   const supabase = await createCookieClient();
@@ -29,6 +23,8 @@ export async function GET(request: Request) {
       return Response.json({ error: 'Unauthorized: Designer role required' }, { status: 401 });
     }
 
+    const supabaseAdmin = getSupabaseAdmin();
+
     const { data: projects, error } = await supabaseAdmin
       .from('projects')
       .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, created_at')
@@ -50,6 +46,8 @@ export async function POST(request: Request) {
     if (!designerUser) {
       return Response.json({ error: 'Unauthorized: Designer role required' }, { status: 401 });
     }
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     const { projectId, status } = await request.json();
     if (!projectId || !status) {

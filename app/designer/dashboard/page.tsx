@@ -34,6 +34,12 @@ export default function DesignerDashboard() {
 
           // Fetch projects assigned to this designer from RLS bypass API
           const res = await fetch('/api/designer/projects');
+          if (!res.ok) {
+            const text = await res.text();
+            let jsonError;
+            try { jsonError = JSON.parse(text); } catch {}
+            throw new Error(jsonError?.error || `Request failed with status ${res.status}`);
+          }
           const resData = await res.json();
           const projects = resData.projects || [];
 
@@ -89,7 +95,7 @@ export default function DesignerDashboard() {
         <div className="flex items-center flex-wrap gap-2 shrink-0">
           <Link
             href="/designer/projects"
-            className="px-3 py-1.5 xl:px-4 xl:py-2 bg-amber-500 hover:bg-amber-600 text-neutral-950 rounded-md text-xs xl:text-sm font-medium transition-all flex items-center space-x-1.5 whitespace-nowrap active:scale-[0.98] cursor-pointer"
+            className="px-3 py-1.5 xl:px-4 xl:py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs xl:text-sm font-medium transition-all flex items-center space-x-1.5 whitespace-nowrap active:scale-[0.98] cursor-pointer"
           >
             <i className="bx bx-folder text-sm"></i>
             <span>All Projects</span>

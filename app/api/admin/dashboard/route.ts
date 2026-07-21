@@ -1,10 +1,5 @@
 import { createClient as createCookieClient } from '@/utils/supabase/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET_KEY!
-);
+import { getSupabaseAdmin } from '@/utils/supabase/admin';
 
 async function checkAdminAuth() {
   const supabase = await createCookieClient();
@@ -27,6 +22,8 @@ export async function GET() {
     if (!adminUser) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     // Fetch designers
     const { data: designers, error: desError } = await supabaseAdmin

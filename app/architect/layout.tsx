@@ -155,7 +155,7 @@ export default function ArchitectLayout({ children }: { children: React.ReactNod
                         href={item.path}
                         onClick={() => setIsMobileOpen(false)}
                         title={(isCollapsed && !isMobileOpen) ? item.name : undefined}
-                        className={`flex items-center transition-all group ${(isCollapsed && !isMobileOpen) ? 'justify-center p-2 mx-auto w-9 h-9 xl:w-10 xl:h-10 rounded-md' : 'justify-between px-3 py-2 rounded-md' } text-xs xl:text-sm font-medium ${isActive ? 'bg-amber-500 text-neutral-950 font-medium' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white' }`}
+                        className={`flex items-center transition-all group ${(isCollapsed && !isMobileOpen) ? 'justify-center p-2 mx-auto w-9 h-9 xl:w-10 xl:h-10 rounded-md' : 'justify-between px-3 py-2 rounded-md' } text-xs xl:text-sm font-medium ${isActive ? 'bg-amber-500 text-white font-medium' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white' }`}
                       >
                         <div className={`flex items-center ${(isCollapsed && !isMobileOpen) ? 'justify-center' : 'space-x-2.5'}`}>
                           <i className={`${item.icon} text-base xl:text-lg`}></i>
