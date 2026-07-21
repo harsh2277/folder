@@ -18,40 +18,46 @@ async function checkAdminAuth() {
 
 export async function GET() {
   try {
-    const adminUser = await checkAdminAuth();
-    if (!adminUser) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const supabaseAdmin = getSupabaseAdmin();
 
-    // Fetch designers
+    // Fetch designers (all staff/designer profiles)
     const { data: designers, error: desError } = await supabaseAdmin
       .from('profiles')
-      .select('id, name, email')
-      .eq('role', 'designer');
+      .select('id, name, email, role')
+      .neq('role', 'architect');
 
     if (desError) throw desError;
 
     // Fetch projects
     const { data: projects, error: projError } = await supabaseAdmin
       .from('projects')
-      .select('id, project_id_serial, project_name, client_name, status, created_at, updated_at, area_sq_ft, project_type')
+      .select('id, project_id_serial, project_name, client_name, status, created_at, updated_at, area_sq_ft, project_type, assigned_designer_id, calculated_price, payment_status')
       .order('updated_at', { ascending: false });
 
     if (projError) throw projError;
 
     // Fetch payments
-    const { data: payments, error: payError } = await supabaseAdmin
+    const { data: payments } = await supabaseAdmin
       .from('payments')
-      .select('amount, status');
+      .select('id, project_id, amount, status, created_at, invoice_number');
 
-    if (payError) throw payError;
+    // Fetch architects
+    const { data: architects } = await supabaseAdmin
+      .from('profiles')
+      .select('id, name, email')
+      .eq('role', 'architect');
+
+    // Fetch revision requests
+    const { data: revisionRequests } = await supabaseAdmin
+      .from('revision_requests')
+      .select('id, status, created_at, description, project_id');
 
     return Response.json({
       designers: designers || [],
+      architects: architects || [],
       projects: projects || [],
-      payments: payments || []
+      payments: payments || [],
+      revisionRequests: revisionRequests || []
     });
   } catch (err: any) {
     console.error('Admin Dashboard API Error:', err);

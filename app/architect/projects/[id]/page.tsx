@@ -25,6 +25,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
 
   const [designer, setDesigner] = useState<any | null>(null);
   const [payment, setPayment] = useState<any | null>(null);
+  const [paymentList, setPaymentList] = useState<any[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [userProfile, setUserProfile] = useState<{ name: string; email: string } | null>(null);
@@ -102,13 +103,16 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
           setDesigner(null);
         }
 
-        // Fetch payment record
-        const { data: pay } = await supabase
+        // Fetch payment records
+        const { data: payList } = await supabase
           .from('payments')
           .select('*')
           .eq('project_id', id)
-          .maybeSingle();
-        setPayment(pay);
+          .order('created_at', { ascending: true });
+
+        const pays = payList || [];
+        setPaymentList(pays);
+        setPayment(pays[0] || null);
 
         // Fetch remarks (brief/mood etc)
         const { data: rems } = await supabase
@@ -274,6 +278,55 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
     rzp.open();
   };
 
+  const handlePayMilestone2 = async (m2: any) => {
+    if (!m2) return;
+    setIsProcessingPayment(true);
+    const amountToPay = Number(m2.amount || 0);
+
+    const options = {
+      key: "rzp_test_TBHxoNcpPx7OW9",
+      amount: amountToPay * 100, // Amount in paise
+      currency: "INR",
+      name: "LightLab",
+      description: `50% Final Release Payment for ${project?.project_name || 'Project'}`,
+      handler: async function (response: any) {
+        try {
+          await supabase
+            .from('payments')
+            .update({
+              status: 'completed',
+              transaction_id: response.razorpay_payment_id
+            })
+            .eq('id', m2.id);
+
+          await supabase
+            .from('projects')
+            .update({
+              payment_status: 'paid'
+            })
+            .eq('id', id);
+
+          setProject((prev: any) => ({ ...prev, payment_status: 'paid' }));
+          setPaymentList((prev: any[]) => prev.map(p => p.id === m2.id ? { ...p, status: 'completed', transaction_id: response.razorpay_payment_id } : p));
+          router.push(`/architect/payments/success?project_id=${id}&amount=${amountToPay}&transaction_id=${response.razorpay_payment_id}`);
+        } catch (err) {
+          console.error('Milestone 2 payment error:', err);
+          router.push(`/architect/payments/failed?project_id=${id}&amount=${amountToPay}`);
+        } finally {
+          setIsProcessingPayment(false);
+        }
+      },
+      prefill: {
+        name: userProfile?.name || "",
+        email: userProfile?.email || "",
+      },
+      theme: { color: "#F59E0B" }
+    };
+
+    const rzp = new (window as any).Razorpay(options);
+    rzp.open();
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -420,63 +473,131 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                         <div className="bg-neutral-50 px-6 py-3.5 border-b border-neutral-200 flex items-center justify-between">
                           <div className="flex items-center space-x-2.5">
                             <i className="bx bx-receipt text-neutral-500 text-lg"></i>
-                            <span className="text-xs font-bold uppercase tracking-wider text-neutral-600">Pending Invoice — {payment?.invoice_number || `INV-${new Date().getFullYear()}-001`}</span>
+                            <span className="text-xs font-bold uppercase tracking-wider text-neutral-600">
+                              {paymentList.length > 1 ? '50/50 Milestone Installments Invoice' : `Pending Invoice — ${payment?.invoice_number || `INV-${new Date().getFullYear()}-001`}`}
+                            </span>
                           </div>
-                          <span className="px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-100 text-[10px] font-extrabold uppercase rounded-sm tracking-wider">Awaiting Payment</span>
+                          <span className="px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-100 text-[10px] font-extrabold uppercase rounded-sm tracking-wider">
+                            {project.payment_status === 'partial' ? '50% Deposit Paid' : 'Awaiting Payment'}
+                          </span>
                         </div>
 
                         {/* Invoice Body Grid */}
                         <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                          {/* Col 1: Invoice metadata */}
+                          {/* Col 1: Invoice metadata & Milestone Breakdown */}
                           <div className="lg:col-span-2 space-y-4">
                             <div>
                               <h4 className="text-base font-bold text-neutral-900">{project.project_name}</h4>
                               <p className="text-xs text-neutral-450 mt-0.5">Lighting Design Project Invoice</p>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-neutral-100 pt-4 text-xs">
-                              <div>
-                                <span className="text-neutral-400 font-semibold block">Client</span>
-                                <span className="text-neutral-700 font-bold block mt-1">{project.client_name}</span>
+                            {paymentList.length > 1 ? (
+                              <div className="space-y-2.5 border-t border-neutral-100 pt-4">
+                                <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider block">Payment Schedule Breakdown</span>
+                                
+                                {/* Milestone 1 */}
+                                <div className="flex justify-between items-center bg-neutral-50 p-3 rounded border border-neutral-200 text-xs">
+                                  <div>
+                                    <span className="font-bold text-neutral-800 block">Milestone 1 — 50% Upfront Deposit</span>
+                                    <span className="text-neutral-450 text-[11px] block">{paymentList[0]?.invoice_number}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="font-bold text-neutral-900 block">₹{Number(paymentList[0]?.amount || 0).toLocaleString('en-IN')}</span>
+                                    <span className={`text-[10px] font-extrabold uppercase ${paymentList[0]?.status === 'completed' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                      {paymentList[0]?.status === 'completed' ? 'Paid' : 'Pending'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Milestone 2 */}
+                                <div className="flex justify-between items-center bg-neutral-50 p-3 rounded border border-neutral-200 text-xs">
+                                  <div>
+                                    <span className="font-bold text-neutral-800 block">Milestone 2 — 50% Final Release Balance</span>
+                                    <span className="text-neutral-450 text-[11px] block">{paymentList[1]?.invoice_number}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="font-bold text-neutral-900 block">₹{Number(paymentList[1]?.amount || 0).toLocaleString('en-IN')}</span>
+                                    <span className={`text-[10px] font-extrabold uppercase ${paymentList[1]?.status === 'completed' ? 'text-emerald-600' : (project.status === 'Ready for Client Review' || project.status === 'Approved' || deliverables.length > 0) ? 'text-amber-600 font-bold animate-pulse' : 'text-neutral-500'}`}>
+                                      {paymentList[1]?.status === 'completed' 
+                                        ? 'Paid' 
+                                        : (project.status === 'Ready for Client Review' || project.status === 'Approved' || deliverables.length > 0)
+                                          ? 'Payment Due (Design Complete)' 
+                                          : 'Due After Design Completion'}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-neutral-400 font-semibold block">Billing Plan</span>
-                                <span className="text-neutral-700 font-bold block mt-1">{project.pricing_plans?.name || 'Standard Plan'}</span>
+                            ) : (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-neutral-100 pt-4 text-xs">
+                                <div>
+                                  <span className="text-neutral-400 font-semibold block">Client</span>
+                                  <span className="text-neutral-700 font-bold block mt-1">{project.client_name}</span>
+                                </div>
+                                <div>
+                                  <span className="text-neutral-400 font-semibold block">Billing Plan</span>
+                                  <span className="text-neutral-700 font-bold block mt-1">{project.pricing_plans?.name || 'Standard Plan'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-neutral-400 font-semibold block">Date Issued</span>
+                                  <span className="text-neutral-700 font-bold block mt-1">
+                                    {payment?.created_at 
+                                      ? new Date(payment.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                                      : new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                  </span>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-neutral-400 font-semibold block">Date Issued</span>
-                                <span className="text-neutral-700 font-bold block mt-1">
-                                  {payment?.created_at 
-                                    ? new Date(payment.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                                    : new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                </span>
-                              </div>
-                            </div>
+                            )}
                           </div>
 
-                          {/* Col 2: Pricing Summary Column */}
+                          {/* Col 2: Pricing Summary Column & Pay Action Button */}
                           <div className="lg:border-l lg:border-dashed lg:border-neutral-200 lg:pl-6 flex flex-col justify-between space-y-5 lg:space-y-0">
                             <div className="space-y-2 text-xs">
                               <div className="flex justify-between text-neutral-500">
-                                <span>Subtotal:</span>
-                                <span className="font-semibold text-neutral-800">₹{Number(payment?.amount || 5899).toLocaleString('en-IN')}</span>
+                                <span>Project Total Fee:</span>
+                                <span className="font-semibold text-neutral-800">₹{Number(project.calculated_price || payment?.amount || 5899).toLocaleString('en-IN')}</span>
                               </div>
-                              <div className="flex justify-between text-neutral-500">
-                                <span>Estimated GST (18%):</span>
-                                <span className="font-semibold text-neutral-800">₹{Math.round(Number(payment?.amount || 5899) * 0.18).toLocaleString('en-IN')}</span>
-                              </div>
+                              {paymentList.length > 1 && (
+                                <div className="flex justify-between text-neutral-500">
+                                  <span>Amount Paid So Far:</span>
+                                  <span className="font-semibold text-emerald-600">
+                                    ₹{paymentList.filter(p => p.status === 'completed').reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString('en-IN')}
+                                  </span>
+                                </div>
+                              )}
                               <div className="flex justify-between border-t border-neutral-200/60 pt-2 text-sm font-bold">
-                                <span className="text-neutral-900">Grand Total:</span>
-                                <span className="text-amber-600">₹{Math.round(Number(payment?.amount || 5899) * 1.18).toLocaleString('en-IN')}</span>
+                                <span className="text-neutral-900">Current Due:</span>
+                                <span className="text-amber-600">
+                                  ₹{paymentList.length > 1 
+                                    ? (paymentList[0]?.status !== 'completed' ? Number(paymentList[0]?.amount || 0) : Number(paymentList[1]?.amount || 0)).toLocaleString('en-IN')
+                                    : Math.round(Number(payment?.amount || 5899) * 1.18).toLocaleString('en-IN')}
+                                </span>
                               </div>
                             </div>
 
-                            <button
-                              onClick={handleMockPayment}
-                              className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider rounded-sm transition-all shadow-md shadow-amber-500/10 active:scale-[0.98] cursor-pointer text-center"
-                            >
-                              Pay Invoice
-                            </button>
+                            {paymentList.length > 1 ? (
+                              paymentList[0]?.status !== 'completed' ? (
+                                <button
+                                  onClick={handleMockPayment}
+                                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider rounded-sm transition-all shadow-md shadow-amber-500/10 active:scale-[0.98] cursor-pointer text-center"
+                                >
+                                  Pay 50% Deposit (₹{Number(paymentList[0]?.amount || 0).toLocaleString('en-IN')})
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handlePayMilestone2(paymentList[1])}
+                                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider rounded-sm transition-all shadow-md shadow-amber-500/10 active:scale-[0.98] cursor-pointer text-center"
+                                >
+                                  Pay Remaining 50% Balance (₹{Number(paymentList[1]?.amount || 0).toLocaleString('en-IN')})
+                                </button>
+                              )
+                            ) : (
+                              <button
+                                onClick={handleMockPayment}
+                                className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider rounded-sm transition-all shadow-md shadow-amber-500/10 active:scale-[0.98] cursor-pointer text-center"
+                              >
+                                Pay Invoice
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -644,6 +765,24 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
 
               {activeTab === 'Deliverables' && (
                 <div className="space-y-4 px-6">
+                  {paymentList.length > 1 && paymentList[1]?.status !== 'completed' && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-sans">
+                      <div className="flex items-start space-x-3">
+                        <i className="bx bx-lock-alt text-amber-600 text-2xl shrink-0 mt-0.5"></i>
+                        <div>
+                          <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Final Deliverables Pending Balance</h4>
+                          <p className="text-xs text-amber-700 mt-0.5">Settle the remaining 50% milestone balance (₹{Number(paymentList[1]?.amount || 0).toLocaleString('en-IN')}) to unlock high-res layout plans and CAD packages.</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handlePayMilestone2(paymentList[1])}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase rounded-sm transition-all shadow-md shadow-amber-500/10 cursor-pointer whitespace-nowrap shrink-0"
+                      >
+                        Pay Remaining Balance
+                      </button>
+                    </div>
+                  )}
+
                   {deliverables.length === 0 ? (
                     <div className="py-12 text-center text-sm text-neutral-450 font-medium space-y-2 bg-neutral-50 rounded-xl border border-dashed border-neutral-200">
                       <i className="bx bx-file-blank text-3xl text-neutral-300"></i>

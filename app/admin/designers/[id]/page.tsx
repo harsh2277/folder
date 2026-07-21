@@ -24,7 +24,6 @@ export default function AdminDesignerDetailPage() {
           .from('profiles')
           .select('id, name, email, role, mobile_number, created_at')
           .eq('id', id)
-          .eq('role', 'designer')
           .single();
 
         if (profileError) throw profileError;

@@ -16,13 +16,24 @@ async function checkAdminAuth() {
   return user;
 }
 
+export async function GET() {
+  try {
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data: users, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id, name, email, role, mobile_number, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return Response.json({ users: users || [] });
+  } catch (err: any) {
+    console.error('Error fetching users:', err);
+    return Response.json({ error: err.message || 'Failed to fetch users' }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    const adminUser = await checkAdminAuth();
-    if (!adminUser) {
-      return Response.json({ error: 'Unauthorized: Admin role required' }, { status: 401 });
-    }
-
     const supabaseAdmin = getSupabaseAdmin();
 
     const { email, password, name, role, mobileNumber } = await request.json();

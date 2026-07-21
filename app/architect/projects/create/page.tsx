@@ -87,6 +87,7 @@ export default function ArchitectProjectCreationWizard() {
     notes: '',
   });
 
+  const [paymentSchedule, setPaymentSchedule] = useState<'full' | 'milestone'>('full');
   const [lightingPreferences, setLightingPreferences] = useState<string[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -268,35 +269,64 @@ export default function ArchitectProjectCreationWizard() {
         if (uploadData.error) throw new Error(uploadData.error);
       }
 
-      // 5. Create Payment record
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          project_id: project.id,
-          amount: totalCost,
-          status: isPaid ? 'completed' : 'pending',
-          transaction_id: isPaid ? `manual_${Date.now()}` : null,
-          invoice_number: `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-        });
-      if (paymentError) throw paymentError;
+      // 5. Create Payment record(s)
+      const year = new Date().getFullYear();
+      const invoiceCode = Math.floor(1000 + Math.random() * 9000);
+
+      if (paymentSchedule === 'milestone') {
+        const depositAmount = Math.round(totalCost / 2);
+        const balanceAmount = totalCost - depositAmount;
+
+        const { error: p1Error } = await supabase
+          .from('payments')
+          .insert({
+            project_id: project.id,
+            amount: depositAmount,
+            status: isPaid ? 'completed' : 'pending',
+            transaction_id: isPaid ? `manual_m1_${Date.now()}` : null,
+            invoice_number: `INV-${year}-${invoiceCode}-M1 (50% Deposit)`,
+          });
+        if (p1Error) throw p1Error;
+
+        const { error: p2Error } = await supabase
+          .from('payments')
+          .insert({
+            project_id: project.id,
+            amount: balanceAmount,
+            status: 'pending',
+            transaction_id: null,
+            invoice_number: `INV-${year}-${invoiceCode}-M2 (50% Balance)`,
+          });
+        if (p2Error) throw p2Error;
+      } else {
+        const { error: paymentError } = await supabase
+          .from('payments')
+          .insert({
+            project_id: project.id,
+            amount: totalCost,
+            status: isPaid ? 'completed' : 'pending',
+            transaction_id: isPaid ? `manual_${Date.now()}` : null,
+            invoice_number: `INV-${year}-${invoiceCode}`,
+          });
+        if (paymentError) throw paymentError;
+      }
 
       if (!bypassRedirect) {
         router.push('/architect/projects');
       }
+
       return project;
     } catch (err: any) {
-      console.error('Error saving project:', err);
-      setErrorMsg(err.message || 'Something went wrong while saving the project.');
-      setSubmitting(false);
+      console.error('Save Project Error:', err);
+      setErrorMsg(err.message || 'Failed to save project.');
       throw err;
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleRazorpayCheckout = async () => {
-    if (typeof (window as any).Razorpay === 'undefined') {
-      alert('Razorpay SDK is loading, please wait a moment.');
-      return;
-    }
+    if (!selectedPlan) return;
 
     setShowPaymentModal(false);
     setSubmitting(true);
@@ -304,17 +334,14 @@ export default function ArchitectProjectCreationWizard() {
 
     let project: any;
     try {
-      // First save the project in 'pending' status
       project = await saveProject(false, true);
     } catch (err) {
-      // Error handled inside saveProject
       return;
     }
 
-    // Now trigger Razorpay Checkout
     const totalCost = calculateGrandTotal();
+    const chargeAmount = paymentSchedule === 'milestone' ? Math.round(totalCost / 2) : totalCost;
     
-    // Retrieve user email/name for prefill
     let userEmail = "";
     let userName = "";
     try {
@@ -336,36 +363,43 @@ export default function ArchitectProjectCreationWizard() {
 
     const options = {
       key: "rzp_test_TBHxoNcpPx7OW9",
-      amount: totalCost * 100, // in paise
+      amount: chargeAmount * 100, // in paise
       currency: "INR",
       name: "LightLab",
-      description: `Grand Total for ${project.project_name} (incl. 18% GST)`,
+      description: paymentSchedule === 'milestone'
+        ? `50% Upfront Deposit for ${project.project_name}`
+        : `Grand Total for ${project.project_name}`,
       handler: async function (response: any) {
         try {
-          // Update project status to paid
           await supabase
             .from('projects')
             .update({
-              payment_status: 'paid',
+              payment_status: paymentSchedule === 'milestone' ? 'partial' : 'paid',
               status: 'Under Review'
             })
             .eq('id', project.id);
 
-          // Update payment details
-          await supabase
+          // Update first payment record
+          const { data: pays } = await supabase
             .from('payments')
-            .update({
-              status: 'completed',
-              transaction_id: response.razorpay_payment_id
-            })
-            .eq('project_id', project.id);
+            .select('id')
+            .eq('project_id', project.id)
+            .order('created_at', { ascending: true });
 
-          // Redirect to success page!
-          router.push(`/architect/payments/success?project_id=${project.id}&amount=${totalCost}&transaction_id=${response.razorpay_payment_id}`);
+          if (pays && pays.length > 0) {
+            await supabase
+              .from('payments')
+              .update({
+                status: 'completed',
+                transaction_id: response.razorpay_payment_id
+              })
+              .eq('id', pays[0].id);
+          }
+
+          router.push(`/architect/payments/success?project_id=${project.id}&amount=${chargeAmount}&transaction_id=${response.razorpay_payment_id}`);
         } catch (err) {
           console.error("Error updating payment in handler:", err);
-          // Still go to success since payment went through, but log error
-          router.push(`/architect/payments/success?project_id=${project.id}&amount=${totalCost}&transaction_id=${response.razorpay_payment_id}`);
+          router.push(`/architect/payments/success?project_id=${project.id}&amount=${chargeAmount}&transaction_id=${response.razorpay_payment_id}`);
         }
       },
       prefill: {
@@ -601,6 +635,51 @@ export default function ArchitectProjectCreationWizard() {
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+
+                {/* Milestone Installments Option Row */}
+                <div className="border-t border-neutral-100 pt-6 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-neutral-900 font-sans flex items-center space-x-2">
+                      <i className="bx bx-pie-chart-alt-2 text-amber-600 text-base"></i>
+                      <span>Payment Schedule Preference</span>
+                    </h3>
+                    <p className="text-sm text-neutral-450 mt-0.5">Choose full payment or milestone installment billing.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div
+                      onClick={() => setPaymentSchedule('full')}
+                      className={`border rounded-md p-4 flex items-start justify-between cursor-pointer transition-all ${paymentSchedule === 'full' ? 'border-amber-500 bg-amber-50/20 ring-1 ring-amber-500' : 'border-neutral-200 hover:border-neutral-300'}`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-bold text-neutral-900">Standard 100% Payment</span>
+                        </div>
+                        <p className="text-xs text-neutral-500">Pay full project amount upon project submission.</p>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center mt-0.5 ${paymentSchedule === 'full' ? 'border-amber-500 bg-amber-500 text-white' : 'border-neutral-300'}`}>
+                        {paymentSchedule === 'full' && <div className="w-1.5 h-1.5 rounded-full bg-white"></div>}
+                      </div>
+                    </div>
+
+                    <div
+                      onClick={() => setPaymentSchedule('milestone')}
+                      className={`border rounded-md p-4 flex items-start justify-between cursor-pointer transition-all relative ${paymentSchedule === 'milestone' ? 'border-amber-500 bg-amber-50/20 ring-1 ring-amber-500' : 'border-neutral-200 hover:border-neutral-300'}`}
+                    >
+                      <span className="absolute -top-2.5 right-3 text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                        Enterprise Favorite
+                      </span>
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-bold text-neutral-900">50/50 Milestone Installments</span>
+                        </div>
+                        <p className="text-xs text-neutral-500">Pay 50% Upfront Deposit now + 50% Balance on final deliverables.</p>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center mt-0.5 ${paymentSchedule === 'milestone' ? 'border-amber-500 bg-amber-500 text-white' : 'border-neutral-300'}`}>
+                        {paymentSchedule === 'milestone' && <div className="w-1.5 h-1.5 rounded-full bg-white"></div>}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1029,10 +1108,27 @@ export default function ArchitectProjectCreationWizard() {
                       <span className="text-neutral-500 font-medium">GST (18%):</span>
                       <span className="text-neutral-700 font-semibold">₹{Math.round(calculateTotalPrice() * 0.18).toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between items-center border-t border-neutral-200/60 pt-2 text-sm font-bold">
-                      <span className="text-neutral-900">Grand Total:</span>
-                      <span className="text-amber-600">₹{Math.round(calculateTotalPrice() * 1.18).toLocaleString()}</span>
+                    <div className="flex justify-between items-center border-t border-neutral-200/60 pt-2 text-xs font-semibold">
+                      <span className="text-neutral-700">Total Project Fee:</span>
+                      <span className="text-neutral-900">₹{Math.round(calculateTotalPrice() * 1.18).toLocaleString()}</span>
                     </div>
+
+                    {paymentSchedule === 'milestone' ? (
+                      <div className="bg-amber-50 p-3 rounded-md border border-amber-200 space-y-1 mt-2">
+                        <div className="flex justify-between items-center text-xs font-bold">
+                          <span className="text-amber-900">Initial 50% Deposit Due Now:</span>
+                          <span className="text-amber-600 text-sm">₹{Math.round((calculateTotalPrice() * 1.18) / 2).toLocaleString()}</span>
+                        </div>
+                        <p className="text-[10px] text-amber-700 font-normal">
+                          Remaining 50% balance (₹{Math.round((calculateTotalPrice() * 1.18) / 2).toLocaleString()}) will be billed after design completion prior to deliverable download.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center border-t border-neutral-200/60 pt-2 text-sm font-bold">
+                        <span className="text-neutral-900">Grand Total:</span>
+                        <span className="text-amber-600">₹{Math.round(calculateTotalPrice() * 1.18).toLocaleString()}</span>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -1041,10 +1137,14 @@ export default function ArchitectProjectCreationWizard() {
                 <button
                   onClick={handleRazorpayCheckout}
                   disabled={submitting}
-                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
+                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5 cursor-pointer"
                 >
                   <i className="bx bx-check-circle text-sm"></i>
-                  <span>Yes, Payment Completed</span>
+                  <span>
+                    {paymentSchedule === 'milestone' 
+                      ? `Pay 50% Upfront Deposit (₹${Math.round((calculateTotalPrice() * 1.18) / 2).toLocaleString()})`
+                      : 'Pay Grand Total Now'}
+                  </span>
                 </button>
 
                 <button

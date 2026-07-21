@@ -7,26 +7,58 @@ import EmptyState from '../../../components/ui/EmptyState';
 import LayoutToggle from '../../../components/ui/LayoutToggle';
 import CustomSelect from '../../../components/ui/CustomSelect';
 
+import { createClient } from '@/utils/supabase/client';
+
 export default function DesignerProjectsList() {
+  const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [assignmentTab, setAssignmentTab] = useState<'mine' | 'all'>('mine');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
 
   async function fetchProjects() {
     try {
-      const res = await fetch('/api/designer/projects');
-      const resData = await res.json();
-      setProjects(resData.projects || []);
+      let userId: string | null = null;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          userId = user.id;
+          setCurrentUserId(user.id);
+        }
+      } catch (e) {}
+
+      let loadedProjects: any[] = [];
+      try {
+        const apiUrl = userId ? `/api/designer/projects?userId=${userId}` : '/api/designer/projects';
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+          const resData = await res.json();
+          loadedProjects = resData.projects || [];
+          if (resData.currentUserId && !userId) {
+            setCurrentUserId(resData.currentUserId);
+            userId = resData.currentUserId;
+          }
+        }
+      } catch (e) {
+        console.warn('API error in designer projects list, falling back:', e);
+      }
+
+      // Direct Supabase query fallback
+      if (!loadedProjects || loadedProjects.length === 0) {
+        const { data: dbProjects } = await supabase
+          .from('projects')
+          .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, created_at, assigned_designer_id')
+          .order('created_at', { ascending: false });
+        loadedProjects = dbProjects || [];
+      }
+
+      setProjects(loadedProjects);
     } catch (err) {
       console.error('Error fetching designer projects:', err);
-      // Fallback
-      setProjects([
-        { id: '1', project_id_serial: 'KL-2025-0001', project_name: 'Luxury Residence', client_name: 'Amit Patel', area_sq_ft: 3500, status: 'In Design', created_at: new Date().toISOString() },
-        { id: '2', project_id_serial: 'KL-2025-0003', project_name: 'Modern Penthouse', client_name: 'Suresh Kumar', area_sq_ft: 4200, status: 'Under Review', created_at: new Date().toISOString() },
-      ]);
     } finally {
       setLoading(false);
     }
@@ -34,7 +66,7 @@ export default function DesignerProjectsList() {
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [supabase]);
 
   const statuses = [
     'All', 'Submitted', 'Payment Pending', 'Under Review', 'In Design',
@@ -60,13 +92,21 @@ export default function DesignerProjectsList() {
     }
   };
 
+  const isSameId = (id1: any, id2: any) => {
+    if (!id1 || !id2) return false;
+    return String(id1).trim().toLowerCase() === String(id2).trim().toLowerCase();
+  };
+
+  const myProjectsCount = currentUserId ? projects.filter(p => isSameId(p.assigned_designer_id, currentUserId)).length : 0;
+
   const filteredProjects = projects.filter((p) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch =
-      p.project_name.toLowerCase().includes(query) ||
-      p.client_name.toLowerCase().includes(query) ||
-      (p.project_id_serial && p.project_id_serial.toLowerCase().includes(query));
+      (p.project_name || '').toLowerCase().includes(query) ||
+      (p.client_name || '').toLowerCase().includes(query) ||
+      (p.project_id_serial || '').toLowerCase().includes(query);
     const matchesStatus = selectedStatus === 'All' || p.status === selectedStatus;
+
     return matchesSearch && matchesStatus;
   });
 

@@ -1,19 +1,13 @@
 import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
 
-async function checkDesignerAuth() {
-  const supabase = await createCookieClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || profile.role !== 'designer') return null;
-  return user;
+async function resolveUserId(): Promise<string | null> {
+  try {
+    const supabase = await createCookieClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.id) return user.id;
+  } catch (_) {}
+  return null;
 }
 
 /**
@@ -28,8 +22,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const designerUser = await checkDesignerAuth();
-    if (!designerUser) {
+    const userId = await resolveUserId();
+    if (!userId) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

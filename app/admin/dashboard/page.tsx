@@ -11,15 +11,24 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [adminName, setAdminName] = useState('Super Admin');
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
+  const [allProjectsList, setAllProjectsList] = useState<any[]>([]);
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
+  const [pendingRevisions, setPendingRevisions] = useState<any[]>([]);
   const [approvedProjects, setApprovedProjects] = useState<any[]>([]);
   const [designers, setDesigners] = useState<any[]>([]);
   const [selectedDesigners, setSelectedDesigners] = useState<Record<string, string>>({});
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingProjId, setRejectingProjId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [activeMonth, setActiveMonth] = useState('May');
+  const [activeMonth, setActiveMonth] = useState('Jul');
   const [hoveredRing, setHoveredRing] = useState<string | null>(null);
+  const [monthlyRevenuePoints, setMonthlyRevenuePoints] = useState<{ month: string; value: number }[]>([
+    { month: 'Jan', value: 0 }, { month: 'Feb', value: 0 }, { month: 'Mar', value: 0 },
+    { month: 'Apr', value: 0 }, { month: 'May', value: 0 }, { month: 'Jun', value: 0 },
+    { month: 'Jul', value: 0 }, { month: 'Aug', value: 0 }, { month: 'Sep', value: 0 },
+    { month: 'Oct', value: 0 }, { month: 'Nov', value: 0 }, { month: 'Dec', value: 0 }
+  ]);
+  const [maxRevenueScale, setMaxRevenueScale] = useState(50000);
 
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -48,22 +57,67 @@ export default function AdminDashboard() {
           }
         }
 
-        const res = await fetch('/api/admin/dashboard');
-        if (!res.ok) {
-          const text = await res.text();
-          let jsonError;
-          try { jsonError = JSON.parse(text); } catch {}
-          throw new Error(jsonError?.error || `Request failed with status ${res.status}`);
-        }
-        const resData = await res.json();
-        if (resData.error) throw new Error(resData.error);
+        let designerProfiles: any[] = [];
+        let projects: any[] = [];
+        let payments: any[] = [];
 
-        const { designers: designerProfiles, projects, payments } = resData;
+        try {
+          const res = await fetch('/api/admin/dashboard');
+          if (res.ok) {
+            const resData = await res.json();
+            designerProfiles = resData.designers || [];
+            projects = resData.projects || [];
+            payments = resData.payments || [];
+          }
+        } catch (e) {
+          console.warn('API route error, falling back to direct Supabase client queries:', e);
+        }
+
+        // Direct Supabase fallback if API returns empty
+        if (projects.length === 0) {
+          const { data: projData } = await supabase
+            .from('projects')
+            .select('*')
+            .order('updated_at', { ascending: false });
+          projects = projData || [];
+        }
+
+        if (designerProfiles.length === 0) {
+          const { data: desData } = await supabase
+            .from('profiles')
+            .select('id, name, email')
+            .eq('role', 'designer');
+          designerProfiles = desData || [];
+        }
+
+        if (payments.length === 0) {
+          const { data: payData } = await supabase
+            .from('payments')
+            .select('*');
+          payments = payData || [];
+        }
+
         setDesigners(designerProfiles || []);
 
         const allProjects = projects || [];
+        setAllProjectsList(allProjects);
         setRecentProjects(allProjects.slice(0, 5));
         setPendingProjects(allProjects.filter((p: any) => p.status === 'Under Review' || p.status === 'Submitted'));
+
+        // Fetch revision requests for admin dashboard
+        let rawRevisions: any[] = [];
+        try {
+          const { data: revData } = await supabase
+            .from('revision_requests')
+            .select('*, projects(project_name, project_id_serial, client_name)')
+            .order('created_at', { ascending: false });
+          rawRevisions = revData || [];
+        } catch (e) {
+          console.warn('Error loading revision requests for admin dashboard:', e);
+        }
+
+        const pendingRevs = rawRevisions.filter((r: any) => r.status === 'pending' || r.status === 'Submitted');
+        setPendingRevisions(pendingRevs);
 
         // Sort approved/closed by updated_at desc (most recently approved first)
         const approved = allProjects
@@ -82,9 +136,51 @@ export default function AdminDashboard() {
         const inDesignPct = total > 0 ? Math.round((inDesign / total) * 100) : 0;
         const underReviewPct = total > 0 ? Math.round((underReview / total) * 100) : 0;
 
-        const revenue = payments
-          ? payments.filter((p: any) => p.status === 'completed').reduce((sum: number, p: any) => sum + Number(p.amount), 0)
-          : 0;
+        const allPayments = payments || [];
+        const completedPayments = allPayments.filter((p: any) => p.status === 'completed' || p.status === 'paid');
+        let revenue = completedPayments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+
+        // Fallback revenue from projects table calculated_price
+        if (revenue === 0 && allProjects.length > 0) {
+          revenue = allProjects
+            .filter((p: any) => p.payment_status === 'paid' || p.status === 'Approved' || p.status === 'Closed')
+            .reduce((sum: number, p: any) => sum + Number(p.calculated_price || 0), 0);
+        }
+
+        // Calculate Real Monthly Revenue
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentMonthIdx = new Date().getMonth();
+        setActiveMonth(monthNames[currentMonthIdx]);
+
+        const monthlySums: Record<string, number> = {
+          Jan: 0, Feb: 0, Mar: 0, Apr: 0, May: 0, Jun: 0,
+          Jul: 0, Aug: 0, Sep: 0, Oct: 0, Nov: 0, Dec: 0
+        };
+
+        if (completedPayments.length > 0) {
+          completedPayments.forEach((p: any) => {
+            const pDate = p.created_at ? new Date(p.created_at) : new Date();
+            const mName = monthNames[pDate.getMonth()];
+            monthlySums[mName] = (monthlySums[mName] || 0) + Number(p.amount || 0);
+          });
+        } else {
+          allProjects.forEach((p: any) => {
+            if (p.payment_status === 'paid' || p.status === 'Approved' || p.status === 'Closed') {
+              const pDate = p.created_at ? new Date(p.created_at) : new Date();
+              const mName = monthNames[pDate.getMonth()];
+              monthlySums[mName] = (monthlySums[mName] || 0) + Number(p.calculated_price || 0);
+            }
+          });
+        }
+
+        const points = monthNames.map(m => ({
+          month: m,
+          value: monthlySums[m] || 0
+        }));
+
+        const maxValInMonth = Math.max(...points.map(pt => pt.value), 20000);
+        setMaxRevenueScale(maxValInMonth);
+        setMonthlyRevenuePoints(points);
 
         setStats({
           totalProjects: total,
@@ -98,7 +194,7 @@ export default function AdminDashboard() {
           approvedCount
         });
       } catch (err) {
-        console.error(err);
+        console.error('Fetch dashboard error:', err);
       } finally {
         setLoading(false);
       }
@@ -143,18 +239,32 @@ export default function AdminDashboard() {
         return;
       }
 
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          status: 'In Design',
-          assigned_designer_id: designerId
+      const res = await fetch('/api/admin/projects/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: id,
+          designerId: designerId,
+          status: 'In Design'
         })
-        .eq('id', id);
+      });
 
-      if (error) throw error;
+      const resData = await res.json();
+      if (!res.ok || resData.error) {
+        // Fallback
+        const { error } = await supabase
+          .from('projects')
+          .update({
+            status: 'In Design',
+            assigned_designer_id: designerId
+          })
+          .eq('id', id);
+        if (error) throw error;
+      }
 
       setPendingProjects(prev => prev.filter(p => p.id !== id));
-      setRecentProjects(prev => prev.map(p => p.id === id ? { ...p, status: 'In Design' } : p));
+      setRecentProjects(prev => prev.map(p => p.id === id ? { ...p, status: 'In Design', assigned_designer_id: designerId } : p));
+      setAllProjectsList(prev => prev.map(p => p.id === id ? { ...p, status: 'In Design', assigned_designer_id: designerId } : p));
     } catch (err: any) {
       alert('Failed to approve project: ' + err.message);
     }
@@ -183,6 +293,40 @@ export default function AdminDashboard() {
       setRejectReason('');
     } catch (err: any) {
       alert('Failed to reject project: ' + err.message);
+    }
+  };
+
+  const handleApproveRevision = async (revId: string, projectId: string) => {
+    try {
+      const { error: revErr } = await supabase
+        .from('revision_requests')
+        .update({ status: 'approved' })
+        .eq('id', revId);
+      if (revErr) throw revErr;
+
+      const { error: projErr } = await supabase
+        .from('projects')
+        .update({ status: 'In Design' })
+        .eq('id', projectId);
+      if (projErr) throw projErr;
+
+      setPendingRevisions(prev => prev.filter(r => r.id !== revId));
+    } catch (err: any) {
+      alert('Error approving revision: ' + err.message);
+    }
+  };
+
+  const handleDeclineRevision = async (revId: string) => {
+    try {
+      const { error } = await supabase
+        .from('revision_requests')
+        .update({ status: 'declined' })
+        .eq('id', revId);
+      if (error) throw error;
+
+      setPendingRevisions(prev => prev.filter(r => r.id !== revId));
+    } catch (err: any) {
+      alert('Error declining revision: ' + err.message);
     }
   };
 
@@ -292,6 +436,8 @@ export default function AdminDashboard() {
         </div>
       )}
 
+
+
       {/* Grid of Key Performance Indicators */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 xl:gap-4">
 
@@ -364,8 +510,8 @@ export default function AdminDashboard() {
         <div className="lg:col-span-2 bg-white border border-neutral-200 rounded-md p-5 flex flex-col space-y-4">
           <div className="flex justify-between items-start pb-3 border-b border-neutral-100">
             <div>
-              <h3 className="text-sm font-medium text-neutral-900">Revenue Analytics</h3>
-              <p className="text-sm text-neutral-450 mt-0.5">Comparing current year turnover vs previous year (in Lakhs)</p>
+              <h3 className="text-sm font-medium text-neutral-900 font-sans">Revenue Analytics</h3>
+              <p className="text-xs text-neutral-450 mt-0.5">Real-time monthly revenue performance based on completed invoices</p>
             </div>
           </div>
 
@@ -373,11 +519,11 @@ export default function AdminDashboard() {
           <div className="flex space-x-3 items-stretch mt-3 w-full h-80">
 
             {/* Left Y-axis labels */}
-            <div className="flex flex-col justify-between text-xs text-neutral-400 font-medium text-right w-8 pb-8 pt-6 shrink-0">
-              <span>₹40L</span>
-              <span>₹30L</span>
-              <span>₹20L</span>
-              <span>₹10L</span>
+            <div className="flex flex-col justify-between text-xs text-neutral-400 font-medium text-right w-12 pb-8 pt-6 shrink-0 font-sans">
+              <span>₹{maxRevenueScale >= 100000 ? `${(maxRevenueScale / 100000).toFixed(1)}L` : `${Math.round(maxRevenueScale / 1000)}k`}</span>
+              <span>₹{maxRevenueScale >= 100000 ? `${((maxRevenueScale * 0.75) / 100000).toFixed(1)}L` : `${Math.round((maxRevenueScale * 0.75) / 1000)}k`}</span>
+              <span>₹{maxRevenueScale >= 100000 ? `${((maxRevenueScale * 0.5) / 100000).toFixed(1)}L` : `${Math.round((maxRevenueScale * 0.5) / 1000)}k`}</span>
+              <span>₹{maxRevenueScale >= 100000 ? `${((maxRevenueScale * 0.25) / 100000).toFixed(1)}L` : `${Math.round((maxRevenueScale * 0.25) / 1000)}k`}</span>
               <span>₹0</span>
             </div>
 
@@ -395,8 +541,8 @@ export default function AdminDashboard() {
 
               {/* Rounded Striped Columns Area */}
               <div className="relative z-10 flex-1 flex items-end justify-between px-1 pt-6 h-full">
-                {revenuePoints.map((pt) => {
-                  const curHeight = (pt.value / maxVal) * 75;
+                {monthlyRevenuePoints.map((pt) => {
+                  const curHeight = maxRevenueScale > 0 ? Math.max((pt.value / maxRevenueScale) * 75, pt.value > 0 ? 6 : 2) : 2;
                   const isActive = activeMonth === pt.month;
 
                   return (
@@ -405,14 +551,14 @@ export default function AdminDashboard() {
                       className="flex-1 flex flex-col items-center justify-end h-full group relative mx-0.5 cursor-pointer"
                       onMouseEnter={() => setActiveMonth(pt.month)}
                     >
-                      {/* Tooltip: stays inside chart, clamped so it doesn't go above the container */}
+                      {/* Tooltip */}
                       {isActive && (
                         <div
                           className="absolute flex flex-col items-center z-20 -translate-x-1/2 left-1/2"
                           style={{ bottom: `calc(${curHeight}% + 6px)` }}
                         >
-                          <span className="bg-neutral-900 text-white text-xs font-medium px-2 py-1 rounded font-sans whitespace-nowrap">
-                            ₹{pt.value.toFixed(1)}L
+                          <span className="bg-neutral-900 text-white text-xs font-medium px-2 py-1 rounded font-sans whitespace-nowrap shadow-md">
+                            ₹{pt.value.toLocaleString('en-IN')}
                           </span>
                           <span className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-neutral-900"></span>
                         </div>
@@ -420,7 +566,7 @@ export default function AdminDashboard() {
 
                       {/* Bar */}
                       <div
-                        className={`w-full max-w-[32px] rounded-t-[4px] transition-all duration-300 relative border ${isActive ? 'bg-amber-500 border-amber-600' : 'bg-neutral-100 border-neutral-200/60 hover:bg-neutral-200/50'}`}
+                        className={`w-full max-w-[32px] rounded-t-[4px] transition-all duration-300 relative border ${isActive ? 'bg-amber-500 border-amber-600' : pt.value > 0 ? 'bg-amber-100 border-amber-200 hover:bg-amber-200' : 'bg-neutral-100 border-neutral-200/60 hover:bg-neutral-200/50'}`}
                         style={{
                           height: `${curHeight}%`,
                           backgroundImage: isActive
@@ -434,13 +580,13 @@ export default function AdminDashboard() {
               </div>
 
               {/* X-axis labels (months) */}
-              <div className="relative z-10 flex justify-between text-xs font-medium text-neutral-400 pt-2 mt-1 px-1">
-                {revenuePoints.map((pt) => {
+              <div className="relative z-10 flex justify-between text-xs font-medium text-neutral-400 pt-2 mt-1 px-1 font-sans">
+                {monthlyRevenuePoints.map((pt) => {
                   const isActive = activeMonth === pt.month;
                   return (
                     <span
                       key={pt.month}
-                      className={`flex-1 text-center py-0.5 transition-all duration-200 cursor-pointer whitespace-nowrap ${isActive ? 'text-amber-600 font-medium' : ''}`}
+                      className={`flex-1 text-center py-0.5 transition-all duration-200 cursor-pointer whitespace-nowrap ${isActive ? 'text-amber-600 font-bold' : ''}`}
                       onMouseEnter={() => setActiveMonth(pt.month)}
                     >
                       {pt.month}
@@ -547,6 +693,139 @@ export default function AdminDashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2.5: Side-by-Side 2-Column Grid (Workload Tracker & Pending Revisions) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 xl:gap-5">
+        
+        {/* Column 1: Designer Workload & Capacity Tracker */}
+        <div className="bg-white border border-neutral-200 rounded-md p-5 space-y-4 flex flex-col justify-between">
+          <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
+            <div>
+              <h3 className="text-sm font-medium text-neutral-900 font-sans flex items-center space-x-2">
+                <i className="bx bx-group text-amber-600 text-base"></i>
+                <span>Designer Workload &amp; Capacity Tracker</span>
+              </h3>
+              <p className="text-xs text-neutral-450 mt-0.5">Real-time design team allocation &amp; active project loads</p>
+            </div>
+            <Link href="/admin/users?role=designer" className="text-xs font-medium text-amber-600 hover:underline shrink-0">
+              Manage
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 flex-1">
+            {designers.length === 0 ? (
+              <div className="col-span-full py-8 text-center text-xs text-neutral-400">
+                No active designers registered.
+              </div>
+            ) : (
+              designers.map((d: any) => {
+                const activeCount = allProjectsList.filter((p: any) => p.assigned_designer_id === d.id && (p.status === 'In Design' || p.status === 'Under Review' || p.status === 'Submitted')).length;
+                const capacityPercent = Math.min(Math.round((activeCount / 5) * 100), 100);
+                const capacityStatus = activeCount <= 1 ? 'Available' : activeCount <= 3 ? 'Moderate' : 'At Capacity';
+                const badgeClass = activeCount <= 1
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : activeCount <= 3
+                    ? 'bg-amber-50 border-amber-200 text-amber-700'
+                    : 'bg-rose-50 border-rose-200 text-rose-700';
+
+                return (
+                  <div key={d.id} className="border border-neutral-200 rounded-md p-3 bg-neutral-50/50 space-y-2.5">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <div className="w-7 h-7 rounded-full bg-neutral-900 text-amber-500 font-bold text-[11px] flex items-center justify-center shrink-0">
+                          {(d.name || 'D').substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <Link href={`/admin/designers/${d.id}`} className="text-xs font-bold text-neutral-900 truncate block hover:text-amber-600">
+                            {d.name}
+                          </Link>
+                          <span className="text-[10px] text-neutral-450 truncate block">{d.email}</span>
+                        </div>
+                      </div>
+                      <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded border whitespace-nowrap ${badgeClass}`}>
+                        {capacityStatus}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 pt-0.5">
+                      <div className="flex justify-between text-[11px] font-medium text-neutral-500">
+                        <span>Load:</span>
+                        <span className="font-bold text-neutral-800">{activeCount} / 5</span>
+                      </div>
+                      <div className="w-full bg-neutral-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-300 ${activeCount <= 1 ? 'bg-emerald-500' : activeCount <= 3 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                          style={{ width: `${capacityPercent}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Column 2: Pending Revision Requests Card (Matching Last Approved Projects Layout & Design) */}
+        <div className="bg-white border border-neutral-200 rounded-md p-5 space-y-4 flex flex-col justify-between">
+          <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
+            <div>
+              <h3 className="text-sm font-medium text-neutral-900 font-sans">Pending Revision Requests</h3>
+              <p className="text-xs text-neutral-450 mt-0.5">Architect revision requests awaiting review</p>
+            </div>
+            <Link href="/admin/revision-requests" className="text-xs font-medium text-amber-600 hover:underline shrink-0">
+              View All
+            </Link>
+          </div>
+
+          <div className="space-y-2.5 flex-1 text-sm">
+            {pendingRevisions.length === 0 ? (
+              <div className="py-12 text-center text-xs text-neutral-400 font-medium space-y-2">
+                <i className="bx bx-check-circle text-3xl text-emerald-500 block mb-2"></i>
+                <p className="font-medium text-neutral-700">No pending revision requests.</p>
+                <p className="text-neutral-400 font-normal">New architect requests will appear here for review.</p>
+              </div>
+            ) : (
+              pendingRevisions.map((rev) => {
+                const reqDate = rev.created_at ? new Date(rev.created_at) : null;
+                const dateStr = reqDate ? reqDate.toLocaleDateString() : '';
+
+                return (
+                  <div
+                    key={rev.id}
+                    className="flex items-center justify-between p-3 rounded-md hover:bg-neutral-50 border border-neutral-200/80 transition-all group gap-3"
+                  >
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <Link
+                        href={`/admin/revision-requests?id=${rev.id}`}
+                        className="font-semibold text-neutral-900 text-sm sm:text-base hover:text-amber-600 transition-colors truncate block"
+                        title={rev.projects?.project_name}
+                      >
+                        {rev.projects?.project_name || 'Project Revision'}
+                      </Link>
+                      <p className="text-xs sm:text-sm text-neutral-600 font-medium line-clamp-1">
+                        "{rev.description}"
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-3 shrink-0">
+                      {dateStr && (
+                        <span className="text-xs text-neutral-400 font-medium whitespace-nowrap hidden sm:inline-block">{dateStr}</span>
+                      )}
+                      <Link
+                        href={`/admin/revision-requests?id=${rev.id}`}
+                        className="px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:text-amber-600 border border-neutral-300 hover:border-amber-500 rounded-md bg-white hover:bg-neutral-50 transition-all whitespace-nowrap active:scale-[0.98] inline-flex items-center shadow-sm"
+                      >
+                        Manage
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 

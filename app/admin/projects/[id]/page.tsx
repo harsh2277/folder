@@ -124,11 +124,24 @@ export default function AdminProjectDetail() {
         setArchitects(profiles || []);
 
         // 6. Fetch designers
-        const { data: designerProfiles } = await supabase
-          .from('profiles')
-          .select('id, name, role')
-          .eq('role', 'designer');
-        setDesigners(designerProfiles || []);
+        let desList: any[] = [];
+        try {
+          const uRes = await fetch('/api/admin/users');
+          if (uRes.ok) {
+            const uData = await uRes.json();
+            desList = (uData.users || []).filter((u: any) => u.role !== 'architect');
+          }
+        } catch (e) {}
+
+        if (desList.length === 0) {
+          const { data: designerProfiles } = await supabase
+            .from('profiles')
+            .select('id, name, role')
+            .neq('role', 'architect');
+          desList = designerProfiles || [];
+        }
+
+        setDesigners(desList);
 
       } catch (err) {
         console.error('Error fetching project detail:', err);
@@ -146,7 +159,21 @@ export default function AdminProjectDetail() {
     setSaveMessage('');
 
     try {
-      // 1. Update project details
+      // 1. Update project details via Service Role API
+      try {
+        await fetch('/api/admin/projects/assign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: id,
+            designerId: assignedDesignerId || null,
+            status: status
+          })
+        });
+      } catch (e) {
+        console.warn('API update failed, falling back:', e);
+      }
+
       const { error } = await supabase
         .from('projects')
         .update({
@@ -196,15 +223,27 @@ export default function AdminProjectDetail() {
     setUpdating(true);
     setSaveMessage('');
     try {
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          status: 'In Design',
-          assigned_designer_id: assignedDesignerId
+      const res = await fetch('/api/admin/projects/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: id,
+          designerId: assignedDesignerId,
+          status: 'In Design'
         })
-        .eq('id', id);
+      });
 
-      if (error) throw error;
+      const resData = await res.json();
+      if (!res.ok || resData.error) {
+        const { error } = await supabase
+          .from('projects')
+          .update({
+            status: 'In Design',
+            assigned_designer_id: assignedDesignerId
+          })
+          .eq('id', id);
+        if (error) throw error;
+      }
 
       setStatus('In Design');
       setProject((prev: any) => ({

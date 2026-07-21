@@ -36,22 +36,28 @@ export default function AdminUsersManagement() {
 
   async function fetchUsers() {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email, role, mobile_number, created_at')
-        .order('created_at', { ascending: false });
+      let loadedUsers: any[] = [];
+      try {
+        const res = await fetch('/api/admin/users');
+        if (res.ok) {
+          const resData = await res.json();
+          loadedUsers = resData.users || [];
+        }
+      } catch (e) {
+        console.warn('Error fetching users from API, falling back:', e);
+      }
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (loadedUsers.length === 0) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, name, email, role, mobile_number, created_at')
+          .order('created_at', { ascending: false });
+        loadedUsers = data || [];
+      }
+
+      setUsers(loadedUsers);
     } catch (err) {
       console.error('Error fetching users:', err);
-      // Fallback mock data
-      setUsers([
-        { id: '1', name: 'Sarah Jenkins', email: 'sarah@lightlab.com', role: 'admin', mobile_number: '+91 98765 43210', created_at: new Date().toISOString() },
-        { id: '2', name: 'Rohan Varma', email: 'rohan@lightlab.com', role: 'designer', mobile_number: '+91 99887 76655', created_at: new Date().toISOString() },
-        { id: '3', name: 'Kabir Mehta', email: 'kabir@studioarchitects.in', role: 'architect', mobile_number: '+91 91234 56789', created_at: new Date().toISOString() },
-        { id: '4', name: 'Ananya Roy', email: 'ananya@designgroup.com', role: 'architect', mobile_number: '+91 95432 10987', created_at: new Date().toISOString() }
-      ]);
     } finally {
       setLoading(false);
     }

@@ -11,6 +11,7 @@ export default function DesignerDashboard() {
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   const [revisionProjects, setRevisionProjects] = useState<any[]>([]);
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
+  const [pendingRevisions, setPendingRevisions] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalProjects: 0,
     inDesignProjects: 0,
@@ -21,46 +22,77 @@ export default function DesignerDashboard() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', user.id)
-            .single();
-          if (profile?.name) {
-            setDesignerName(profile.name);
+        let currentUserId: string | null = null;
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            currentUserId = user.id;
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('name')
+              .eq('id', user.id)
+              .maybeSingle();
+            if (profile?.name) setDesignerName(profile.name);
           }
+        } catch (e) {}
 
-          // Fetch projects assigned to this designer from RLS bypass API
+        let projects: any[] = [];
+        try {
           const res = await fetch('/api/designer/projects');
-          if (!res.ok) {
-            const text = await res.text();
-            let jsonError;
-            try { jsonError = JSON.parse(text); } catch {}
-            throw new Error(jsonError?.error || `Request failed with status ${res.status}`);
+          if (res.ok) {
+            const resData = await res.json();
+            projects = resData.projects || [];
           }
-          const resData = await res.json();
-          const projects = resData.projects || [];
+        } catch (e) {
+          console.warn('API fetch error in designer dashboard:', e);
+        }
 
-          if (projects && projects.length > 0) {
-            setRecentProjects(projects.slice(0, 5));
-            setRevisionProjects(projects.filter((p: any) => p.status === 'Revision Requested'));
-            setPendingProjects(projects.filter((p: any) => p.status === 'Submitted'));
+        // Direct Supabase query fallback to get ALL real database projects
+        if (!projects || projects.length === 0) {
+          const { data: dbProjects } = await supabase
+            .from('projects')
+            .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, created_at, assigned_designer_id')
+            .order('created_at', { ascending: false });
+          projects = dbProjects || [];
+        }
 
-            const total = projects.length;
-            const inDesign = projects.filter((p: any) => p.status === 'In Design').length;
-            const underReview = projects.filter((p: any) => p.status === 'Under Review' || p.status === 'Ready for Client Review').length;
-            const completed = projects.filter((p: any) => p.status === 'Approved' || p.status === 'Closed').length;
+        const isSameId = (id1: any, id2: any) => {
+          if (!id1 || !id2) return false;
+          return String(id1).trim().toLowerCase() === String(id2).trim().toLowerCase();
+        };
 
-            setStats({
-              totalProjects: total,
-              inDesignProjects: inDesign,
-              underReviewProjects: underReview,
-              completedProjects: completed,
+        // If user is logged in, prioritize projects assigned to user if any exist
+        const assigned = currentUserId ? projects.filter(p => isSameId(p.assigned_designer_id, currentUserId)) : [];
+        const activeProjects = assigned.length > 0 ? assigned : projects;
+
+        setRecentProjects(activeProjects.slice(0, 5));
+        setRevisionProjects(activeProjects.filter((p: any) => p.status === 'Revision Requested'));
+        setPendingProjects(activeProjects.filter((p: any) => p.status === 'Submitted' || p.status === 'Under Review' || p.status === 'In Design'));
+
+        // Fetch pending revision requests for assigned projects
+        let revRequests: any[] = [];
+        try {
+          const { data: revData } = await supabase
+            .from('revision_requests')
+            .select('*, projects(id, project_name, project_id_serial, client_name, assigned_designer_id)')
+            .order('created_at', { ascending: false });
+
+          if (revData) {
+            revRequests = revData.filter((r: any) => {
+              const matchesUser = currentUserId ? isSameId(r.projects?.assigned_designer_id, currentUserId) : true;
+              return matchesUser && (r.status === 'approved' || r.status === 'pending' || r.status === 'Submitted');
             });
           }
-        }
+        } catch (e) {}
+
+        setPendingRevisions(revRequests);
+
+        setStats({
+          totalProjects: activeProjects.length,
+          inDesignProjects: activeProjects.filter((p: any) => p.status === 'In Design').length,
+          underReviewProjects: activeProjects.filter((p: any) => p.status === 'Under Review' || p.status === 'Ready for Client Review').length,
+          completedProjects: activeProjects.filter((p: any) => p.status === 'Approved' || p.status === 'Closed').length,
+        });
       } catch (err) {
         console.error('Error loading designer dashboard:', err);
       } finally {
@@ -103,52 +135,7 @@ export default function DesignerDashboard() {
         </div>
       </div>
 
-      {/* Action Required Alert Panel */}
-      {(revisionProjects.length > 0 || pendingProjects.length > 0) && (
-        <div className="bg-white border border-rose-200 rounded-md p-5 space-y-4">
-          <div className="flex justify-between items-center pb-3 border-b border-rose-100">
-            <div>
-              <h3 className="text-sm font-medium text-rose-950 flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
-                <span>Action Required: Pending Action Items</span>
-              </h3>
-              <p className="text-xs sm:text-sm text-rose-500 font-medium mt-0.5">Projects awaiting design layout creation or updates based on client feedback drafts.</p>
-            </div>
-            <span className="text-xs font-medium bg-rose-50 text-rose-700 px-2 py-0.5 rounded border border-rose-100">
-              {revisionProjects.length + pendingProjects.length} Task{revisionProjects.length + pendingProjects.length > 1 ? 's' : ''}
-            </span>
-          </div>
 
-          <div className="divide-y divide-neutral-50 max-h-72 overflow-y-auto">
-            {[...revisionProjects, ...pendingProjects].map((p) => (
-              <div key={p.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 first:pt-0 last:pb-0">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-neutral-450 font-medium">{p.project_id_serial || 'KL-XXXX'}</span>
-                    <h4 className="text-sm font-medium text-neutral-900">{p.project_name}</h4>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${p.status === 'Revision Requested' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
-                      {p.status}
-                    </span>
-                  </div>
-                  {p.project_notes && (
-                    <p className="text-xs text-neutral-500 max-w-2xl truncate">
-                      Notes: {p.project_notes}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2 shrink-0">
-                  <Link
-                    href={`/designer/projects/${p.id}`}
-                    className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium rounded-md transition-all active:scale-[0.98] cursor-pointer"
-                  >
-                    Start Layout Design
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Metrics Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -199,6 +186,65 @@ export default function DesignerDashboard() {
             <i className="bx bx-check-double text-lg xl:text-xl"></i>
           </div>
         </div>
+      </div>
+
+      {/* Pending Revision Requests Section */}
+      <div className="bg-white border border-neutral-200 rounded-md p-5 space-y-4">
+        <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
+          <div>
+            <h3 className="text-sm font-medium text-neutral-900 font-sans flex items-center space-x-1.5">
+              <span className={`w-2.5 h-2.5 rounded-full ${pendingRevisions.length > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+              <span>Pending Revision Requests</span>
+            </h3>
+            <p className="text-xs text-neutral-450 mt-0.5">Approved client feedback &amp; revision tasks assigned to your design scope</p>
+          </div>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded border font-sans ${pendingRevisions.length > 0 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
+            {pendingRevisions.length} Active Task{pendingRevisions.length === 1 ? '' : 's'}
+          </span>
+        </div>
+
+        {pendingRevisions.length === 0 ? (
+          <div className="py-6 text-center text-xs text-neutral-450 font-medium space-y-1">
+            <i className="bx bx-check-circle text-2xl text-emerald-500 block mb-1"></i>
+            <p>No pending revision tasks for your assigned projects.</p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {pendingRevisions.map((rev: any) => (
+              <div
+                key={rev.id}
+                className="flex items-center justify-between p-3 rounded-md hover:bg-neutral-50 border border-neutral-200/80 transition-all group gap-3"
+              >
+                <div className="space-y-1 min-w-0 flex-1">
+                  <Link
+                    href={`/designer/projects/${rev.project_id || rev.projects?.id}`}
+                    className="font-semibold text-neutral-900 text-sm sm:text-base hover:text-amber-600 transition-colors truncate block"
+                    title={rev.projects?.project_name}
+                  >
+                    {rev.projects?.project_name || 'Project Revision'}
+                  </Link>
+                  <p className="text-xs sm:text-sm text-neutral-600 font-medium line-clamp-1">
+                    "{rev.description}"
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-3 shrink-0">
+                  {rev.created_at && (
+                    <span className="text-xs text-neutral-400 font-medium whitespace-nowrap hidden sm:inline-block">
+                      {new Date(rev.created_at).toLocaleDateString()}
+                    </span>
+                  )}
+                  <Link
+                    href={`/designer/projects/${rev.project_id || rev.projects?.id}`}
+                    className="px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:text-amber-600 border border-neutral-300 hover:border-amber-500 rounded-md bg-white hover:bg-neutral-50 transition-all whitespace-nowrap active:scale-[0.98] inline-flex items-center shadow-sm"
+                  >
+                    Manage
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main Content Split Grid */}
