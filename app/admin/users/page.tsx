@@ -336,10 +336,10 @@ export default function AdminUsersManagement() {
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto mt-3 border border-neutral-100 rounded-md">
-            <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0">
+          <div className="overflow-x-auto mt-3 border border-neutral-200 rounded-md bg-white">
+            <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0 bg-white">
               <thead>
-                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-450 font-normal text-xs">
+                <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-normal text-xs">
                   <th className="py-3 px-4 first:pl-5 last:pr-5">User</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Email Address</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Contact Number</th>
@@ -348,9 +348,9 @@ export default function AdminUsersManagement() {
                   <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
+              <tbody className="divide-y divide-neutral-200 text-neutral-700 font-normal">
                 {filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-neutral-50/40 transition-colors">
+                  <tr key={u.id} className="hover:bg-neutral-50/80 transition-colors">
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 flex items-center justify-center font-medium text-xs flex-shrink-0">
                         {u.name.substring(0, 2).toUpperCase()}

@@ -310,10 +310,10 @@ export default function AdminPaymentsPage() {
               ))}
           </div>
         ) : (
-          <div className="overflow-x-auto mt-3 border border-neutral-100 rounded-md">
-            <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0">
+          <div className="overflow-x-auto mt-3 border border-neutral-200 rounded-md bg-white">
+            <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0 bg-white">
               <thead>
-                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-450 font-normal text-xs">
+                <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-normal text-xs">
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Invoice ID</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Project Scope</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Client Name</th>
@@ -322,7 +322,7 @@ export default function AdminPaymentsPage() {
                   <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Invoice</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
+              <tbody className="divide-y divide-neutral-200 text-neutral-700 font-normal">
                 {payments
                   .filter(pay => {
                     const matchesSearch = (pay.invoice_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -331,7 +331,7 @@ export default function AdminPaymentsPage() {
                     return matchesSearch;
                   })
                   .map((pay) => (
-                    <tr key={pay.id} className="hover:bg-neutral-50/40 transition-colors">
+                    <tr key={pay.id} className="hover:bg-neutral-50/80 transition-colors">
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-sm text-neutral-900">
                         {pay.invoice_number}
                       </td>

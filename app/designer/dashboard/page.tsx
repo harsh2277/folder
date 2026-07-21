@@ -214,10 +214,10 @@ export default function DesignerDashboard() {
             <p>No projects assigned to you yet.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto mt-4 border border-neutral-100 rounded-md">
-            <table className="w-full text-left border-collapse min-w-[420px]">
+          <div className="overflow-x-auto mt-4 border border-neutral-200 rounded-md bg-white">
+            <table className="w-full text-left border-collapse min-w-[420px] bg-white">
               <thead>
-                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-450 font-medium text-xs">
+                <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-medium text-xs">
                   <th className="py-3 px-4 first:pl-5 last:pr-5 whitespace-nowrap">Project ID</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5 whitespace-nowrap">Project Name</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5 whitespace-nowrap hidden sm:table-cell">Client</th>
@@ -225,9 +225,9 @@ export default function DesignerDashboard() {
                   <th className="py-3 px-4 first:pl-5 last:pr-5 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-medium">
+              <tbody className="divide-y divide-neutral-200 text-neutral-700 font-medium">
                 {recentProjects.map((p) => (
-                  <tr key={p.id} className="hover:bg-neutral-50/40 transition-colors">
+                  <tr key={p.id} className="hover:bg-neutral-50/80 transition-colors">
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-xs text-neutral-500 whitespace-nowrap">{p.project_id_serial || 'N/A'}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900 text-sm max-w-[140px] xl:max-w-none">
                       <span className="block truncate">{p.project_name}</span>

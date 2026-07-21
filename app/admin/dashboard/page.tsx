@@ -572,10 +572,10 @@ export default function AdminDashboard() {
               </Link>
             </div>
 
-            <div className="overflow-x-auto mt-3 border border-neutral-100 rounded-md">
-              <table className="w-full text-left border-collapse min-w-[480px]">
+            <div className="overflow-x-auto mt-3 border border-neutral-200 rounded-md bg-white">
+              <table className="w-full text-left border-collapse min-w-[480px] bg-white">
                 <thead>
-                  <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-450 font-normal text-xs">
+                  <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-normal text-xs">
                     <th className="py-2.5 px-4 first:pl-5 last:pr-5 whitespace-nowrap">Project</th>
                     <th className="py-2.5 px-4 first:pl-5 last:pr-5 whitespace-nowrap hidden sm:table-cell">Client</th>
                     <th className="py-2.5 px-4 first:pl-5 last:pr-5 whitespace-nowrap hidden lg:table-cell">Area</th>
@@ -583,9 +583,9 @@ export default function AdminDashboard() {
                     <th className="py-2.5 px-4 first:pl-5 last:pr-5 text-right whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
+                <tbody className="divide-y divide-neutral-200 text-neutral-700 font-normal">
                   {recentProjects.map((p) => (
-                    <tr key={p.id} className="hover:bg-neutral-50/40 transition-colors">
+                    <tr key={p.id} className="hover:bg-neutral-50/80 transition-colors">
                       <td className="py-3 px-4 first:pl-5 last:pr-5 text-neutral-900 text-sm font-medium max-w-[160px] xl:max-w-none"><span className="block truncate">{p.project_name}</span></td>
                       <td className="py-3 px-4 first:pl-5 last:pr-5 text-neutral-500 text-xs hidden sm:table-cell max-w-[120px]"><span className="block truncate">{p.client_name}</span></td>
                       <td className="py-3 px-4 first:pl-5 last:pr-5 text-neutral-400 font-sans text-xs hidden lg:table-cell whitespace-nowrap">{Number(p.area_sq_ft).toLocaleString()} sq ft</td>

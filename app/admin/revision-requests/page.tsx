@@ -461,9 +461,9 @@ export default function AdminRevisionRequests() {
       ) : (
         /* Table View */
         <div className="overflow-x-auto border border-neutral-200 rounded-md bg-white">
-          <table className="w-full text-left border-collapse text-sm min-w-[750px]">
+          <table className="w-full text-left border-collapse text-sm min-w-[750px] bg-white">
             <thead>
-              <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-450 font-normal text-xs">
+              <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-normal text-xs">
                 <th className="py-3 px-4 first:pl-5 last:pr-5">Date</th>
                 <th className="py-3 px-4 first:pl-5 last:pr-5">Project Scope</th>
                 <th className="py-3 px-4 first:pl-5 last:pr-5">Architect</th>
@@ -472,7 +472,7 @@ export default function AdminRevisionRequests() {
                 <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100 text-neutral-700 font-medium">
+            <tbody className="divide-y divide-neutral-200 text-neutral-700 font-medium">
               {filteredRequests.map((req) => {
                 const [architectRequest] = (req.description || '').split('\n\n=== DESIGNER_RESOLUTION ===\n');
 

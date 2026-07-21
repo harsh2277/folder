@@ -350,10 +350,10 @@ export default function AdminProjectsList() {
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto mt-3 border border-neutral-100 rounded-md">
-            <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0">
+          <div className="overflow-x-auto mt-3 border border-neutral-200 rounded-md bg-white">
+            <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0 bg-white">
               <thead>
-                <tr className="bg-neutral-50/60 border-b border-neutral-100 text-neutral-450 font-normal text-xs">
+                <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-normal text-xs">
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Project Name</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Client Name</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Location</th>
@@ -365,12 +365,12 @@ export default function AdminProjectsList() {
                   <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-50 text-neutral-700 font-normal">
+              <tbody className="divide-y divide-neutral-200 text-neutral-700 font-normal">
                 {filteredProjects.map((proj) => (
                   <tr
                     key={proj.id}
                     onClick={() => router.push(`/admin/projects/${proj.id}`)}
-                    className="hover:bg-neutral-50/40 transition-colors cursor-pointer"
+                    className="hover:bg-neutral-50/80 transition-colors cursor-pointer"
                   >
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900 font-medium">{proj.project_name}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-550">{proj.client_name}</td>
