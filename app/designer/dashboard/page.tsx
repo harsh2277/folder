@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 
@@ -19,14 +19,23 @@ export default function DesignerDashboard() {
     completedProjects: 0,
   });
 
+  const fetchedRef = useRef(false);
+
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
     async function fetchDashboardData() {
       try {
         let currentUserId: string | null = null;
         try {
-          const { data: { user } } = await supabase.auth.getUser();
+          const { data: sessionData } = await supabase.auth.getSession();
+          const user = sessionData?.session?.user || (await supabase.auth.getUser()).data?.user;
           if (user) {
             currentUserId = user.id;
+            if (user.user_metadata?.name) {
+              setDesignerName(user.user_metadata.name);
+            }
             const { data: profile } = await supabase
               .from('profiles')
               .select('name')
@@ -101,7 +110,7 @@ export default function DesignerDashboard() {
     }
 
     fetchDashboardData();
-  }, [supabase]);
+  }, []);
 
   if (loading) {
     return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import CustomSelect from '../../../components/ui/CustomSelect';
 import Link from 'next/link';
@@ -42,16 +42,25 @@ export default function AdminDashboard() {
     approvedCount: 0
   });
 
+  const fetchedRef = useRef(false);
+
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
     async function fetchDashboardData() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData?.session?.user || (await supabase.auth.getUser()).data?.user;
         if (user) {
+          if (user.user_metadata?.name) {
+            setAdminName(user.user_metadata.name);
+          }
           const { data } = await supabase
             .from('profiles')
             .select('name')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
           if (data?.name) {
             setAdminName(data.name);
           }
@@ -200,7 +209,7 @@ export default function AdminDashboard() {
       }
     }
     fetchDashboardData();
-  }, [supabase]);
+  }, []);
 
   if (loading) {
     return (

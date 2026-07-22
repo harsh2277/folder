@@ -143,7 +143,7 @@ export default function AdminProjectCreationWizard() {
       }
     }
     loadData();
-  }, [supabase]);
+  }, []);
 
   const getDbPlanId = () => {
     if (plans.length === 0) return selectedPlanId;

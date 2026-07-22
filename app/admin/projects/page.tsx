@@ -70,7 +70,7 @@ export default function AdminProjectsList() {
     }
 
     loadData();
-  }, [supabase]);
+  }, []);
 
   const handleDelete = async (id: string) => {
     setProjectToDelete(id);

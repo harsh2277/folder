@@ -84,7 +84,7 @@ export default function AdminPaymentsPage() {
     }
 
     fetchPayments();
-  }, [supabase]);
+  }, []);
 
   if (loading) {
     return (

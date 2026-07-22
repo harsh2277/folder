@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import LayoutToggle from '../../../components/ui/LayoutToggle';
 import Portal from '@/components/ui/Portal';
@@ -14,29 +14,18 @@ export default function ArchitectPaymentsPage() {
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
 
+  const fetchedRef = useRef(false);
+
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
     async function fetchPayments() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Fetch projects assigned to this architect
-          const { data: projects } = await supabase
-            .from('projects')
-            .select('id')
-            .eq('architect_id', user.id);
-
-          const projectIds = projects?.map(p => p.id) || [];
-
-          if (projectIds.length > 0) {
-            const { data: paymentsData, error } = await supabase
-              .from('payments')
-              .select('*, projects(project_name, client_name, project_id_serial, area_sq_ft, pricing_plans(name, base_price_per_sq_ft))')
-              .in('project_id', projectIds)
-              .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setPayments(paymentsData || []);
-          }
+        const res = await fetch('/api/payments');
+        if (res.ok) {
+          const data = await res.json();
+          setPayments(data.payments || []);
         }
       } catch (err) {
         console.error('Error fetching payments:', err);
@@ -46,7 +35,7 @@ export default function ArchitectPaymentsPage() {
     }
 
     fetchPayments();
-  }, [supabase]);
+  }, []);
 
   if (loading) {
     return (

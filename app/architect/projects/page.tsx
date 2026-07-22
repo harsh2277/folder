@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -19,33 +19,28 @@ export default function ArchitectProjectsList() {
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
+  const fetchedRef = useRef(false);
+
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
     async function fetchProjects() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data, error } = await supabase
-          .from('projects')
-          .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, site_location, created_at, project_notes')
-          .eq('architect_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setProjects(data || []);
+        const res = await fetch('/api/projects');
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data.projects || []);
+        }
       } catch (err) {
         console.error('Error fetching projects:', err);
-        setProjects([
-          { id: '1', project_id_serial: 'KL-2025-0001', project_name: 'Luxury Residence', client_name: 'Amit Patel', area_sq_ft: 3500, payment_status: 'paid', status: 'In Design', site_location: 'Mumbai, MH', created_at: new Date().toISOString() },
-          { id: '2', project_id_serial: 'KL-2025-0002', project_name: 'Corporate Office', client_name: 'Rajesh Mehta', area_sq_ft: 8500, payment_status: 'pending', status: 'Submitted', site_location: 'Bengaluru, KA', created_at: new Date().toISOString() },
-        ]);
       } finally {
         setLoading(false);
       }
     }
 
     fetchProjects();
-  }, [supabase]);
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this project? All associated payments, comments, and files will be permanently deleted.')) {

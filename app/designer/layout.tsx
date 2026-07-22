@@ -60,32 +60,33 @@ export default function DesignerLayout({ children }: { children: React.ReactNode
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const authFetchedRef = useRef(false);
+
   useEffect(() => {
+    if (authFetchedRef.current) return;
+    authFetchedRef.current = true;
+
     async function checkAuth() {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error || !user) { router.push('/login'); return; }
-
-        const { data: prof, error: profError } = await supabase
-          .from('profiles')
-          .select('name, email, role')
-          .eq('id', user.id)
-          .single();
-
-        if (profError || !prof || prof.role !== 'designer') {
-          await supabase.auth.signOut();
+        const res = await fetch('/api/profile');
+        if (!res.ok) {
+          router.push('/login');
+          return;
+        }
+        const data = await res.json();
+        if (!data.profile || data.profile.role !== 'designer') {
           router.push('/login');
           return;
         }
 
-        setProfile({ name: prof.name, email: prof.email });
+        setProfile({ name: data.profile.name, email: data.profile.email });
         setLoading(false);
       } catch {
         router.push('/login');
       }
     }
     checkAuth();
-  }, [router, supabase]);
+  }, [router]);
   const activeItem = navItems.find(item => pathname.startsWith(item.path));
   const activeTab = activeItem ? activeItem.name : 'Dashboard';
 

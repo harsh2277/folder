@@ -50,7 +50,7 @@ export default function PaymentSuccessPage() {
     }
 
     loadPaymentDetails();
-  }, [projectId, supabase]);
+  }, [projectId]);
 
   if (loading) {
     return (

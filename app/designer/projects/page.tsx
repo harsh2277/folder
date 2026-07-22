@@ -66,7 +66,7 @@ export default function DesignerProjectsList() {
 
   useEffect(() => {
     fetchProjects();
-  }, [supabase]);
+  }, []);
 
   const statuses = [
     'All', 'Submitted', 'Payment Pending', 'Under Review', 'In Design',

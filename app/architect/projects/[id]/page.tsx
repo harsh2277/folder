@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -29,6 +29,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [userProfile, setUserProfile] = useState<{ name: string; email: string } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const steps = [
     { name: 'Submitted', statusKey: 'Submitted' },
@@ -57,6 +58,8 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
   };
   const activeStepIndex = getActiveStepIndex();
 
+  const fetchedRef = useRef(false);
+
   useEffect(() => {
     // Dynamic load Razorpay checkout script
     const script = document.createElement('script');
@@ -65,17 +68,20 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
     document.body.appendChild(script);
 
     if (!id) return;
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
 
     async function fetchDetails() {
       try {
         // Fetch current user details for Razorpay prefill
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData?.session?.user || (await supabase.auth.getUser()).data?.user;
         if (user) {
           const { data: userProf } = await supabase
             .from('profiles')
             .select('name, email')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
           if (userProf) {
             setUserProfile(userProf);
           }
@@ -138,7 +144,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
 
         // Filter out design deliverables
         if (filesData) {
-          setDeliverables(filesData.filter(f => f.profiles?.role === 'designer'));
+          setDeliverables(filesData.filter((f: any) => f.profiles?.role === 'designer'));
         }
 
         // Fetch revision requests
@@ -161,7 +167,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
     return () => {
       document.body.removeChild(script);
     };
-  }, [id, supabase]);
+  }, [id]);
 
   const getFileIcon = (category: string) => {
     switch (category) {
@@ -360,13 +366,27 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
               <i className="bx bx-chevron-left text-2xl"></i>
             </Link>
             <div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <h2 className="text-lg font-semibold text-neutral-900 tracking-tight leading-tight">{project.project_name}</h2>
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/client/project/${id}`;
+                    navigator.clipboard.writeText(url);
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2500);
+                  }}
+                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 rounded text-[11px] font-bold flex items-center space-x-1 transition-all cursor-pointer shadow-xs"
+                  title="Copy direct shareable approval link for end-homeowner"
+                >
+                  <i className="bx bx-share-alt text-xs"></i>
+                  <span>{copiedLink ? 'Link Copied!' : 'Share with Client'}</span>
+                </button>
               </div>
               <p className="text-xs text-neutral-500 mt-0.5">
                 Project Plan: {project.pricing_plans?.name || 'N/A'}
               </p>
             </div>
+
           </div>
         </div>
 
@@ -465,6 +485,77 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
             <div className="">
               {activeTab === 'Overview' && (
                 <div className="space-y-6">
+                  {/* End-Client Feedback & Approval Card */}
+                  <div className="px-6 pt-4">
+                    <div className="bg-neutral-900 text-white rounded-lg p-5 shadow-sm space-y-4 font-sans">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-800 pb-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+                            <i className="bx bx-check-shield text-xl"></i>
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h3 className="text-sm font-bold text-neutral-100">End-Homeowner Approval & Feedback</h3>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                                project.status === 'Approved'
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  : revisions.some((r: any) => r.description?.includes('CLIENT FEEDBACK:'))
+                                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                  : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
+                              }`}>
+                                {project.status === 'Approved' ? 'Approved by Client' : revisions.some((r: any) => r.description?.includes('CLIENT FEEDBACK:')) ? 'Client Feedback Received' : 'Awaiting Homeowner Review'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-neutral-400 mt-0.5">Client approval portal for {project.client_name || 'Homeowner'}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 shrink-0">
+                          <button
+                            onClick={() => {
+                              const url = `${window.location.origin}/client/project/${id}`;
+                              navigator.clipboard.writeText(url);
+                              setCopiedLink(true);
+                              setTimeout(() => setCopiedLink(false), 2500);
+                            }}
+                            className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-md text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            <i className="bx bx-share-alt text-sm"></i>
+                            <span>{copiedLink ? 'Copied Link!' : 'Copy Shareable Link'}</span>
+                          </button>
+                          <Link
+                            href={`/client/project/${id}`}
+                            target="_blank"
+                            className="px-3.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-200 rounded-md text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            <i className="bx bx-external-link text-sm"></i>
+                            <span>Open Client View</span>
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Display Client Feedback log if any */}
+                      {revisions.filter((r: any) => r.description?.includes('CLIENT')).length > 0 ? (
+                        <div className="space-y-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 block">Homeowner Notes & Submissions</span>
+                          {revisions.filter((r: any) => r.description?.includes('CLIENT')).map((rev: any) => (
+                            <div key={rev.id} className="bg-neutral-950/90 border border-neutral-800 rounded-lg p-3 text-xs text-neutral-200">
+                              <div className="flex justify-between items-center text-[10px] text-neutral-450 mb-1">
+                                <span className="font-mono">Submitted: {new Date(rev.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="font-bold text-amber-400 uppercase">{rev.status}</span>
+                              </div>
+                              <p className="whitespace-pre-line leading-relaxed text-neutral-200 font-medium">{rev.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-neutral-400 italic">
+                          Share the direct link with your client ({project.client_name}). Homeowners can inspect project files, click "Approve Design", or submit feedback notes directly to your workspace.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Payment Required banner if pending payment */}
                   {project.payment_status !== 'paid' && (
                     <div className="px-6">

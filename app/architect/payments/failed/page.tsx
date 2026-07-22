@@ -39,7 +39,7 @@ export default function PaymentFailedPage() {
     }
 
     loadProjectDetails();
-  }, [projectId, supabase]);
+  }, [projectId]);
 
   if (loading) {
     return (

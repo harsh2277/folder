@@ -60,7 +60,7 @@ export default function AdminPricingManagement() {
 
   useEffect(() => {
     fetchPlans();
-  }, [supabase]);
+  }, []);
 
   // Notification helper
   const triggerNotification = (success: string | null, error: string | null) => {

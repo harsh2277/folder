@@ -60,7 +60,7 @@ export default function AdminArchitectDetailPage() {
     }
 
     fetchArchitectData();
-  }, [id, supabase]);
+  }, [id]);
 
   if (loading) {
     return (

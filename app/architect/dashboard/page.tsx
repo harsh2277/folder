@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 
@@ -18,53 +18,21 @@ export default function ArchitectDashboard() {
     totalInvoiced: 0
   });
 
+  const fetchedRef = useRef(false);
+
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
     async function fetchDashboardData() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', user.id)
-            .single();
-          if (profile?.name) {
-            setArchitectName(profile.name);
-          }
-
-          // Fetch all projects assigned to this architect
-          const { data: projects } = await supabase
-            .from('projects')
-            .select('*, payments(amount, status)')
-            .eq('architect_id', user.id)
-            .order('created_at', { ascending: false });
-
-          if (projects && projects.length > 0) {
-            setRecentProjects(projects.slice(0, 5));
-            setRevisionProjects(projects.filter(p => p.status === 'Revision Requested'));
-
-            const total = projects.length;
-            const completed = projects.filter(p => p.status === 'Closed' || p.status === 'Approved').length;
-            const inDesign = projects.filter(p => p.status === 'In Design').length;
-            const underReview = projects.filter(p => p.status === 'Under Review').length;
-
-            // Sum up total payments completed for this architect's projects
-            const invoiced = projects.reduce((sum, p) => {
-              const projectPayments = p.payments || [];
-              const projectPaidSum = projectPayments
-                .filter((pay: any) => pay.status === 'completed')
-                .reduce((paySum: number, pay: any) => paySum + Number(pay.amount), 0);
-              return sum + projectPaidSum;
-            }, 0);
-
-            setStats({
-              totalProjects: total,
-              completedProjects: completed,
-              inDesignProjects: inDesign,
-              underReviewProjects: underReview,
-              totalInvoiced: invoiced
-            });
-          }
+        const res = await fetch('/api/architect/dashboard');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.architectName) setArchitectName(data.architectName);
+          if (data.recentProjects) setRecentProjects(data.recentProjects);
+          if (data.revisionProjects) setRevisionProjects(data.revisionProjects);
+          if (data.stats) setStats(data.stats);
         }
       } catch (err) {
         console.error('Error loading architect dashboard:', err);
@@ -74,7 +42,7 @@ export default function ArchitectDashboard() {
     }
 
     fetchDashboardData();
-  }, [supabase]);
+  }, []);
 
   if (loading) {
     return (

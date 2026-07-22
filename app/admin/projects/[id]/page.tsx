@@ -105,7 +105,7 @@ export default function AdminProjectDetail() {
         setFiles(filesData || []);
 
         if (filesData) {
-          setDeliverables(filesData.filter(f => f.profiles?.role === 'designer'));
+          setDeliverables(filesData.filter((f: any) => f.profiles?.role === 'designer'));
         }
 
         // Fetch revision requests
@@ -151,7 +151,7 @@ export default function AdminProjectDetail() {
     }
 
     fetchProjectDetails();
-  }, [id, supabase]);
+  }, [id]);
 
   const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();

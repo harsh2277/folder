@@ -125,7 +125,7 @@ export default function ArchitectProjectCreationWizard() {
     return () => {
       document.body.removeChild(script);
     };
-  }, [supabase]);
+  }, []);
 
   const getDbPlanId = () => {
     if (plans.length === 0) return selectedPlanId;

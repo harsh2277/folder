@@ -52,7 +52,7 @@ export default function AdminProjectDeliverables() {
     }
 
     fetchData();
-  }, [id, supabase]);
+  }, [id]);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();

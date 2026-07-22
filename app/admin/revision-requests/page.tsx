@@ -138,7 +138,7 @@ export default function AdminRevisionRequests() {
     }
 
     fetchRequests();
-  }, [supabase]);
+  }, []);
 
   const handleUpdateStatus = async (id: string, projectId: string, newStatus: 'approved' | 'declined') => {
     setUpdatingId(id);

@@ -54,7 +54,7 @@ export default function AdminAdminDetailPage() {
           .select('amount')
           .eq('status', 'completed');
 
-        const totalRevenue = (payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+        const totalRevenue = (payments || []).reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
 
         setGlobalStats({
           totalProjects: projsCount || 0,
@@ -86,7 +86,7 @@ export default function AdminAdminDetailPage() {
     }
 
     fetchAdminData();
-  }, [id, supabase]);
+  }, [id]);
 
   if (loading) {
     return (

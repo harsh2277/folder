@@ -58,7 +58,7 @@ export default function AdminDesignerDetailPage() {
     }
 
     fetchDesignerData();
-  }, [id, supabase]);
+  }, [id]);
 
   if (loading) {
     return (

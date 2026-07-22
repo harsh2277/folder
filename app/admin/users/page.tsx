@@ -65,7 +65,7 @@ export default function AdminUsersManagement() {
 
   useEffect(() => {
     fetchUsers();
-  }, [supabase]);
+  }, []);
 
   // Show notifications helper
   const triggerNotification = (success: string | null, error: string | null) => {
