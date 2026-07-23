@@ -21,9 +21,9 @@ interface SidebarProps {
 }
 
 export default function Sidebar({
-  workspaceTitle = 'Lightlab',
+  workspaceTitle = 'LightMap',
   workspaceSubtitle = 'Workspace',
-  workspaceIcon = 'bx bxs-bulb',
+  workspaceIcon = 'bx bxs-map-pin',
   navItems,
   isCollapsed,
   isMobileOpen,
@@ -55,12 +55,12 @@ export default function Sidebar({
               isCollapsed && !isMobileOpen ? 'justify-center' : 'space-x-2.5'
             }`}
           >
-            <div className="w-7 h-7 xl:w-8 xl:h-8 rounded-md bg-amber-500 flex items-center justify-center text-white flex-shrink-0">
-              <i className={`${workspaceIcon} text-base xl:text-lg`}></i>
+            <div className="w-8 h-8 rounded-md overflow-hidden bg-neutral-900 border border-neutral-800 flex items-center justify-center flex-shrink-0">
+              <img src="/logo.png" alt="LightMap Logo" className="w-full h-full object-cover" />
             </div>
             {(!isCollapsed || isMobileOpen) && (
               <div className="min-w-0">
-                <span className="font-medium text-white tracking-tight text-sm block truncate">
+                <span className="font-semibold text-white tracking-tight text-sm block truncate">
                   {workspaceTitle}
                 </span>
                 <span className="text-xs text-neutral-500 font-medium truncate block">

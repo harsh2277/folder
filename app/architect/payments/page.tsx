@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import LayoutToggle from '../../../components/ui/LayoutToggle';
+import LayoutToggle from '@/components/ui/LayoutToggle';
 import Portal from '@/components/ui/Portal';
+import SearchInput from '@/components/ui/SearchInput';
+import StatusBadge from '@/components/ui/StatusBadge';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function ArchitectPaymentsPage() {
   const supabase = createClient();
@@ -180,16 +183,11 @@ export default function ArchitectPaymentsPage() {
       <div className="space-y-4 print-hide">
         {/* Interactive controls bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
-          <div className="relative flex-1 max-w-md">
-            <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
-            <input
-              type="text"
-              placeholder="Search invoices, projects, representatives..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-            />
-          </div>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search invoices, projects, representatives..."
+          />
 
           {/* View Layout Toggle */}
           <LayoutToggle viewMode={viewMode} onChange={setViewMode} />
@@ -208,9 +206,7 @@ export default function ArchitectPaymentsPage() {
                     <span className="text-xs font-medium text-neutral-400">
                       {pay.invoice_number}
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-medium border ${pay.status === 'completed' ? 'bg-emerald-50 border-emerald-100/50 text-emerald-700' : pay.status === 'failed' ? 'bg-rose-50 border-rose-100/50 text-rose-700' : 'bg-amber-50 border-amber-100/50 text-amber-700'}`}>
-                      {pay.status === 'completed' ? 'Paid' : pay.status}
-                    </span>
+                    <StatusBadge status={pay.status} type="payment" />
                   </div>
                   <h3 className="text-sm font-medium text-neutral-900 group-hover:text-amber-600 transition-colors line-clamp-1">
                     {pay.projects?.project_name || 'Individual Project'}
@@ -269,9 +265,7 @@ export default function ArchitectPaymentsPage() {
                       ₹{Number(pay.amount).toLocaleString('en-IN')}
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${pay.status === 'completed' ? 'bg-emerald-50 border-emerald-100/50 text-emerald-700' : pay.status === 'failed' ? 'bg-rose-50 border-rose-100/50 text-rose-700' : 'bg-amber-50 border-amber-100/50 text-amber-700'}`}>
-                        {pay.status === 'completed' ? 'paid' : pay.status}
-                      </span>
+                      <StatusBadge status={pay.status} type="payment" />
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
                       <button
@@ -325,7 +319,7 @@ export default function ArchitectPaymentsPage() {
                     <h1 className="text-3xl font-extrabold tracking-tight text-neutral-900">Invoice</h1>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="font-bold text-neutral-900 text-base tracking-wider block">Lightlab</span>
+                    <span className="font-bold text-neutral-900 text-base tracking-wider block">LightMap</span>
                     <span className="text-xs text-neutral-500 font-medium block">Design Studio</span>
                   </div>
                 </div>
@@ -427,7 +421,7 @@ export default function ArchitectPaymentsPage() {
                   <div className="space-y-1 text-xs text-neutral-600 font-medium">
                     <span className="text-xs font-bold text-neutral-400 block tracking-wide">Payment Info:</span>
                     <p>Bank: HDFC Bank</p>
-                    <p>Account Name: Lightlab Design Studio</p>
+                    <p>Account Name: LightMap Design Studio</p>
                     <p>Account No.: 5020 0012 3456 78</p>
                   </div>
                 </div>

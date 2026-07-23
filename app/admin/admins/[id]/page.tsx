@@ -69,7 +69,7 @@ export default function AdminAdminDetailPage() {
         setAdmin({
           id: id as string,
           name: 'Sarah Jenkins',
-          email: 'sarah@lightlab.com',
+          email: 'sarah@lightmap.com',
           role: 'admin',
           mobile_number: '+91 98765 43210',
           created_at: new Date().toISOString(),

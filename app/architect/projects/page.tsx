@@ -4,8 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import CustomSelect from '../../../components/ui/CustomSelect';
-import LayoutToggle from '../../../components/ui/LayoutToggle';
+import CustomSelect from '@/components/ui/CustomSelect';
+import LayoutToggle from '@/components/ui/LayoutToggle';
+import StatusBadge from '@/components/ui/StatusBadge';
+import SearchInput from '@/components/ui/SearchInput';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function ArchitectProjectsList() {
   const supabase = createClient();
@@ -131,16 +134,11 @@ export default function ArchitectProjectsList() {
 
       {/* Filter Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
-        <div className="relative flex-1 max-w-md">
-          <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
-          <input
-            type="text"
-            placeholder="Search by ID, name, or client..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-          />
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search by ID, name, or client..."
+        />
 
         <div className="flex items-center space-x-2">
           <CustomSelect
@@ -307,15 +305,11 @@ export default function ArchitectProjectsList() {
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 text-sm font-medium">{proj.site_location || 'N/A'}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-550 text-sm">{Number(proj.area_sq_ft).toLocaleString()} sq ft</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${getPaymentBadge(proj.payment_status)}`}>
-                        {proj.payment_status}
-                      </span>
+                      <StatusBadge status={proj.payment_status} type="payment" />
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                       <div className="flex flex-col gap-1 items-start">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border w-fit whitespace-nowrap ${getStatusBadge(proj.status)}`}>
-                          {proj.status}
-                        </span>
+                        <StatusBadge status={proj.status} type="workflow" />
                         {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border w-fit whitespace-nowrap ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
                       </div>
                     </td>

@@ -130,7 +130,7 @@ export default function DesignerDashboard() {
         <div className="space-y-1 min-w-0">
           <h2 className="text-base sm:text-lg xl:text-xl font-medium tracking-tight">Welcome back, {designerName}</h2>
           <p className="text-xs sm:text-sm text-neutral-450">
-            Lightlab Staff Workspace &mdash; You have {stats.inDesignProjects} active projects in your design layout workflow.
+            LightMap Staff Workspace &mdash; You have {stats.inDesignProjects} active projects in your design layout workflow.
           </p>
         </div>
         <div className="flex items-center flex-wrap gap-2 shrink-0">

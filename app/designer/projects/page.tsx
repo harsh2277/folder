@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import EmptyState from '../../../components/ui/EmptyState';
-import LayoutToggle from '../../../components/ui/LayoutToggle';
-import CustomSelect from '../../../components/ui/CustomSelect';
+import EmptyState from '@/components/ui/EmptyState';
+import LayoutToggle from '@/components/ui/LayoutToggle';
+import CustomSelect from '@/components/ui/CustomSelect';
+import StatusBadge from '@/components/ui/StatusBadge';
+import SearchInput from '@/components/ui/SearchInput';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 import { createClient } from '@/utils/supabase/client';
 
@@ -143,16 +146,11 @@ export default function DesignerProjectsList() {
       {/* Filter bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
-            <input
-              type="text"
-              placeholder="Search by ID, name, or client..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-            />
-          </div>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search by ID, name, or client..."
+          />
           <CustomSelect
             value={selectedStatus}
             onChange={setSelectedStatus}
@@ -255,9 +253,7 @@ export default function DesignerProjectsList() {
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-550 text-sm">{proj.area_sq_ft ? proj.area_sq_ft.toLocaleString() : 'N/A'}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                       <div className="flex flex-col gap-1 items-start">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border w-fit whitespace-nowrap ${getStatusBadge(proj.status)}`}>
-                          {proj.status}
-                        </span>
+                        <StatusBadge status={proj.status} type="workflow" />
                         {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border w-fit whitespace-nowrap ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
                       </div>
                     </td>

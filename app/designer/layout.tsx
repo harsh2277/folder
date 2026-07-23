@@ -111,7 +111,7 @@ export default function DesignerLayout({ children }: { children: React.ReactNode
 
       {/* Reusable Sidebar Component */}
       <Sidebar
-        workspaceTitle="Lightlab"
+        workspaceTitle="LightMap"
         workspaceSubtitle="Designer Workspace"
         workspaceIcon="bx bxs-palette"
         navItems={navItems}

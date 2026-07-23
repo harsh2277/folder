@@ -113,7 +113,7 @@ export default function ArchitectLayout({ children }: { children: React.ReactNod
 
       {/* Reusable Sidebar Component */}
       <Sidebar
-        workspaceTitle="Lightlab"
+        workspaceTitle="LightMap"
         workspaceSubtitle="Architect Workspace"
         workspaceIcon="bx bxs-paint"
         navItems={navItems}

@@ -564,9 +564,9 @@ export default function AdminProjectDetail() {
                           <span className="text-xs text-neutral-400 font-medium block">Architect</span>
                           <div className="mt-1 block">
                             {architects.find(a => a.id === architectId)?.name ? (
-                              <Link href={`/admin/architects/${architectId}`} className="text-sm font-bold text-amber-600 hover:underline">
+                              <span className="text-sm font-semibold text-neutral-800">
                                 {architects.find(a => a.id === architectId)?.name}
-                              </Link>
+                              </span>
                             ) : (
                               <span className="text-sm font-semibold text-neutral-450">Unassigned</span>
                             )}

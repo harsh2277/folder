@@ -7,6 +7,9 @@ import CustomSelect from '@/components/ui/CustomSelect';
 import LayoutToggle from '@/components/ui/LayoutToggle';
 import EmptyState from '@/components/ui/EmptyState';
 import Portal from '@/components/ui/Portal';
+import SearchInput from '@/components/ui/SearchInput';
+import StatusBadge from '@/components/ui/StatusBadge';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function AdminRevisionRequests() {
   const supabase = createClient();
@@ -127,7 +130,7 @@ export default function AdminRevisionRequests() {
             architect: {
               id: 'arch-3',
               name: 'Rohan Varma',
-              email: 'rohan@lightlab.com',
+              email: 'rohan@lightmap.com',
               mobile_number: '+91 99887 76655'
             }
           }
@@ -329,16 +332,11 @@ export default function AdminRevisionRequests() {
 
       {/* Control Bar: Search, Filter, Sort, Layout Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
-        <div className="relative flex-1 max-w-md">
-          <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
-          <input
-            type="text"
-            placeholder="Search by project, ID, architect, or text..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-          />
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search by project, ID, architect, or text..."
+        />
 
         <div className="flex items-center space-x-2">
           <CustomSelect
@@ -646,34 +644,7 @@ export default function AdminRevisionRequests() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === 'approved') {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border bg-emerald-50 border-emerald-100 text-emerald-700">
-        Approved
-      </span>
-    );
-  }
-  if (status === 'completed') {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border bg-blue-50 border-blue-100 text-blue-700">
-        ✓ Resolved
-      </span>
-    );
-  }
-  if (status === 'declined') {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border bg-rose-50 border-rose-100 text-rose-700">
-        Declined
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border bg-amber-50 border-amber-100 text-amber-700">
-      Pending Review
-    </span>
-  );
-}
+
 
 function SkeletonLoader() {
   return (

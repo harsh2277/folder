@@ -146,9 +146,6 @@ export default function AdminProjectDeliverables() {
         </Link>
         <div className="flex items-center space-x-3 mt-2">
           <h2 className="text-xl font-medium text-neutral-900">Manage Project Deliverables</h2>
-          <span className="text-xs px-2 py-0.5 bg-neutral-100 border border-neutral-300 text-neutral-600 rounded-md font-medium">
-            {project.project_id_serial}
-          </span>
         </div>
       </div>
 

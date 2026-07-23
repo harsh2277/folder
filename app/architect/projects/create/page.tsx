@@ -22,7 +22,7 @@ const UI_PLANS = [
     discount: '50% off',
     price: 4999,
     originalPrice: 10000,
-    features: ['Lighting Layout', 'Fixture Suggestions', 'Lux Guidance'],
+    features: ['Lighting Layout', 'Fixture Suggestions'],
     bottomFeatures: ['1 Revision'],
   },
   {
@@ -33,7 +33,7 @@ const UI_PLANS = [
     popular: true,
     price: 9999,
     originalPrice: 20000,
-    features: ['Detailed Lighting Layout', 'Fixture Suggestions', 'Lux Calculations', 'BOQ'],
+    features: ['Lighting Layout', 'Fixture Suggestions', 'Lux Guidance'],
     bottomFeatures: ['2 Revisions'],
   },
   {
@@ -43,7 +43,7 @@ const UI_PLANS = [
     discount: '50% off',
     price: 24999,
     originalPrice: 50000,
-    features: ['Detailed Lighting Layout', 'Lux Calculations', 'BOQ', 'Fixture Schedule'],
+    features: ['Detailed Lighting Layout', 'Lux Calculations'],
     bottomFeatures: ['3 Revisions', '2 Site Visits'],
   },
   {
@@ -51,14 +51,14 @@ const UI_PLANS = [
     name: 'Amplex Enterprise',
     sqft: 'ABOVE 10,000 SQ.FT.',
     customQuote: true,
-    features: ['Complete Lighting Design Support', 'All Deliverables', 'Dedicated Designer', 'Custom BOQ'],
-    bottomFeatures: ['Multiple Revisions', 'As per requirements'],
+    features: ['Complete Lighting Design Support', 'Multiple Revisions', 'Dedicated Designer'],
+    bottomFeatures: ['Site Visits as per requirements'],
   }
 ];
 
 const ADDONS_DATA = [
   { id: '3d_vis', name: '3D Lighting Visualization', description: 'Photorealistic 3D render', price: 5000 },
-  { id: 'site_visit', name: 'Additional Site Visit', description: 'On-site consultation', price: 2500 }
+  { id: 'site_visit', name: 'Site Visit & Consultation', description: 'On-site consultation', price: 2500 }
 ];
 
 export default function ArchitectProjectCreationWizard() {
@@ -365,7 +365,7 @@ export default function ArchitectProjectCreationWizard() {
       key: "rzp_test_TBHxoNcpPx7OW9",
       amount: chargeAmount * 100, // in paise
       currency: "INR",
-      name: "LightLab",
+      name: "LightMap",
       description: paymentSchedule === 'milestone'
         ? `50% Upfront Deposit for ${project.project_name}`
         : `Grand Total for ${project.project_name}`,

@@ -83,55 +83,7 @@ export default function ArchitectDashboard() {
         </div>
       </div>
 
-      {/* Revision Requests Queue (Warning block analogous to Admin pending queue) */}
-      {revisionProjects.length > 0 && (
-        <div className="bg-white border border-rose-200 rounded-md p-5 space-y-4">
-          <div className="flex justify-between items-center pb-3 border-b border-rose-100">
-            <div>
-              <h3 className="text-sm font-medium text-rose-950 flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
-                <span>Action Required: Revisions Requested</span>
-              </h3>
-              <p className="text-sm text-rose-500 font-medium mt-0.5">Projects requiring design revisions or metadata updates based on review feedback.</p>
-            </div>
-            <span className="text-sm font-medium bg-rose-50 text-rose-700 px-2 py-0.5 rounded border border-rose-100 font-sans">
-              {revisionProjects.length} Revision{revisionProjects.length > 1 ? 's' : ''}
-            </span>
-          </div>
 
-          <div className="divide-y divide-neutral-50 max-h-72 overflow-y-auto">
-            {revisionProjects.map((p) => (
-              <div key={p.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 first:pt-0 last:pb-0">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-neutral-450 font-medium font-sans">{p.project_id_serial || 'KL-XXXX'}</span>
-                    <h4 className="text-sm font-medium text-neutral-900">{p.project_name}</h4>
-                  </div>
-                  {p.project_notes && p.project_notes.startsWith('Rejection Reason:') && (
-                    <p className="text-xs text-rose-600 bg-rose-50/50 px-2 py-1 rounded border border-rose-100/30 inline-block">
-                      Feedback: {p.project_notes.replace('Rejection Reason:', '').trim()}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2 shrink-0">
-                  <Link
-                    href={`/architect/projects/${p.id}/revision-request`}
-                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-medium border border-rose-200 rounded-md transition-all active:scale-[0.98]"
-                  >
-                    Submit Revision
-                  </Link>
-                  <Link
-                    href={`/architect/projects/${p.id}`}
-                    className="px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 text-xs font-medium border border-neutral-200 rounded-md transition-all active:scale-[0.98]"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Grid of Key Performance Indicators */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

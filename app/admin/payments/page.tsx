@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import LayoutToggle from '../../../components/ui/LayoutToggle';
+import LayoutToggle from '@/components/ui/LayoutToggle';
 import Portal from '@/components/ui/Portal';
+import StatsCard from '@/components/ui/StatsCard';
+import SearchInput from '@/components/ui/SearchInput';
+import StatusBadge from '@/components/ui/StatusBadge';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function AdminPaymentsPage() {
   const supabase = createClient();
@@ -205,38 +209,30 @@ export default function AdminPaymentsPage() {
 
       {/* Billing KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print-hide">
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-sm font-medium text-neutral-400 block">Total Invoiced</span>
-            <span className="text-2xl font-medium text-neutral-900 font-sans">₹{(totalInvoiced / 100000).toFixed(2)}L</span>
-            <span className="text-xs text-neutral-400 block">Sum of all billing events</span>
-          </div>
-          <div className="w-12 h-12 bg-blue-50 rounded-md flex items-center justify-center text-blue-600 border border-blue-100">
-            <i className="bx bx-receipt text-xl"></i>
-          </div>
-        </div>
-
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-sm font-medium text-neutral-400 block">Settled Volume</span>
-            <span className="text-2xl font-medium text-neutral-900 font-sans">₹{(completedPayments / 100000).toFixed(2)}L</span>
-            <span className="text-xs text-neutral-400 block">Successfully completed settlements</span>
-          </div>
-          <div className="w-12 h-12 bg-emerald-50 rounded-md flex items-center justify-center text-emerald-600 border border-emerald-100">
-            <i className="bx bx-badge-check text-xl"></i>
-          </div>
-        </div>
-
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-sm font-medium text-neutral-400 block">Outstanding Bills</span>
-            <span className="text-2xl font-medium text-neutral-900 font-sans">₹{(pendingPayments / 100000).toFixed(2)}L</span>
-            <span className="text-xs text-neutral-400 block">Invoices waiting for client action</span>
-          </div>
-          <div className="w-12 h-12 bg-amber-50 rounded-md flex items-center justify-center text-amber-600 border border-amber-100">
-            <i className="bx bx-time-five text-xl"></i>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Invoiced"
+          value={`₹${(totalInvoiced / 100000).toFixed(2)}L`}
+          subtext="Sum of all billing events"
+          icon="bx-receipt"
+          iconBgClass="bg-blue-50 border-blue-100"
+          iconColorClass="text-blue-600"
+        />
+        <StatsCard
+          title="Settled Volume"
+          value={`₹${(completedPayments / 100000).toFixed(2)}L`}
+          subtext="Successfully completed settlements"
+          icon="bx-badge-check"
+          iconBgClass="bg-emerald-50 border-emerald-100"
+          iconColorClass="text-emerald-600"
+        />
+        <StatsCard
+          title="Outstanding Bills"
+          value={`₹${(pendingPayments / 100000).toFixed(2)}L`}
+          subtext="Invoices waiting for client action"
+          icon="bx-time-five"
+          iconBgClass="bg-amber-50 border-amber-100"
+          iconColorClass="text-amber-600"
+        />
       </div>
 
       {/* Transaction Logs Container - matching project view style */}
@@ -244,16 +240,11 @@ export default function AdminPaymentsPage() {
 
         {/* Interactive controls bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
-          <div className="relative flex-1 max-w-md">
-            <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
-            <input
-              type="text"
-              placeholder="Search invoices, projects, representatives..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-            />
-          </div>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search invoices, projects, representatives..."
+          />
 
           {/* View Layout Toggle */}
           <LayoutToggle viewMode={viewMode} onChange={setViewMode} />
@@ -279,9 +270,7 @@ export default function AdminPaymentsPage() {
                       <span className="text-sm font-medium text-neutral-400">
                         {pay.invoice_number}
                       </span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${pay.status === 'completed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : pay.status === 'failed' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
-                        {pay.status === 'completed' ? 'Paid' : pay.status}
-                      </span>
+                      <StatusBadge status={pay.status} type="payment" />
                     </div>
                     <h3 className="text-sm font-medium text-neutral-900 line-clamp-1">{pay.projects?.project_name || 'Individual Project'}</h3>
                     <p className="text-sm text-neutral-450 font-medium">Representative: {pay.projects?.client_name || 'Unassigned'}</p>
@@ -345,9 +334,7 @@ export default function AdminPaymentsPage() {
                         ₹{Number(pay.amount).toLocaleString('en-IN')}
                       </td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border ${pay.status === 'completed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : pay.status === 'failed' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
-                          {pay.status === 'completed' ? 'Paid' : pay.status}
-                        </span>
+                        <StatusBadge status={pay.status} type="payment" />
                       </td>
                       <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
                         <button
@@ -401,7 +388,7 @@ export default function AdminPaymentsPage() {
                     <h1 className="text-3xl font-extrabold tracking-tight text-neutral-900">Invoice</h1>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="font-bold text-neutral-900 text-base tracking-wider block">Lightlab</span>
+                    <span className="font-bold text-neutral-900 text-base tracking-wider block">LightMap</span>
                     <span className="text-xs text-neutral-500 font-medium block">Design Studio</span>
                   </div>
                 </div>
@@ -503,7 +490,7 @@ export default function AdminPaymentsPage() {
                   <div className="space-y-1 text-xs text-neutral-600 font-medium">
                     <span className="text-xs font-bold text-neutral-400 block tracking-wide">Payment Info:</span>
                     <p>Bank: HDFC Bank</p>
-                    <p>Account Name: Lightlab Design Studio</p>
+                    <p>Account Name: LightMap Design Studio</p>
                     <p>Account No.: 5020 0012 3456 78</p>
                   </div>
                 </div>

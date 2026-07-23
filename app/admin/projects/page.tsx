@@ -5,9 +5,13 @@ import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import EmptyState from '../../../components/ui/EmptyState';
-import CustomSelect from '../../../components/ui/CustomSelect';
-import LayoutToggle from '../../../components/ui/LayoutToggle';
+import EmptyState from '@/components/ui/EmptyState';
+import CustomSelect from '@/components/ui/CustomSelect';
+import LayoutToggle from '@/components/ui/LayoutToggle';
+import StatusBadge from '@/components/ui/StatusBadge';
+import SearchInput from '@/components/ui/SearchInput';
+import PageHeader from '@/components/ui/PageHeader';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function AdminProjectsList() {
   const supabase = createClient();
@@ -198,16 +202,11 @@ export default function AdminProjectsList() {
       {/* Content Block */}
       {/* Filter Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
-        <div className="relative flex-1 max-w-md">
-          <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
-          <input
-            type="text"
-            placeholder="Search by ID, name, or representative..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-          />
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search by ID, name, or representative..."
+        />
 
         <div className="flex items-center space-x-2">
           <CustomSelect
@@ -309,13 +308,7 @@ export default function AdminProjectsList() {
                     <p className="text-sm text-neutral-400 font-medium flex items-center mt-1">
                       <i className="bx bx-buildings mr-1 text-sm text-neutral-500"></i>
                       <span>Architect:{' '}</span>
-                      <Link
-                        href={`/admin/architects/${proj.architect_id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-amber-600 hover:underline ml-1"
-                      >
-                        {proj.profiles.name}
-                      </Link>
+                      <span className="text-neutral-800 ml-1">{proj.profiles.name}</span>
                     </p>
                   ) : (
                     <p className="text-sm text-neutral-400 font-medium flex items-center mt-1">
@@ -387,32 +380,20 @@ export default function AdminProjectsList() {
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900 font-medium">{proj.project_name}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-550">{proj.client_name}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{proj.site_location || 'N/A'}</td>
-                    <td
-                      className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-600 font-medium"
-                      onClick={(e) => {
-                        if (proj.architect_id) {
-                          e.stopPropagation();
-                          router.push(`/admin/architects/${proj.architect_id}`);
-                        }
-                      }}
-                    >
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-600 font-medium">
                       {proj.profiles?.name ? (
-                        <span className="text-amber-600 hover:underline">{proj.profiles.name}</span>
+                        <span className="text-neutral-800 font-medium">{proj.profiles.name}</span>
                       ) : (
                         <span className="text-neutral-450">Unassigned</span>
                       )}
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-sans">{Number(proj.area_sq_ft).toLocaleString()} sq ft</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${proj.payment_status === 'paid' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.payment_status === 'failed' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-amber-50 border-amber-100 text-amber-700' }`}>
-                        {proj.payment_status}
-                      </span>
+                      <StatusBadge status={proj.payment_status} type="payment" />
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                       <div className="flex flex-col gap-1 items-start">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border w-fit whitespace-nowrap ${proj.status === 'Approved' || proj.status === 'Closed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.status === 'In Design' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : proj.status === 'Under Review' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
-                          {proj.status}
-                        </span>
+                        <StatusBadge status={proj.status} type="workflow" />
                         {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border w-fit whitespace-nowrap ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
                       </div>
                     </td>

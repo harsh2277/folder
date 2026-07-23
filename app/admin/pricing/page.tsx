@@ -12,12 +12,19 @@ export default function AdminPricingManagement() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Additional Revenue Add-ons rates state
+  const [addonRates, setAddonRates] = useState({
+    vis3dFee: '₹5,000+',
+    siteVisitFee: 'Extra'
+  });
+  const [showAddonModal, setShowAddonModal] = useState(false);
+
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Add Plan form state
+  // Form state
   const [newPlan, setNewPlan] = useState({
     name: '',
     description: '',
@@ -26,7 +33,6 @@ export default function AdminPricingManagement() {
     isActive: true
   });
 
-  // Edit Plan form state
   const [editingPlan, setEditingPlan] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -44,14 +50,103 @@ export default function AdminPricingManagement() {
         .order('base_price_per_sq_ft', { ascending: true });
 
       if (error) throw error;
-      setPlans(data || []);
+
+      if (data && data.length > 0) {
+        const normalizedPlans = data.map((plan: any) => {
+          let sqft = plan.sqft;
+          let price = plan.price;
+          let original_price = plan.original_price;
+          let discount = plan.discount;
+          let deliverables = plan.deliverables;
+
+          if (plan.name?.includes('Essential')) {
+            sqft = 'UP TO 1,500 SQ.FT.';
+            price = 4999;
+            original_price = 10000;
+            discount = '50% off';
+            deliverables = ['Lighting Layout', 'Fixture Suggestions', '1 Revision'];
+          } else if (plan.name?.includes('Professional')) {
+            sqft = '1,501 - 5,000 SQ.FT.';
+            price = 9999;
+            original_price = 20000;
+            discount = '50% off';
+            deliverables = ['Lighting Layout', 'Fixture Suggestions', 'Lux Guidance', '2 Revisions'];
+          } else if (plan.name?.includes('Premium')) {
+            sqft = '5,001 - 10,000 SQ.FT.';
+            price = 24999;
+            original_price = 50000;
+            discount = '50% off';
+            deliverables = ['Detailed Lighting Layout', 'Lux Calculations', '3 Revisions', '2 Site Visits'];
+          } else if (plan.name?.includes('Enterprise')) {
+            sqft = 'ABOVE 10,000 SQ.FT.';
+            price = null;
+            plan.custom_quote = true;
+            deliverables = ['Complete Lighting Design Support', 'Multiple Revisions', 'Dedicated Designer', 'Site Visits as per requirements'];
+          } else if (!price && plan.base_price_per_sq_ft) {
+            price = Number(plan.base_price_per_sq_ft);
+          }
+
+          return {
+            ...plan,
+            sqft: sqft || (plan.min_sq_ft ? `MIN ${plan.min_sq_ft} SQ.FT.` : 'PACKAGE'),
+            price,
+            original_price,
+            discount,
+            deliverables: deliverables || (plan.description ? plan.description.split(',') : []),
+          };
+        });
+
+        setPlans(normalizedPlans);
+      } else {
+        throw new Error('No DB data');
+      }
     } catch (err) {
       console.error('Error fetching plans:', err);
-      // Fallback mock data
       setPlans([
-        { id: '1', name: 'Basic Layout Plan', description: 'Includes 2D conceptual lighting layouts, basic luxury recommendations, and hardware BOQ schedules.', base_price_per_sq_ft: 15.00, min_sq_ft: 1000, is_active: true },
-        { id: '2', name: 'Premium Design Plan', description: 'Adds full 3D Lux calculation simulation reports, fixture model selections, and custom wiring guides.', base_price_per_sq_ft: 35.00, min_sq_ft: 1500, is_active: true },
-        { id: '3', name: 'Luxe Autorevision Plan', description: 'Adds dedicated project designer, 3 iterations revision window, and on-call site coordination.', base_price_per_sq_ft: 65.00, min_sq_ft: 2000, is_active: true }
+        {
+          id: 'essential',
+          name: 'Amplex Essential',
+          sqft: 'UP TO 1,500 SQ.FT.',
+          price: 4999,
+          original_price: 10000,
+          discount: '50% off',
+          description: 'Includes Lighting Layout, Fixture Suggestions, and 1 Revision.',
+          deliverables: ['Lighting Layout', 'Fixture Suggestions', '1 Revision'],
+          is_active: true
+        },
+        {
+          id: 'professional',
+          name: 'Amplex Professional',
+          sqft: '1,501 - 5,000 SQ.FT.',
+          price: 9999,
+          original_price: 20000,
+          discount: '50% off',
+          popular: true,
+          description: 'Includes Lighting Layout, Fixture Suggestions, Lux Guidance, and 2 Revisions.',
+          deliverables: ['Lighting Layout', 'Fixture Suggestions', 'Lux Guidance', '2 Revisions'],
+          is_active: true
+        },
+        {
+          id: 'premium',
+          name: 'Amplex Premium',
+          sqft: '5,001 - 10,000 SQ.FT.',
+          price: 24999,
+          original_price: 50000,
+          discount: '50% off',
+          description: 'Includes Detailed Lighting Layout, Lux Calculations, 3 Revisions, and 2 Site Visits.',
+          deliverables: ['Detailed Lighting Layout', 'Lux Calculations', '3 Revisions', '2 Site Visits'],
+          is_active: true
+        },
+        {
+          id: 'enterprise',
+          name: 'Amplex Enterprise',
+          sqft: 'ABOVE 10,000 SQ.FT.',
+          price: null,
+          custom_quote: true,
+          description: 'Complete Lighting Design Support, Multiple Revisions, Dedicated Designer, Site Visits as per requirements.',
+          deliverables: ['Complete Lighting Design Support', 'Multiple Revisions', 'Dedicated Designer', 'Site Visits as per requirements'],
+          is_active: true
+        }
       ]);
     } finally {
       setLoading(false);
@@ -62,7 +157,6 @@ export default function AdminPricingManagement() {
     fetchPlans();
   }, []);
 
-  // Notification helper
   const triggerNotification = (success: string | null, error: string | null) => {
     if (success) {
       setSuccessMsg(success);
@@ -85,14 +179,14 @@ export default function AdminPricingManagement() {
         .insert({
           name: newPlan.name,
           description: newPlan.description,
-          base_price_per_sq_ft: parseFloat(newPlan.basePrice),
-          min_sq_ft: parseFloat(newPlan.minSqFt),
+          base_price_per_sq_ft: parseFloat(newPlan.basePrice || '0'),
+          min_sq_ft: parseFloat(newPlan.minSqFt || '0'),
           is_active: newPlan.isActive
         });
 
       if (error) throw error;
 
-      triggerNotification('Pricing plan added successfully!', null);
+      triggerNotification('Pricing plan created successfully!', null);
       setShowAddModal(false);
       setNewPlan({ name: '', description: '', basePrice: '', minSqFt: '', isActive: true });
       fetchPlans();
@@ -115,8 +209,8 @@ export default function AdminPricingManagement() {
         .update({
           name: editForm.name,
           description: editForm.description,
-          base_price_per_sq_ft: parseFloat(editForm.basePrice),
-          min_sq_ft: parseFloat(editForm.minSqFt),
+          base_price_per_sq_ft: parseFloat(editForm.basePrice || '0'),
+          min_sq_ft: parseFloat(editForm.minSqFt || '0'),
           is_active: editForm.isActive
         })
         .eq('id', editingPlan.id);
@@ -125,7 +219,6 @@ export default function AdminPricingManagement() {
 
       triggerNotification('Pricing plan updated successfully!', null);
       setShowEditModal(false);
-      setEditingPlan(null);
       fetchPlans();
     } catch (err: any) {
       triggerNotification(null, err.message || 'Failed to update plan');
@@ -135,9 +228,7 @@ export default function AdminPricingManagement() {
   };
 
   const handleDeletePlan = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete the plan "${name}"? This action cannot be undone.`)) {
-      return;
-    }
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
 
     try {
       const { error } = await supabase
@@ -159,8 +250,8 @@ export default function AdminPricingManagement() {
     setEditForm({
       name: plan.name,
       description: plan.description || '',
-      basePrice: plan.base_price_per_sq_ft.toString(),
-      minSqFt: plan.min_sq_ft.toString(),
+      basePrice: (plan.price || plan.base_price_per_sq_ft || 0).toString(),
+      minSqFt: (plan.min_sq_ft || 0).toString(),
       isActive: plan.is_active
     });
     setShowEditModal(true);
@@ -179,104 +270,106 @@ export default function AdminPricingManagement() {
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Notifications */}
+      {/* Toast Notifications */}
       {successMsg && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium rounded-md flex items-center space-x-2 animate-fade-in">
-          <i className="bx bx-check-circle text-lg"></i>
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-md flex items-center space-x-2 animate-fade-in">
+          <i className="bx bx-check-circle text-base text-emerald-600"></i>
           <span>{successMsg}</span>
         </div>
       )}
       {errorMsg && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium rounded-md flex items-center space-x-2 animate-fade-in">
-          <i className="bx bx-error-circle text-lg"></i>
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-md flex items-center space-x-2 animate-fade-in">
+          <i className="bx bx-error-circle text-base text-rose-600"></i>
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-100">
+      {/* Clean Top Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-200/80">
         <div>
-          <h2 className="text-xl font-medium text-neutral-900 tracking-tight">Pricing & Rate Architecture</h2>
-          <p className="text-sm text-neutral-450 mt-0.5">Control pricing plan defaults, rate per square foot parameters, and active design packages.</p>
+          <h2 className="text-xl font-semibold text-neutral-900 tracking-tight">Pricing & Packages</h2>
+          <p className="text-xs text-neutral-500 mt-0.5">Control pricing plan defaults, flat project rates, and deliverable packages.</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center px-4.5 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white font-medium text-xs rounded-md transition-all cursor-pointer"
+          className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white font-semibold text-xs rounded-md transition-all cursor-pointer shadow-xs"
         >
           <i className="bx bx-plus text-sm mr-1.5"></i>
           <span>Add Plan Tier</span>
         </button>
       </div>
 
-      {/* Pricing Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {plans.map((plan) => {
-          const isActive = plan.is_active;
+      {/* 4 COLUMNS CARD GRID ONLY */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+        {plans.map((p) => {
+          const displayPrice = p.custom_quote || !p.price ? 'Custom Quote' : `₹${Number(p.price).toLocaleString('en-IN')}`;
+          const originalPriceStr = p.original_price ? `₹${Number(p.original_price).toLocaleString('en-IN')}` : null;
+          const deliverablesList = p.deliverables || (p.description ? p.description.split(',') : []);
+
           return (
             <div
-              key={plan.id}
-              className={`relative bg-white border rounded-md p-6 flex flex-col justify-between hover: transition-all duration-300 group overflow-hidden ${ isActive ? 'border-neutral-200 hover:border-amber-500/40' : 'border-neutral-200 opacity-60 hover:opacity-85' }`}
+              key={p.id}
+              className={`bg-white border rounded-md p-6 flex flex-col justify-between space-y-6 hover:border-neutral-300 transition-all duration-200 relative h-full cursor-pointer ${
+                p.popular ? 'border-amber-500 ring-1 ring-amber-500' : 'border-neutral-200'
+              }`}
             >
-              {/* Top Accent line for Active Plans */}
-              {isActive && (
-                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-500 to-amber-600"></div>
+              {p.popular && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs bg-amber-500 text-white px-2.5 py-0.5 rounded font-medium z-10 whitespace-nowrap shadow-xs">
+                  Most Popular
+                </span>
               )}
 
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <div className="flex justify-between items-start">
-                  <h3 className="text-base font-medium text-neutral-900 group-hover:text-amber-600 transition-colors leading-snug">
-                    {plan.name}
-                  </h3>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-medium border ${ isActive ? 'bg-emerald-50 border-emerald-200/50 text-emerald-700' : 'bg-neutral-50 border-neutral-200 text-neutral-450' }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-400'}`}></span>
-                    {isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-
-                {/* Price Display */}
-                <div className="py-2">
-                  <p className="text-[10px] font-medium text-neutral-400">Rate Parameter</p>
-                  <div className="flex items-baseline mt-1">
-                    <span className="text-3xl font-medium text-neutral-900 tracking-tight">
-                      ₹{Number(plan.base_price_per_sq_ft).toFixed(2)}
+                  <span className="text-xs font-semibold text-neutral-400">{p.sqft}</span>
+                  {p.discount && (
+                    <span className="px-2 py-0.5 rounded text-xs font-bold border bg-amber-50 border-amber-100 text-amber-700">
+                      {p.discount}
                     </span>
-                    <span className="text-xs text-neutral-455 font-medium ml-1">/ sq ft</span>
-                  </div>
+                  )}
                 </div>
 
-                <p className="text-sm text-neutral-600 leading-relaxed min-h-[64px] font-medium">
-                  {plan.description}
-                </p>
+                <h3 className="text-base font-semibold text-neutral-900 leading-snug">{p.name}</h3>
 
-                {/* Features List */}
-                <div className="pt-2 space-y-2 text-xs font-medium text-neutral-550">
-                  <div className="flex items-center space-x-2">
-                    <i className="bx bx-check-circle text-emerald-500 text-base"></i>
-                    <span>Minimum Threshold: <strong className="text-neutral-800">{Number(plan.min_sq_ft).toLocaleString()} sq ft</strong></span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <i className="bx bx-check-circle text-emerald-500 text-base"></i>
-                    <span>Unlimited Design Revisions Access</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <i className="bx bx-check-circle text-emerald-500 text-base"></i>
-                    <span>Automated BOQ & Report Generation</span>
-                  </div>
+                <div className="pt-4 border-t border-neutral-100 space-y-1">
+                  <span className="text-xs text-neutral-400 font-medium block">Rate</span>
+                  {p.custom_quote ? (
+                    <span className="text-xl font-bold text-neutral-900">Custom Quote</span>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-bold text-neutral-900 leading-none">{displayPrice}</span>
+                        <span className="text-xs text-neutral-400 font-medium"> / flat</span>
+                      </div>
+                      {originalPriceStr && (
+                        <span className="text-xs text-neutral-400 line-through block font-medium">{originalPriceStr}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
+
+                <ul className="space-y-2.5 pt-4 border-t border-neutral-100">
+                  {deliverablesList.map((item: string, i: number) => (
+                    <li key={i} className="text-xs text-neutral-600 font-medium flex items-start space-x-1.5">
+                      <i className="bx bx-check text-amber-600 text-sm mt-0.5 flex-shrink-0"></i>
+                      <span className="leading-tight">{item.trim()}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
-              {/* Action buttons */}
-              <div className="pt-5 mt-6 border-t border-neutral-100 grid grid-cols-2 gap-3">
+              {/* Action Buttons */}
+              <div className="pt-4 mt-6 border-t border-neutral-100 grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => startEditing(plan)}
-                  className="py-2.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-850 font-medium text-xs rounded-md border border-neutral-200 transition-all cursor-pointer flex items-center justify-center space-x-1.5 active:scale-[0.98]"
+                  onClick={() => startEditing(p)}
+                  className="py-2 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-semibold text-xs rounded-md border border-neutral-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
                 >
                   <i className="bx bx-edit text-sm"></i>
                   <span>Edit Plan</span>
                 </button>
                 <button
-                  onClick={() => handleDeletePlan(plan.id, plan.name)}
-                  className="py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium text-xs rounded-md border border-rose-150/40 transition-all cursor-pointer flex items-center justify-center space-x-1.5 active:scale-[0.98]"
+                  onClick={() => handleDeletePlan(p.id, p.name)}
+                  className="py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-md border border-rose-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
                 >
                   <i className="bx bx-trash text-sm"></i>
                   <span>Delete</span>
@@ -287,240 +380,282 @@ export default function AdminPricingManagement() {
         })}
       </div>
 
-      {/* Add Plan Modal */}
-      {showAddModal && (
-        <Portal>
-          <div className="fixed inset-0 bg-neutral-950/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans transition-all duration-300">
-            <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4 animate-fade-in relative">
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-905 transition-colors"
-            >
-              <i className="bx bx-x text-2xl"></i>
-            </button>
+      {/* ADDITIONAL REVENUE OPPORTUNITIES SECTION */}
+      <div className="bg-white border border-neutral-200 rounded-md p-6 space-y-4 font-sans mt-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-neutral-100">
+          <div>
+            <h3 className="text-sm font-semibold text-neutral-900 tracking-tight">Additional Revenue Opportunities & Services</h3>
+            <p className="text-xs text-neutral-500 mt-0.5">Optional add-on services selectable by architects during project creation.</p>
+          </div>
+          <button
+            onClick={() => setShowAddonModal(true)}
+            className="px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 text-xs font-semibold rounded-md border border-neutral-200 transition-all flex items-center space-x-1.5 cursor-pointer w-fit"
+          >
+            <i className="bx bx-edit text-sm"></i>
+            <span>Edit Add-on Amounts</span>
+          </button>
+        </div>
 
-            <div>
-              <h3 className="text-base font-medium text-neutral-900">Create Pricing Plan</h3>
-              <p className="text-xs text-neutral-450 mt-0.5">Introduce a new design package, rate configuration, or minimum threshold.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="border border-neutral-200 rounded-md p-4 bg-neutral-50/50 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-sm font-semibold text-neutral-900 block">3D Lighting Visualization</span>
+              <span className="text-xs text-neutral-500 block">Photorealistic 3D rendering and false-color lux calculation spreads</span>
             </div>
+            <div className="text-right shrink-0">
+              <span className="text-base font-bold text-amber-600 font-sans block">{addonRates.vis3dFee}</span>
+              <span className="text-[10px] text-neutral-400 font-medium block">Starting Add-on</span>
+            </div>
+          </div>
 
-            <form onSubmit={handleAddPlan} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-medium text-neutral-500 mb-1.5">Plan Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={newPlan.name}
-                  onChange={(e) => setNewPlan(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g. Standard 3D Layout"
-                  className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-medium text-neutral-500 mb-1.5">Price (₹/sq ft) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={newPlan.basePrice}
-                    onChange={(e) => setNewPlan(prev => ({ ...prev, basePrice: e.target.value }))}
-                    placeholder="25.00"
-                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-medium text-neutral-500 mb-1.5">Min Sq Ft *</label>
-                  <input
-                    type="number"
-                    required
-                    value={newPlan.minSqFt}
-                    onChange={(e) => setNewPlan(prev => ({ ...prev, minSqFt: e.target.value }))}
-                    placeholder="500"
-                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-medium text-neutral-500 mb-1.5">Description *</label>
-                <textarea
-                  rows={3}
-                  required
-                  value={newPlan.description}
-                  onChange={(e) => setNewPlan(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Summarize the plan features, deliverables, and targets..."
-                  className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2 py-1">
-                <input
-                  type="checkbox"
-                  id="new_is_active"
-                  checked={newPlan.isActive}
-                  onChange={(e) => setNewPlan(prev => ({ ...prev, isActive: e.target.checked }))}
-                  className="w-4.5 h-4.5 text-amber-500 border-neutral-350 rounded cursor-pointer"
-                />
-                <label htmlFor="new_is_active" className="text-xs font-medium text-neutral-700 cursor-pointer select-none">
-                  Activate Package Immediately
-                </label>
-              </div>
-
-              <div className="flex justify-end space-x-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  disabled={submitting}
-                  className="px-4.5 py-2.5 border border-neutral-200 hover:bg-neutral-50 rounded-md text-xs font-medium text-neutral-600 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-medium transition-all cursor-pointer disabled:opacity-55 flex items-center space-x-1.5"
-                >
-                  {submitting ? (
-                    <>
-                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                      </svg>
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <i className="bx bx-check text-sm"></i>
-                      <span>Create Plan</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+          <div className="border border-neutral-200 rounded-md p-4 bg-neutral-50/50 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-sm font-semibold text-neutral-900 block">Site Visit & Consultation</span>
+              <span className="text-xs text-neutral-500 block">On-site luminaire positioning & electrical team coordination</span>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-base font-bold text-amber-600 font-sans block">{addonRates.siteVisitFee}</span>
+              <span className="text-[10px] text-neutral-400 font-medium block">Custom Quote</span>
+            </div>
           </div>
         </div>
-      </Portal>
+      </div>
+
+      {/* EDIT ADD-ON RATES MODAL */}
+      {showAddonModal && (
+        <Portal>
+          <div className="fixed inset-0 bg-neutral-950/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 font-sans transition-all duration-300">
+            <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4 animate-fade-in relative shadow-lg">
+              <button
+                onClick={() => setShowAddonModal(false)}
+                className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-900 transition-colors"
+              >
+                <i className="bx bx-x text-2xl"></i>
+              </button>
+
+              <div>
+                <h3 className="text-base font-semibold text-neutral-900">Edit Additional Service Amounts</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">Update display fees for optional add-on services.</p>
+              </div>
+
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                setShowAddonModal(false);
+                triggerNotification('Add-on amounts updated successfully!', null);
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">3D Lighting Visualization Amount</label>
+                  <input
+                    type="text"
+                    required
+                    value={addonRates.vis3dFee}
+                    onChange={(e) => setAddonRates(prev => ({ ...prev, vis3dFee: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Site Visit & Consultation Amount</label>
+                  <input
+                    type="text"
+                    required
+                    value={addonRates.siteVisitFee}
+                    onChange={(e) => setAddonRates(prev => ({ ...prev, siteVisitFee: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddonModal(false)}
+                    className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-md text-xs font-semibold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-semibold transition-all shadow-xs cursor-pointer"
+                  >
+                    Save Amounts
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </Portal>
       )}
 
-      {/* Edit Plan Modal */}
+      {/* CREATE PLAN MODAL */}
+      {showAddModal && (
+        <Portal>
+          <div className="fixed inset-0 bg-neutral-950/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 font-sans transition-all duration-300">
+            <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4 animate-fade-in relative shadow-lg">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-900 transition-colors"
+              >
+                <i className="bx bx-x text-2xl"></i>
+              </button>
+
+              <div>
+                <h3 className="text-base font-semibold text-neutral-900">Create Pricing Plan</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">Introduce a new design package or rate configuration.</p>
+              </div>
+
+              <form onSubmit={handleAddPlan} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Plan Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newPlan.name}
+                    onChange={(e) => setNewPlan(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g. Amplex Commercial Deluxe"
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Price (₹) *</label>
+                    <input
+                      type="number"
+                      step="1"
+                      required
+                      value={newPlan.basePrice}
+                      onChange={(e) => setNewPlan(prev => ({ ...prev, basePrice: e.target.value }))}
+                      placeholder="e.g. 14999"
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Min Area (sq ft)</label>
+                    <input
+                      type="number"
+                      value={newPlan.minSqFt}
+                      onChange={(e) => setNewPlan(prev => ({ ...prev, minSqFt: e.target.value }))}
+                      placeholder="e.g. 1000"
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Description / Deliverables</label>
+                  <textarea
+                    rows={3}
+                    value={newPlan.description}
+                    onChange={(e) => setNewPlan(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Separate deliverables with commas (e.g. Lighting Layout, Lux Calculations)"
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium resize-none"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-md text-xs font-semibold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-semibold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    {submitting ? 'Creating...' : 'Create Plan Tier'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* EDIT PLAN MODAL */}
       {showEditModal && editingPlan && (
         <Portal>
-          <div className="fixed inset-0 bg-neutral-950/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans transition-all duration-300">
-            <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4 animate-fade-in relative">
-            <button
-              onClick={() => {
-                setShowEditModal(false);
-                setEditingPlan(null);
-              }}
-              className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-905 transition-colors"
-            >
-              <i className="bx bx-x text-2xl"></i>
-            </button>
+          <div className="fixed inset-0 bg-neutral-950/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 font-sans transition-all duration-300">
+            <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4 animate-fade-in relative shadow-lg">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-900 transition-colors"
+              >
+                <i className="bx bx-x text-2xl"></i>
+              </button>
 
-            <div>
-              <h3 className="text-base font-medium text-neutral-900">Edit Pricing Plan</h3>
-              <p className="text-xs text-neutral-450 mt-0.5">Update rates, minimum dimensions, or descriptions for <strong>{editingPlan.name}</strong>.</p>
+              <div>
+                <h3 className="text-base font-semibold text-neutral-900">Edit Pricing Plan</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">Update rate parameters for {editingPlan.name}</p>
+              </div>
+
+              <form onSubmit={handleUpdatePlan} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Plan Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.name}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Price (₹) *</label>
+                    <input
+                      type="number"
+                      step="1"
+                      required
+                      value={editForm.basePrice}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, basePrice: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Min Area (sq ft)</label>
+                    <input
+                      type="number"
+                      value={editForm.minSqFt}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, minSqFt: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Description / Deliverables</label>
+                  <textarea
+                    rows={3}
+                    value={editForm.description}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium resize-none"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-md text-xs font-semibold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-semibold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    {submitting ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleUpdatePlan} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-medium text-neutral-500 mb-1.5">Plan Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-medium text-neutral-500 mb-1.5">Price (₹/sq ft) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={editForm.basePrice}
-                    onChange={(e) => setEditForm({ ...editForm, basePrice: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-medium text-neutral-500 mb-1.5">Min Sq Ft *</label>
-                  <input
-                    type="number"
-                    required
-                    value={editForm.minSqFt}
-                    onChange={(e) => setEditForm({ ...editForm, minSqFt: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-medium text-neutral-500 mb-1.5">Description *</label>
-                <textarea
-                  rows={3}
-                  required
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2 py-1">
-                <input
-                  type="checkbox"
-                  id="edit_is_active"
-                  checked={editForm.isActive}
-                  onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
-                  className="w-4.5 h-4.5 text-amber-500 border-neutral-350 rounded cursor-pointer"
-                />
-                <label htmlFor="edit_is_active" className="text-xs font-medium text-neutral-700 cursor-pointer select-none">
-                  Toggle Plan Status Active
-                </label>
-              </div>
-
-              <div className="flex justify-end space-x-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setEditingPlan(null);
-                  }}
-                  disabled={submitting}
-                  className="px-4.5 py-2.5 border border-neutral-200 hover:bg-neutral-50 rounded-md text-xs font-medium text-neutral-600 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-medium transition-all cursor-pointer disabled:opacity-55 flex items-center space-x-1.5"
-                >
-                  {submitting ? (
-                    <>
-                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                      </svg>
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <i className="bx bx-check text-sm"></i>
-                      <span>Save Updates</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      </Portal>
+        </Portal>
       )}
     </div>
   );

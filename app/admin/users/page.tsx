@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import CustomSelect from '../../../components/ui/CustomSelect';
+import CustomSelect from '@/components/ui/CustomSelect';
 import Link from 'next/link';
-import LayoutToggle from '../../../components/ui/LayoutToggle';
+import LayoutToggle from '@/components/ui/LayoutToggle';
 import Portal from '@/components/ui/Portal';
+import SearchInput from '@/components/ui/SearchInput';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function AdminUsersManagement() {
   const supabase = createClient();
@@ -249,16 +251,11 @@ export default function AdminUsersManagement() {
         {/* Interactive controls bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
           <div className="flex items-center space-x-2 flex-1">
-            <div className="relative flex-1 max-w-md">
-              <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
-              <input
-                type="text"
-                placeholder="Search by name, email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-              />
-            </div>
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search by name, email..."
+            />
             <CustomSelect
               value={roleFilter}
               onChange={setRoleFilter}
@@ -361,15 +358,7 @@ export default function AdminUsersManagement() {
                       <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 flex items-center justify-center font-medium text-xs flex-shrink-0">
                         {u.name.substring(0, 2).toUpperCase()}
                       </div>
-                      {u.role === 'architect' ? (
-                        <Link href={`/admin/architects/${u.id}`} className="text-amber-600 hover:underline font-medium">
-                          {u.name}
-                        </Link>
-                      ) : u.role === 'designer' ? (
-                        <Link href={`/admin/designers/${u.id}`} className="text-amber-600 hover:underline font-medium">
-                          {u.name}
-                        </Link>
-                      ) : u.role === 'admin' ? (
+                      {u.role === 'admin' ? (
                         <Link href={`/admin/admins/${u.id}`} className="text-amber-600 hover:underline font-medium">
                           {u.name}
                         </Link>

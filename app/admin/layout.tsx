@@ -12,8 +12,6 @@ const navItems = [
   { name: 'Projects', path: '/admin/projects', icon: 'bx bx-folder', group: 'Management' },
   { name: 'Invoices', path: '/admin/payments', icon: 'bx bx-receipt', group: 'Management' },
   { name: 'Users', path: '/admin/users', icon: 'bx bx-user', group: 'Management' },
-  { name: 'Architects', path: '/admin/architects', icon: 'bx bx-building-house', group: 'Team' },
-  { name: 'Designers', path: '/admin/designers', icon: 'bx bx-palette', group: 'Team' },
   { name: 'Pricing Plans', path: '/admin/pricing', icon: 'bx bx-dollar', group: 'Configuration' },
   { name: 'Revision Requests', path: '/admin/revision-requests', icon: 'bx bx-comment-detail', group: 'System' },
 ];
@@ -118,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Reusable Sidebar Component */}
       <Sidebar
-        workspaceTitle="Lightlab"
+        workspaceTitle="LightMap"
         workspaceSubtitle="Admin Workspace"
         workspaceIcon="bx bxs-bulb"
         navItems={navItems}

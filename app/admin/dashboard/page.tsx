@@ -5,6 +5,8 @@ import { createClient } from '@/utils/supabase/client';
 import CustomSelect from '../../../components/ui/CustomSelect';
 import Link from 'next/link';
 import Portal from '@/components/ui/Portal';
+import StatsCard from '@/components/ui/StatsCard';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 export default function AdminDashboard() {
   const supabase = createClient();
@@ -447,105 +449,50 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Ready for Client Review Alert Queue */}
-      {readyForReviewProjects.length > 0 && (
-        <div className="bg-white border border-blue-200 rounded-md p-5 space-y-4 font-sans">
-          <div className="flex justify-between items-center pb-3 border-b border-blue-100">
-            <div>
-              <h3 className="text-sm font-medium text-blue-950 flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
-                <span>Designer Handoff: Ready for Client Review</span>
-              </h3>
-              <p className="text-xs text-blue-600 font-medium mt-0.5">Designs finalized by team &amp; awaiting client portal approval.</p>
-            </div>
-            <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded border border-blue-100">
-              {readyForReviewProjects.length} Ready
-            </span>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {readyForReviewProjects.map((p) => (
-              <div key={p.id} className="bg-blue-50/20 border border-blue-100 rounded-md p-3.5 flex items-center justify-between gap-3">
-                <div className="space-y-0.5 min-w-0">
-                  <span className="text-[10px] text-neutral-400 font-medium font-mono">{p.project_id_serial || 'KL-XXXX'}</span>
-                  <h4 className="text-sm font-semibold text-neutral-900 truncate">{p.project_name}</h4>
-                  <p className="text-xs text-neutral-500 truncate">Client: {p.client_name}</p>
-                </div>
-                <Link
-                  href={`/admin/projects/${p.id}`}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold transition-all whitespace-nowrap active:scale-[0.98] shrink-0"
-                >
-                  Inspect Design →
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Grid of Key Performance Indicators */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 xl:gap-4">
-
-        {/* KPI 1 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-3 sm:p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-400 block truncate">Revenue</span>
-            <div className="flex items-baseline space-x-1">
-              <span className="kpi-number text-neutral-900 font-sans">₹{(stats.revenueTurnover / 100000).toFixed(1)}L</span>
-              <span className="text-xs font-medium text-emerald-600 font-sans whitespace-nowrap">+14%</span>
-            </div>
-            <span className="text-xs text-neutral-400 block hidden sm:block truncate">Settled payouts volume</span>
-          </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 xl:w-12 xl:h-12 bg-blue-50 rounded-md flex items-center justify-center text-blue-600 border border-blue-100 shrink-0">
-            <i className="bx bx-trending-up text-base xl:text-xl"></i>
-          </div>
-        </div>
-
-        {/* KPI 2 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-3 sm:p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-400 block truncate">In Design</span>
-            <div className="flex items-baseline space-x-1">
-              <span className="kpi-number text-neutral-900 font-sans">{stats.inDesignProjects}</span>
-              <span className="text-xs font-medium text-cyan-600 font-sans whitespace-nowrap">Active</span>
-            </div>
-            <span className="text-xs text-neutral-400 block hidden sm:block truncate">Workspaces in development</span>
-          </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 xl:w-12 xl:h-12 bg-cyan-50 rounded-md flex items-center justify-center text-cyan-600 border border-cyan-100 shrink-0">
-            <i className="bx bx-pencil text-base xl:text-xl"></i>
-          </div>
-        </div>
-
-        {/* KPI 3 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-3 sm:p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-400 block truncate">Total Logged</span>
-            <div className="flex items-baseline space-x-1">
-              <span className="kpi-number text-neutral-900 font-sans">{stats.totalProjects}</span>
-              <span className="text-xs font-medium text-indigo-600 font-sans whitespace-nowrap">Projects</span>
-            </div>
-            <span className="text-xs text-neutral-400 block hidden sm:block truncate">Registered index</span>
-          </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 xl:w-12 xl:h-12 bg-indigo-50 rounded-md flex items-center justify-center text-indigo-600 border border-indigo-100 shrink-0">
-            <i className="bx bx-folder-open text-base xl:text-xl"></i>
-          </div>
-        </div>
-
-        {/* KPI 4 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-3 sm:p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-400 block truncate">Completed</span>
-            <div className="flex items-baseline space-x-1">
-              <span className="kpi-number text-neutral-900 font-sans">{stats.completedProjects}</span>
-              <span className="text-xs font-medium text-emerald-600 font-sans whitespace-nowrap">Delivered</span>
-            </div>
-            <span className="text-xs text-neutral-400 block hidden sm:block truncate">Approved &amp; closed</span>
-          </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 xl:w-12 xl:h-12 bg-emerald-50 rounded-md flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
-            <i className="bx bx-badge-check text-base xl:text-xl"></i>
-          </div>
-        </div>
-
+        <StatsCard
+          title="Revenue"
+          value={`₹${(stats.revenueTurnover / 100000).toFixed(1)}L`}
+          badgeText="+14%"
+          badgeClass="text-emerald-600 font-sans"
+          subtext="Settled payouts volume"
+          icon="bx-trending-up"
+          iconBgClass="bg-blue-50 border-blue-100"
+          iconColorClass="text-blue-600"
+        />
+        <StatsCard
+          title="In Design"
+          value={stats.inDesignProjects}
+          badgeText="Active"
+          badgeClass="text-cyan-600 font-sans"
+          subtext="Workspaces in development"
+          icon="bx-pencil"
+          iconBgClass="bg-cyan-50 border-cyan-100"
+          iconColorClass="text-cyan-600"
+        />
+        <StatsCard
+          title="Total Logged"
+          value={stats.totalProjects}
+          badgeText="Projects"
+          badgeClass="text-indigo-600 font-sans"
+          subtext="Registered index"
+          icon="bx-folder-open"
+          iconBgClass="bg-indigo-50 border-indigo-100"
+          iconColorClass="text-indigo-600"
+        />
+        <StatsCard
+          title="Completed"
+          value={stats.completedProjects}
+          badgeText="Delivered"
+          badgeClass="text-emerald-600 font-sans"
+          subtext="Approved & closed"
+          icon="bx-badge-check"
+          iconBgClass="bg-emerald-50 border-emerald-100"
+          iconColorClass="text-emerald-600"
+        />
       </div>
 
       {/* Main Charts & Analytics Section */}
@@ -784,9 +731,9 @@ export default function AdminDashboard() {
                           {(d.name || 'D').substring(0, 2).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <Link href={`/admin/designers/${d.id}`} className="text-xs font-bold text-neutral-900 truncate block hover:text-amber-600">
+                          <span className="text-xs font-bold text-neutral-900 truncate block">
                             {d.name}
-                          </Link>
+                          </span>
                           <span className="text-[10px] text-neutral-450 truncate block">{d.email}</span>
                         </div>
                       </div>
