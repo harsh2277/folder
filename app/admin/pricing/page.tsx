@@ -27,127 +27,126 @@ export default function AdminPricingManagement() {
   // Form state
   const [newPlan, setNewPlan] = useState({
     name: '',
-    description: '',
+    sqft: '',
     basePrice: '',
-    minSqFt: '',
+    originalPrice: '',
+    discount: '50% off',
+    features: '',
+    bottomFeatures: '',
     isActive: true
   });
 
   const [editingPlan, setEditingPlan] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
     name: '',
-    description: '',
+    sqft: '',
     basePrice: '',
-    minSqFt: '',
+    originalPrice: '',
+    discount: '',
+    features: '',
+    bottomFeatures: '',
     isActive: true
   });
 
+  const defaultPlans = [
+    {
+      id: 'essential',
+      name: 'Amplex Essential',
+      sqft: 'UP TO 1,500 SQ.FT.',
+      price: 4999,
+      originalPrice: 10000,
+      discount: '50% off',
+      features: ['Lighting Layout', 'Fixture Suggestions'],
+      bottomFeatures: ['1 Revision'],
+      is_active: true
+    },
+    {
+      id: 'professional',
+      name: 'Amplex Professional',
+      sqft: '1,501 - 5,000 SQ.FT.',
+      price: 9999,
+      originalPrice: 20000,
+      discount: '50% off',
+      popular: true,
+      features: ['Lighting Layout', 'Fixture Suggestions', 'Lux Guidance'],
+      bottomFeatures: ['2 Revisions'],
+      is_active: true
+    },
+    {
+      id: 'premium',
+      name: 'Amplex Premium',
+      sqft: '5,001 - 10,000 SQ.FT.',
+      price: 24999,
+      originalPrice: 50000,
+      discount: '50% off',
+      features: ['Detailed Lighting Layout', 'Lux Calculations'],
+      bottomFeatures: ['3 Revisions', '2 Site Visits'],
+      is_active: true
+    },
+    {
+      id: 'enterprise',
+      name: 'Amplex Enterprise',
+      sqft: 'ABOVE 10,000 SQ.FT.',
+      price: null,
+      customQuote: true,
+      features: ['Complete Lighting Design Support', 'Multiple Revisions', 'Dedicated Designer'],
+      bottomFeatures: ['Site Visits as per requirements'],
+      is_active: true
+    }
+  ];
+
   async function fetchPlans() {
     try {
-      const { data, error } = await supabase
+      // Check stored custom overrides
+      const storedOverridesStr = typeof window !== 'undefined' ? localStorage.getItem('lightmap_pricing_plan_overrides') : null;
+      let storedOverrides: Record<string, any> = {};
+      if (storedOverridesStr) {
+        try {
+          storedOverrides = JSON.parse(storedOverridesStr);
+        } catch (e) {
+          console.error('Error parsing stored overrides:', e);
+        }
+      }
+
+      const { data } = await supabase
         .from('pricing_plans')
         .select('id, name, description, base_price_per_sq_ft, min_sq_ft, is_active')
         .order('base_price_per_sq_ft', { ascending: true });
 
-      if (error) throw error;
+      let currentPlans = defaultPlans.map(p => {
+        const ov = storedOverrides[p.id];
+        if (ov) {
+          return {
+            ...p,
+            name: ov.name || p.name,
+            sqft: ov.sqft || p.sqft,
+            price: ov.price !== undefined ? ov.price : p.price,
+            originalPrice: ov.originalPrice !== undefined ? ov.originalPrice : p.originalPrice,
+            discount: ov.discount !== undefined ? ov.discount : p.discount,
+            features: ov.features || p.features,
+            bottomFeatures: ov.bottomFeatures || p.bottomFeatures
+          };
+        }
+        return p;
+      });
 
       if (data && data.length > 0) {
-        const normalizedPlans = data.map((plan: any) => {
-          let sqft = plan.sqft;
-          let price = plan.price;
-          let original_price = plan.original_price;
-          let discount = plan.discount;
-          let deliverables = plan.deliverables;
-
-          if (plan.name?.includes('Essential')) {
-            sqft = 'UP TO 1,500 SQ.FT.';
-            price = 4999;
-            original_price = 10000;
-            discount = '50% off';
-            deliverables = ['Lighting Layout', 'Fixture Suggestions', '1 Revision'];
-          } else if (plan.name?.includes('Professional')) {
-            sqft = '1,501 - 5,000 SQ.FT.';
-            price = 9999;
-            original_price = 20000;
-            discount = '50% off';
-            deliverables = ['Lighting Layout', 'Fixture Suggestions', 'Lux Guidance', '2 Revisions'];
-          } else if (plan.name?.includes('Premium')) {
-            sqft = '5,001 - 10,000 SQ.FT.';
-            price = 24999;
-            original_price = 50000;
-            discount = '50% off';
-            deliverables = ['Detailed Lighting Layout', 'Lux Calculations', '3 Revisions', '2 Site Visits'];
-          } else if (plan.name?.includes('Enterprise')) {
-            sqft = 'ABOVE 10,000 SQ.FT.';
-            price = null;
-            plan.custom_quote = true;
-            deliverables = ['Complete Lighting Design Support', 'Multiple Revisions', 'Dedicated Designer', 'Site Visits as per requirements'];
-          } else if (!price && plan.base_price_per_sq_ft) {
-            price = Number(plan.base_price_per_sq_ft);
+        currentPlans = currentPlans.map((p, idx) => {
+          const matchedDb = data.find((d: any) => d.name?.toLowerCase().includes(p.id)) || data[idx];
+          if (matchedDb && matchedDb.base_price_per_sq_ft && !storedOverrides[p.id]) {
+            const dbPrice = Number(matchedDb.base_price_per_sq_ft);
+            if (dbPrice > 0) {
+              p.price = dbPrice;
+            }
           }
-
-          return {
-            ...plan,
-            sqft: sqft || (plan.min_sq_ft ? `MIN ${plan.min_sq_ft} SQ.FT.` : 'PACKAGE'),
-            price,
-            original_price,
-            discount,
-            deliverables: deliverables || (plan.description ? plan.description.split(',') : []),
-          };
+          return p;
         });
-
-        setPlans(normalizedPlans);
-      } else {
-        throw new Error('No DB data');
       }
+
+      setPlans(currentPlans);
     } catch (err) {
       console.error('Error fetching plans:', err);
-      setPlans([
-        {
-          id: 'essential',
-          name: 'Amplex Essential',
-          sqft: 'UP TO 1,500 SQ.FT.',
-          price: 4999,
-          original_price: 10000,
-          discount: '50% off',
-          description: 'Includes Lighting Layout, Fixture Suggestions, and 1 Revision.',
-          deliverables: ['Lighting Layout', 'Fixture Suggestions', '1 Revision'],
-          is_active: true
-        },
-        {
-          id: 'professional',
-          name: 'Amplex Professional',
-          sqft: '1,501 - 5,000 SQ.FT.',
-          price: 9999,
-          original_price: 20000,
-          discount: '50% off',
-          popular: true,
-          description: 'Includes Lighting Layout, Fixture Suggestions, Lux Guidance, and 2 Revisions.',
-          deliverables: ['Lighting Layout', 'Fixture Suggestions', 'Lux Guidance', '2 Revisions'],
-          is_active: true
-        },
-        {
-          id: 'premium',
-          name: 'Amplex Premium',
-          sqft: '5,001 - 10,000 SQ.FT.',
-          price: 24999,
-          original_price: 50000,
-          discount: '50% off',
-          description: 'Includes Detailed Lighting Layout, Lux Calculations, 3 Revisions, and 2 Site Visits.',
-          deliverables: ['Detailed Lighting Layout', 'Lux Calculations', '3 Revisions', '2 Site Visits'],
-          is_active: true
-        },
-        {
-          id: 'enterprise',
-          name: 'Amplex Enterprise',
-          sqft: 'ABOVE 10,000 SQ.FT.',
-          price: null,
-          custom_quote: true,
-          description: 'Complete Lighting Design Support, Multiple Revisions, Dedicated Designer, Site Visits as per requirements.',
-          deliverables: ['Complete Lighting Design Support', 'Multiple Revisions', 'Dedicated Designer', 'Site Visits as per requirements'],
-          is_active: true
-        }
-      ]);
+      setPlans(defaultPlans);
     } finally {
       setLoading(false);
     }
@@ -168,28 +167,57 @@ export default function AdminPricingManagement() {
     }
   };
 
+  const syncOverridesToStore = (planId: string, updatedPlanData: any) => {
+    try {
+      const storedOverridesStr = localStorage.getItem('lightmap_pricing_plan_overrides');
+      const overrides = storedOverridesStr ? JSON.parse(storedOverridesStr) : {};
+      overrides[planId] = updatedPlanData;
+      localStorage.setItem('lightmap_pricing_plan_overrides', JSON.stringify(overrides));
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {
+      console.error('Error saving pricing plan overrides:', e);
+    }
+  };
+
   const handleAddPlan = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setErrorMsg(null);
 
     try {
-      const { error } = await supabase
+      const featuresArr = newPlan.features.split(',').map(s => s.trim()).filter(Boolean);
+      const bottomFeaturesArr = newPlan.bottomFeatures.split(',').map(s => s.trim()).filter(Boolean);
+      const planPrice = newPlan.basePrice ? parseFloat(newPlan.basePrice) : null;
+      const planOrigPrice = newPlan.originalPrice ? parseFloat(newPlan.originalPrice) : null;
+
+      const createdPlan = {
+        id: `custom_${Date.now()}`,
+        name: newPlan.name,
+        sqft: newPlan.sqft || 'CUSTOM AREA',
+        price: planPrice,
+        originalPrice: planOrigPrice,
+        discount: newPlan.discount || '50% off',
+        features: featuresArr.length > 0 ? featuresArr : ['Lighting Layout'],
+        bottomFeatures: bottomFeaturesArr.length > 0 ? bottomFeaturesArr : ['1 Revision'],
+        is_active: newPlan.isActive
+      };
+
+      await supabase
         .from('pricing_plans')
         .insert({
           name: newPlan.name,
-          description: newPlan.description,
-          base_price_per_sq_ft: parseFloat(newPlan.basePrice || '0'),
-          min_sq_ft: parseFloat(newPlan.minSqFt || '0'),
+          description: featuresArr.join(', '),
+          base_price_per_sq_ft: planPrice || 0,
+          min_sq_ft: 1000,
           is_active: newPlan.isActive
         });
 
-      if (error) throw error;
+      syncOverridesToStore(createdPlan.id, createdPlan);
+      setPlans(prev => [...prev, createdPlan]);
 
-      triggerNotification('Pricing plan created successfully!', null);
+      triggerNotification('New Pricing Tier created successfully!', null);
       setShowAddModal(false);
-      setNewPlan({ name: '', description: '', basePrice: '', minSqFt: '', isActive: true });
-      fetchPlans();
+      setNewPlan({ name: '', sqft: '', basePrice: '', originalPrice: '', discount: '50% off', features: '', bottomFeatures: '', isActive: true });
     } catch (err: any) {
       triggerNotification(null, err.message || 'Failed to add plan');
     } finally {
@@ -204,22 +232,40 @@ export default function AdminPricingManagement() {
     setErrorMsg(null);
 
     try {
-      const { error } = await supabase
+      const featuresArr = editForm.features.split(',').map(s => s.trim()).filter(Boolean);
+      const bottomFeaturesArr = editForm.bottomFeatures.split(',').map(s => s.trim()).filter(Boolean);
+      const updatedPrice = editForm.basePrice !== '' ? parseFloat(editForm.basePrice) : null;
+      const updatedOrigPrice = editForm.originalPrice !== '' ? parseFloat(editForm.originalPrice) : null;
+
+      const updatedPlanData = {
+        name: editForm.name,
+        sqft: editForm.sqft,
+        price: updatedPrice,
+        originalPrice: updatedOrigPrice,
+        discount: editForm.discount,
+        features: featuresArr,
+        bottomFeatures: bottomFeaturesArr
+      };
+
+      // Update in Supabase
+      await supabase
         .from('pricing_plans')
         .update({
           name: editForm.name,
-          description: editForm.description,
-          base_price_per_sq_ft: parseFloat(editForm.basePrice || '0'),
-          min_sq_ft: parseFloat(editForm.minSqFt || '0'),
+          description: featuresArr.join(', '),
+          base_price_per_sq_ft: updatedPrice || 0,
           is_active: editForm.isActive
         })
         .eq('id', editingPlan.id);
 
-      if (error) throw error;
+      // Sync overrides for Add Project creation wizards
+      syncOverridesToStore(editingPlan.id, updatedPlanData);
 
-      triggerNotification('Pricing plan updated successfully!', null);
+      // Update local state
+      setPlans(prev => prev.map(p => p.id === editingPlan.id ? { ...p, ...updatedPlanData } : p));
+
+      triggerNotification('Plan & Revisions/Site Visits updated successfully!', null);
       setShowEditModal(false);
-      fetchPlans();
     } catch (err: any) {
       triggerNotification(null, err.message || 'Failed to update plan');
     } finally {
@@ -231,15 +277,13 @@ export default function AdminPricingManagement() {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
 
     try {
-      const { error } = await supabase
+      await supabase
         .from('pricing_plans')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
-
-      triggerNotification('Pricing plan deleted successfully!', null);
-      fetchPlans();
+      setPlans(prev => prev.filter(p => p.id !== id));
+      triggerNotification('Pricing plan removed successfully!', null);
     } catch (err: any) {
       triggerNotification(null, err.message || 'Failed to delete plan');
     }
@@ -249,10 +293,13 @@ export default function AdminPricingManagement() {
     setEditingPlan(plan);
     setEditForm({
       name: plan.name,
-      description: plan.description || '',
-      basePrice: (plan.price || plan.base_price_per_sq_ft || 0).toString(),
-      minSqFt: (plan.min_sq_ft || 0).toString(),
-      isActive: plan.is_active
+      sqft: plan.sqft || '',
+      basePrice: plan.price !== null && plan.price !== undefined ? plan.price.toString() : '',
+      originalPrice: plan.originalPrice !== null && plan.originalPrice !== undefined ? plan.originalPrice.toString() : '',
+      discount: plan.discount || '',
+      features: plan.features ? plan.features.join(', ') : '',
+      bottomFeatures: plan.bottomFeatures ? plan.bottomFeatures.join(', ') : '',
+      isActive: plan.is_active !== undefined ? plan.is_active : true
     });
     setShowEditModal(true);
   };
@@ -299,17 +346,13 @@ export default function AdminPricingManagement() {
         </button>
       </div>
 
-      {/* 4 COLUMNS CARD GRID ONLY */}
+      {/* 4 COLUMNS CARD GRID MATCHING ADD PROJECT CARD CONTENT & STYLE EXACTLY */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
         {plans.map((p) => {
-          const displayPrice = p.custom_quote || !p.price ? 'Custom Quote' : `₹${Number(p.price).toLocaleString('en-IN')}`;
-          const originalPriceStr = p.original_price ? `₹${Number(p.original_price).toLocaleString('en-IN')}` : null;
-          const deliverablesList = p.deliverables || (p.description ? p.description.split(',') : []);
-
           return (
             <div
               key={p.id}
-              className={`bg-white border rounded-md p-6 flex flex-col justify-between space-y-6 hover:border-neutral-300 transition-all duration-200 relative h-full cursor-pointer ${
+              className={`border rounded-md p-6 bg-white flex flex-col justify-between space-y-6 hover:border-neutral-300 transition-all duration-200 relative h-full cursor-pointer ${
                 p.popular ? 'border-amber-500 ring-1 ring-amber-500' : 'border-neutral-200'
               }`}
             >
@@ -333,47 +376,60 @@ export default function AdminPricingManagement() {
 
                 <div className="pt-4 border-t border-neutral-100 space-y-1">
                   <span className="text-xs text-neutral-400 font-medium block">Rate</span>
-                  {p.custom_quote ? (
+                  {p.customQuote || p.price === null ? (
                     <span className="text-xl font-bold text-neutral-900">Custom Quote</span>
                   ) : (
                     <div className="space-y-0.5">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-bold text-neutral-900 leading-none">{displayPrice}</span>
+                        <span className="text-2xl font-bold text-neutral-900 leading-none">₹{Number(p.price || 0).toLocaleString('en-IN')}</span>
                         <span className="text-xs text-neutral-400 font-medium"> / flat</span>
                       </div>
-                      {originalPriceStr && (
-                        <span className="text-xs text-neutral-400 line-through block font-medium">{originalPriceStr}</span>
+                      {p.originalPrice && (
+                        <span className="text-xs text-neutral-400 line-through block font-medium">₹{Number(p.originalPrice).toLocaleString('en-IN')}</span>
                       )}
                     </div>
                   )}
                 </div>
 
                 <ul className="space-y-2.5 pt-4 border-t border-neutral-100">
-                  {deliverablesList.map((item: string, i: number) => (
+                  {p.features?.map((f: string, i: number) => (
                     <li key={i} className="text-xs text-neutral-600 font-medium flex items-start space-x-1.5">
                       <i className="bx bx-check text-amber-600 text-sm mt-0.5 flex-shrink-0"></i>
-                      <span className="leading-tight">{item.trim()}</span>
+                      <span className="leading-tight">{f}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Action Buttons */}
-              <div className="pt-4 mt-6 border-t border-neutral-100 grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => startEditing(p)}
-                  className="py-2 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-semibold text-xs rounded-md border border-neutral-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
-                >
-                  <i className="bx bx-edit text-sm"></i>
-                  <span>Edit Plan</span>
-                </button>
-                <button
-                  onClick={() => handleDeletePlan(p.id, p.name)}
-                  className="py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-md border border-rose-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
-                >
-                  <i className="bx bx-trash text-sm"></i>
-                  <span>Delete</span>
-                </button>
+              <div>
+                {p.bottomFeatures && p.bottomFeatures.length > 0 && (
+                  <div className="border-t border-neutral-100 pt-3 mt-4 text-left">
+                    {p.bottomFeatures.map((bf: string, idx: number) => (
+                      <div key={idx} className="text-xs text-neutral-600 font-medium flex items-center justify-start gap-1.5 mt-1">
+                        <i className="bx bx-sync text-neutral-400 text-sm"></i>
+                        <span>{bf}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Admin Action Buttons */}
+                <div className="pt-4 mt-5 border-t border-neutral-100 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => startEditing(p)}
+                    className="py-2 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-semibold text-xs rounded-md border border-neutral-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
+                  >
+                    <i className="bx bx-edit text-sm"></i>
+                    <span>Edit Plan</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeletePlan(p.id, p.name)}
+                    className="py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-md border border-rose-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
+                  >
+                    <i className="bx bx-trash text-sm"></i>
+                    <span>Delete</span>
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -518,37 +574,72 @@ export default function AdminPricingManagement() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Price (₹) *</label>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Area Range (sq ft) *</label>
                     <input
-                      type="number"
-                      step="1"
+                      type="text"
                       required
-                      value={newPlan.basePrice}
-                      onChange={(e) => setNewPlan(prev => ({ ...prev, basePrice: e.target.value }))}
-                      placeholder="e.g. 14999"
+                      value={newPlan.sqft}
+                      onChange={(e) => setNewPlan(prev => ({ ...prev, sqft: e.target.value }))}
+                      placeholder="e.g. 10,001 - 15,000 SQ.FT."
                       className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Min Area (sq ft)</label>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Discount Tag</label>
+                    <input
+                      type="text"
+                      value={newPlan.discount}
+                      onChange={(e) => setNewPlan(prev => ({ ...prev, discount: e.target.value }))}
+                      placeholder="e.g. 50% off"
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Offer Rate (₹) *</label>
                     <input
                       type="number"
-                      value={newPlan.minSqFt}
-                      onChange={(e) => setNewPlan(prev => ({ ...prev, minSqFt: e.target.value }))}
-                      placeholder="e.g. 1000"
+                      step="1"
+                      value={newPlan.basePrice}
+                      onChange={(e) => setNewPlan(prev => ({ ...prev, basePrice: e.target.value }))}
+                      placeholder="e.g. 4999 (Leave empty for Custom Quote)"
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Regular Rate (₹)</label>
+                    <input
+                      type="number"
+                      step="1"
+                      value={newPlan.originalPrice}
+                      onChange={(e) => setNewPlan(prev => ({ ...prev, originalPrice: e.target.value }))}
+                      placeholder="e.g. 10000"
                       className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Description / Deliverables</label>
-                  <textarea
-                    rows={3}
-                    value={newPlan.description}
-                    onChange={(e) => setNewPlan(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Separate deliverables with commas (e.g. Lighting Layout, Lux Calculations)"
-                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium resize-none"
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Features (Checkmark list - comma separated)</label>
+                  <input
+                    type="text"
+                    value={newPlan.features}
+                    onChange={(e) => setNewPlan(prev => ({ ...prev, features: e.target.value }))}
+                    placeholder="e.g. Lighting Layout, Fixture Suggestions, Lux Guidance"
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Revisions & Site Visits (Bottom list - comma separated)</label>
+                  <input
+                    type="text"
+                    value={newPlan.bottomFeatures}
+                    onChange={(e) => setNewPlan(prev => ({ ...prev, bottomFeatures: e.target.value }))}
+                    placeholder="e.g. 3 Revisions, 2 Site Visits"
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
                   />
                 </div>
 
@@ -587,8 +678,8 @@ export default function AdminPricingManagement() {
               </button>
 
               <div>
-                <h3 className="text-base font-semibold text-neutral-900">Edit Pricing Plan</h3>
-                <p className="text-xs text-neutral-500 mt-0.5">Update rate parameters for {editingPlan.name}</p>
+                <h3 className="text-base font-semibold text-neutral-900">Edit Pricing Plan & Options</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">Update rate, features, revisions, and site visits options for {editingPlan.name}</p>
               </div>
 
               <form onSubmit={handleUpdatePlan} className="space-y-4">
@@ -605,34 +696,71 @@ export default function AdminPricingManagement() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Price (₹) *</label>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Area Range Label</label>
                     <input
-                      type="number"
-                      step="1"
-                      required
-                      value={editForm.basePrice}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, basePrice: e.target.value }))}
+                      type="text"
+                      value={editForm.sqft}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, sqft: e.target.value }))}
+                      placeholder="e.g. UP TO 1,500 SQ.FT."
                       className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Min Area (sq ft)</label>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Discount Tag</label>
+                    <input
+                      type="text"
+                      value={editForm.discount}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, discount: e.target.value }))}
+                      placeholder="e.g. 50% off"
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Offer Price (₹)</label>
                     <input
                       type="number"
-                      value={editForm.minSqFt}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, minSqFt: e.target.value }))}
+                      step="1"
+                      value={editForm.basePrice}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, basePrice: e.target.value }))}
+                      placeholder="e.g. 4999 (Leave empty for Custom Quote)"
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1">Regular Rate (₹)</label>
+                    <input
+                      type="number"
+                      step="1"
+                      value={editForm.originalPrice}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, originalPrice: e.target.value }))}
+                      placeholder="e.g. 10000"
                       className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Description / Deliverables</label>
-                  <textarea
-                    rows={3}
-                    value={editForm.description}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium resize-none"
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Checkmark Features (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={editForm.features}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, features: e.target.value }))}
+                    placeholder="e.g. Lighting Layout, Fixture Suggestions, Lux Guidance"
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Revisions & Site Visits Options (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={editForm.bottomFeatures}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, bottomFeatures: e.target.value }))}
+                    placeholder="e.g. 3 Revisions, 2 Site Visits"
+                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
                   />
                 </div>
 

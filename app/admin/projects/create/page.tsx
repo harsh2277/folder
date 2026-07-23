@@ -154,8 +154,45 @@ export default function AdminProjectCreationWizard() {
     return selectedPlanId;
   };
 
+  const [uiPlans, setUiPlans] = useState(UI_PLANS);
+
+  useEffect(() => {
+    const syncCustomRates = () => {
+      try {
+        const storedOverridesStr = localStorage.getItem('lightmap_pricing_plan_overrides');
+        if (storedOverridesStr) {
+          const overrides = JSON.parse(storedOverridesStr);
+          setUiPlans(prev =>
+            prev.map(p => {
+              const ov = overrides[p.id];
+              if (ov) {
+                return {
+                  ...p,
+                  name: ov.name || p.name,
+                  sqft: ov.sqft || p.sqft,
+                  price: ov.price !== undefined ? ov.price : p.price,
+                  originalPrice: ov.originalPrice !== undefined ? ov.originalPrice : p.originalPrice,
+                  discount: ov.discount !== undefined ? ov.discount : p.discount,
+                  features: ov.features || p.features,
+                  bottomFeatures: ov.bottomFeatures || p.bottomFeatures
+                };
+              }
+              return p;
+            })
+          );
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    syncCustomRates();
+    window.addEventListener('storage', syncCustomRates);
+    return () => window.removeEventListener('storage', syncCustomRates);
+  }, []);
+
   const calculateTotalPrice = () => {
-    const plan = UI_PLANS.find(p => p.id === selectedPlanId);
+    const plan = uiPlans.find(p => p.id === selectedPlanId);
     if (!plan || plan.customQuote) return 0;
     const planPrice = plan.price || 0;
     const addonsPrice = selectedAddons.reduce((sum, addonId) => {
@@ -416,7 +453,7 @@ export default function AdminProjectCreationWizard() {
 
                 {/* 4 Columns Grid of Pricing Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-                  {UI_PLANS.map((p) => {
+                  {uiPlans.map((p) => {
                     const isSelected = selectedPlanId === p.id;
                     return (
                       <div
