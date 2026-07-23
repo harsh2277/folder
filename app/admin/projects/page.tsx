@@ -106,6 +106,15 @@ export default function AdminProjectsList() {
     }
   };
 
+  const getDeadlineBadge = (deadline: string | null | undefined) => {
+    if (!deadline) return null;
+    const daysLeft = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
+    if (daysLeft < 0) return { label: `${Math.abs(daysLeft)}d overdue`, cls: 'bg-rose-100 text-rose-700 border-rose-200' };
+    if (daysLeft <= 3) return { label: `${daysLeft}d left`, cls: 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse' };
+    if (daysLeft <= 7) return { label: `${daysLeft}d left`, cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+    return { label: `${daysLeft}d left`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
+  };
+
   const statuses = [
     'All', 'Submitted', 'Payment Pending', 'Under Review', 'In Design',
     'Ready for Client Review', 'Revision Requested', 'Approved', 'Closed'
@@ -189,7 +198,7 @@ export default function AdminProjectsList() {
       {/* Content Block */}
       {/* Filter Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative flex-1 max-w-md">
           <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
           <input
             type="text"
@@ -282,9 +291,12 @@ export default function AdminProjectsList() {
                     <span className="text-sm font-medium text-neutral-400">
                       {proj.project_id_serial || 'KL-2025-XXXX'}
                     </span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${proj.status === 'Approved' || proj.status === 'Closed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.status === 'In Design' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : proj.status === 'Under Review' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
-                      {proj.status}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border w-fit whitespace-nowrap ${proj.status === 'Approved' || proj.status === 'Closed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.status === 'In Design' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : proj.status === 'Under Review' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
+                        {proj.status}
+                      </span>
+                      {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
+                    </div>
                   </div>
                   <h3 className="text-sm font-medium text-neutral-900 line-clamp-1">{proj.project_name}</h3>
                   <p className="text-sm text-neutral-500 font-medium">Representative: {proj.client_name}</p>
@@ -397,9 +409,12 @@ export default function AdminProjectsList() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border ${proj.status === 'Approved' || proj.status === 'Closed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.status === 'In Design' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : proj.status === 'Under Review' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
-                        {proj.status}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border w-fit whitespace-nowrap ${proj.status === 'Approved' || proj.status === 'Closed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.status === 'In Design' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : proj.status === 'Under Review' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
+                          {proj.status}
+                        </span>
+                        {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border w-fit whitespace-nowrap ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-sm text-neutral-400 font-medium font-sans">
                       {new Date(proj.created_at).toLocaleDateString()}

@@ -20,7 +20,7 @@ export default function AdminProjectDetail() {
   const [files, setFiles] = useState<any[]>([]);
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [revisions, setRevisions] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'Overview' | 'Deliverables' | 'Revisions'>('Overview');
+  const [activeTab, setActiveTab] = useState<'Overview' | 'Deliverables' | 'Revisions' | 'Activity'>('Overview');
   const [architects, setArchitects] = useState<any[]>([]);
   const [designers, setDesigners] = useState<any[]>([]);
 
@@ -131,7 +131,7 @@ export default function AdminProjectDetail() {
             const uData = await uRes.json();
             desList = (uData.users || []).filter((u: any) => u.role !== 'architect');
           }
-        } catch (e) {}
+        } catch (e) { }
 
         if (desList.length === 0) {
           const { data: designerProfiles } = await supabase
@@ -410,9 +410,7 @@ export default function AdminProjectDetail() {
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-lg font-semibold text-neutral-900 tracking-tight leading-tight">{project.project_name}</h2>
-                <span className="text-xs px-2.5 py-0.5 bg-neutral-100 border border-neutral-200 text-neutral-600 rounded-md font-medium">
-                  {project.project_id_serial || 'KL-2026-XXXX'}
-                </span>
+
               </div>
               <p className="text-xs text-neutral-500 mt-0.5">
                 Client: {project.client_name} &bull; Plan: {project.pricing_plans?.name || 'N/A'}
@@ -434,18 +432,16 @@ export default function AdminProjectDetail() {
                     <div className={`absolute top-[16px] left-[50%] w-[calc(100%+24px)] h-[2px] z-0 ${idx < activeStepIndex ? 'bg-amber-600' : 'bg-neutral-200'}`} />
                   )}
                   {/* Circle Dot */}
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border font-sans text-xs font-semibold relative z-10 transition-all duration-300 ${
-                    isActive
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border font-sans text-xs font-semibold relative z-10 transition-all duration-300 ${isActive
                       ? 'bg-amber-600 border-amber-600 text-white ring-4 ring-amber-600/10 shadow-sm shadow-amber-600/10'
                       : isCompleted
                         ? 'bg-amber-600 border-amber-600 text-white'
                         : 'bg-white border-neutral-200 text-neutral-400'
-                  }`}>
+                    }`}>
                     {isCompleted ? <i className="bx bx-check text-xs"></i> : idx + 1}
                   </div>
-                  <span className={`text-xs mt-2 font-semibold transition-colors duration-200 text-center relative z-10 whitespace-nowrap ${
-                    isActive ? 'text-amber-700 font-bold' : isCompleted ? 'text-amber-600' : 'text-neutral-400'
-                  }`}>
+                  <span className={`text-xs mt-2 font-semibold transition-colors duration-200 text-center relative z-10 whitespace-nowrap ${isActive ? 'text-amber-700 font-bold' : isCompleted ? 'text-amber-600' : 'text-neutral-400'
+                    }`}>
                     {step.name}
                   </span>
                 </div>
@@ -461,11 +457,10 @@ export default function AdminProjectDetail() {
 
           {/* Action Save Message Toast */}
           {saveMessage && (
-            <div className={`mb-4 p-4 rounded-md text-xs font-semibold border flex items-center space-x-2 animate-fade-in ${
-              saveMessage.startsWith('Error') || saveMessage.includes('error')
+            <div className={`mb-4 p-4 rounded-md text-xs font-semibold border flex items-center space-x-2 animate-fade-in ${saveMessage.startsWith('Error') || saveMessage.includes('error')
                 ? 'bg-rose-50 border-rose-200 text-rose-800'
                 : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-            }`}>
+              }`}>
               <i className={`bx ${saveMessage.startsWith('Error') || saveMessage.includes('error') ? 'bx-error-circle text-base' : 'bx-check-circle text-base'}`}></i>
               <span>{saveMessage}</span>
             </div>
@@ -512,18 +507,17 @@ export default function AdminProjectDetail() {
                 {/* Tabs Menu */}
                 <div className="border-b border-neutral-200 mb-6 bg-white flex items-center justify-between pl-6 pr-3 h-14">
                   <div className="flex space-x-8 h-full -mb-px">
-                    {['Overview', 'Deliverables', 'Revisions'].map((tab) => {
+                    {['Overview', 'Deliverables', 'Revisions', 'Activity'].map((tab) => {
                       const isCurrent = activeTab === tab;
                       return (
                         <button
                           key={tab}
                           type="button"
                           onClick={() => setActiveTab(tab as any)}
-                          className={`h-full text-sm font-semibold transition-all relative flex items-center space-x-1.5 border-b-2 cursor-pointer ${
-                            isCurrent
+                          className={`h-full text-sm font-semibold transition-all relative flex items-center space-x-1.5 border-b-2 cursor-pointer ${isCurrent
                               ? 'text-amber-600 border-amber-600'
                               : 'text-neutral-500 hover:text-neutral-800 border-transparent hover:border-neutral-350'
-                          }`}
+                            }`}
                         >
                           <span>{tab}</span>
                           {tab === 'Deliverables' && deliverables.length > 0 && (
@@ -769,15 +763,14 @@ export default function AdminProjectDetail() {
                                   <span className="text-neutral-400 font-medium">
                                     Requested: {new Date(rev.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                   </span>
-                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold border ${
-                                    isPending
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold border ${isPending
                                       ? 'bg-amber-50 border-amber-100 text-amber-700'
                                       : rev.status === 'approved'
                                         ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
                                         : rev.status === 'declined'
                                           ? 'bg-rose-50 border-rose-100 text-rose-700'
                                           : 'bg-blue-50 border-blue-100 text-blue-700'
-                                  }`}>
+                                    }`}>
                                     {isPending ? 'Pending Admin Review' : rev.status === 'approved' ? 'Approved' : rev.status === 'declined' ? 'Declined' : '✓ Resolved'}
                                   </span>
                                 </div>
@@ -822,6 +815,85 @@ export default function AdminProjectDetail() {
                           })}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {activeTab === 'Activity' && (
+                    <div className="px-6 space-y-4 font-sans">
+                      <span className="text-xs font-bold text-neutral-450 uppercase tracking-wider block">Project Lifecycle Audit Timeline</span>
+
+                      {(() => {
+                        const events: { id: string; date: string; title: string; desc: string; icon: string; color: string }[] = [];
+
+                        if (project?.created_at) {
+                          events.push({
+                            id: 'create',
+                            date: project.created_at,
+                            title: 'Project Onboarded',
+                            desc: `Project created by architect ${project.client_name ? `for client ${project.client_name}` : ''}`,
+                            icon: 'bx-folder-plus',
+                            color: 'bg-amber-50 text-amber-600 border-amber-200'
+                          });
+                        }
+
+                        files.forEach((f: any) => {
+                          events.push({
+                            id: f.id,
+                            date: f.created_at || project.created_at,
+                            title: `File Uploaded: ${f.file_name}`,
+                            desc: `Category: ${getCategoryLabel(f.category, f.profiles?.role)}`,
+                            icon: 'bx-file',
+                            color: 'bg-blue-50 text-blue-600 border-blue-200'
+                          });
+                        });
+
+                        deliverables.forEach((d: any) => {
+                          events.push({
+                            id: d.id,
+                            date: d.created_at || project.updated_at || project.created_at,
+                            title: `Deliverable Uploaded: ${d.file_name}`,
+                            desc: `Uploaded by designer (${d.file_type || 'Asset'})`,
+                            icon: 'bx-layer',
+                            color: 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                          });
+                        });
+
+                        revisions.forEach((r: any) => {
+                          events.push({
+                            id: r.id,
+                            date: r.created_at || project.created_at,
+                            title: `Revision Request: ${r.status?.toUpperCase()}`,
+                            desc: r.description,
+                            icon: 'bx-git-repo-forked',
+                            color: r.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'
+                          });
+                        });
+
+                        events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                        return events.length === 0 ? (
+                          <p className="text-xs text-neutral-400 italic">No activity recorded yet.</p>
+                        ) : (
+                          <div className="relative border-l border-neutral-200 ml-3 pl-6 space-y-6">
+                            {events.map((ev) => (
+                              <div key={ev.id} className="relative">
+                                <div className={`absolute -left-[37px] top-0 w-6 h-6 rounded-full border flex items-center justify-center text-xs ${ev.color}`}>
+                                  <i className={`bx ${ev.icon}`} />
+                                </div>
+                                <div className="space-y-0.5">
+                                  <div className="flex justify-between items-center">
+                                    <h4 className="text-xs font-bold text-neutral-900">{ev.title}</h4>
+                                    <span className="text-[10px] text-neutral-400 font-mono">
+                                      {new Date(ev.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-neutral-600 leading-relaxed font-medium whitespace-pre-line">{ev.desc}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>

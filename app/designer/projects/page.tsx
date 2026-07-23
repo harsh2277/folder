@@ -97,6 +97,15 @@ export default function DesignerProjectsList() {
     return String(id1).trim().toLowerCase() === String(id2).trim().toLowerCase();
   };
 
+  const getDeadlineBadge = (deadline: string | null | undefined) => {
+    if (!deadline) return null;
+    const daysLeft = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
+    if (daysLeft < 0) return { label: `${Math.abs(daysLeft)}d overdue`, cls: 'bg-rose-100 text-rose-700 border-rose-200' };
+    if (daysLeft <= 3) return { label: `${daysLeft}d left`, cls: 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse' };
+    if (daysLeft <= 7) return { label: `${daysLeft}d left`, cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+    return { label: `${daysLeft}d left`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
+  };
+
   const myProjectsCount = currentUserId ? projects.filter(p => isSameId(p.assigned_designer_id, currentUserId)).length : 0;
 
   const filteredProjects = projects.filter((p) => {
@@ -134,7 +143,7 @@ export default function DesignerProjectsList() {
       {/* Filter bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
-          <div className="relative flex-1 max-w-xs">
+          <div className="relative flex-1 max-w-md">
             <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
             <input
               type="text"
@@ -176,9 +185,12 @@ export default function DesignerProjectsList() {
                     <span className="text-xs font-medium text-neutral-400">
                       {proj.project_id_serial || 'KL-2025-XXXX'}
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${getStatusBadge(proj.status)}`}>
-                      {proj.status}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border w-fit whitespace-nowrap ${getStatusBadge(proj.status)}`}>
+                        {proj.status}
+                      </span>
+                      {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
+                    </div>
                   </div>
                   <h3 className="text-sm font-medium text-neutral-900 group-hover:text-amber-600 transition-colors line-clamp-1">
                     <Link href={`/designer/projects/${proj.id}`} onClick={(e) => e.stopPropagation()}>
@@ -195,7 +207,7 @@ export default function DesignerProjectsList() {
                   </div>
                   <div className="flex justify-between items-center text-sm font-medium text-neutral-500">
                     <span>Design Status</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-medium border ${getStatusBadge(proj.status)}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-medium border w-fit whitespace-nowrap ${getStatusBadge(proj.status)}`}>
                       {proj.status}
                     </span>
                   </div>
@@ -242,9 +254,12 @@ export default function DesignerProjectsList() {
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 text-sm font-medium">{proj.client_name}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-550 text-sm">{proj.area_sq_ft ? proj.area_sq_ft.toLocaleString() : 'N/A'}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getStatusBadge(proj.status)}`}>
-                        {proj.status}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border w-fit whitespace-nowrap ${getStatusBadge(proj.status)}`}>
+                          {proj.status}
+                        </span>
+                        {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border w-fit whitespace-nowrap ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-xs text-neutral-450 font-medium">
                       {new Date(proj.created_at).toLocaleDateString()}

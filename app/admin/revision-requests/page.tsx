@@ -329,7 +329,7 @@ export default function AdminRevisionRequests() {
 
       {/* Control Bar: Search, Filter, Sort, Layout Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative flex-1 max-w-md">
           <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
           <input
             type="text"

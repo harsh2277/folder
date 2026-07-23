@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
   const [pendingRevisions, setPendingRevisions] = useState<any[]>([]);
   const [approvedProjects, setApprovedProjects] = useState<any[]>([]);
+  const [readyForReviewProjects, setReadyForReviewProjects] = useState<any[]>([]);
   const [designers, setDesigners] = useState<any[]>([]);
   const [selectedDesigners, setSelectedDesigners] = useState<Record<string, string>>({});
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -112,6 +113,7 @@ export default function AdminDashboard() {
         setAllProjectsList(allProjects);
         setRecentProjects(allProjects.slice(0, 5));
         setPendingProjects(allProjects.filter((p: any) => p.status === 'Under Review' || p.status === 'Submitted'));
+        setReadyForReviewProjects(allProjects.filter((p: any) => p.status === 'Ready for Client Review'));
 
         // Fetch revision requests for admin dashboard
         let rawRevisions: any[] = [];
@@ -445,7 +447,41 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Ready for Client Review Alert Queue */}
+      {readyForReviewProjects.length > 0 && (
+        <div className="bg-white border border-blue-200 rounded-md p-5 space-y-4 font-sans">
+          <div className="flex justify-between items-center pb-3 border-b border-blue-100">
+            <div>
+              <h3 className="text-sm font-medium text-blue-950 flex items-center space-x-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                <span>Designer Handoff: Ready for Client Review</span>
+              </h3>
+              <p className="text-xs text-blue-600 font-medium mt-0.5">Designs finalized by team &amp; awaiting client portal approval.</p>
+            </div>
+            <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded border border-blue-100">
+              {readyForReviewProjects.length} Ready
+            </span>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {readyForReviewProjects.map((p) => (
+              <div key={p.id} className="bg-blue-50/20 border border-blue-100 rounded-md p-3.5 flex items-center justify-between gap-3">
+                <div className="space-y-0.5 min-w-0">
+                  <span className="text-[10px] text-neutral-400 font-medium font-mono">{p.project_id_serial || 'KL-XXXX'}</span>
+                  <h4 className="text-sm font-semibold text-neutral-900 truncate">{p.project_name}</h4>
+                  <p className="text-xs text-neutral-500 truncate">Client: {p.client_name}</p>
+                </div>
+                <Link
+                  href={`/admin/projects/${p.id}`}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold transition-all whitespace-nowrap active:scale-[0.98] shrink-0"
+                >
+                  Inspect Design →
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Grid of Key Performance Indicators */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 xl:gap-4">

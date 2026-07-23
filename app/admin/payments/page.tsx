@@ -244,7 +244,7 @@ export default function AdminPaymentsPage() {
 
         {/* Interactive controls bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
-          <div className="relative flex-1 max-w-xs">
+          <div className="relative flex-1 max-w-md">
             <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
             <input
               type="text"

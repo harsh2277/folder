@@ -21,7 +21,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
   const [files, setFiles] = useState<any[]>([]);
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [revisions, setRevisions] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'Overview' | 'Deliverables' | 'Revisions'>('Overview');
+  const [activeTab, setActiveTab] = useState<'Overview' | 'Deliverables' | 'Revisions' | 'Activity'>('Overview');
 
   const [designer, setDesigner] = useState<any | null>(null);
   const [payment, setPayment] = useState<any | null>(null);
@@ -430,7 +430,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
             {/* Tabs Menu */}
             <div className="border-b border-neutral-200 mb-6 bg-white flex items-center justify-between pl-6 pr-3 h-14">
               <div className="flex space-x-8 h-full -mb-px">
-                {['Overview', 'Deliverables', 'Revisions'].map((tab) => {
+                {['Overview', 'Deliverables', 'Revisions', 'Activity'].map((tab) => {
                   const isCurrent = activeTab === tab;
                   const isDisabled = project?.status === 'Submitted' && tab !== 'Overview';
                   return (
@@ -961,6 +961,85 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                       })}
                     </div>
                   )}
+                </div>
+              )}
+
+              {activeTab === 'Activity' && (
+                <div className="px-6 space-y-4 font-sans">
+                  <span className="text-xs font-bold text-neutral-450 uppercase tracking-wider block">Project Lifecycle Audit Timeline</span>
+
+                  {(() => {
+                    const events: { id: string; date: string; title: string; desc: string; icon: string; color: string }[] = [];
+
+                    if (project?.created_at) {
+                      events.push({
+                        id: 'create',
+                        date: project.created_at,
+                        title: 'Project Created',
+                        desc: `Onboarded project scope for client ${project.client_name || 'Homeowner'}`,
+                        icon: 'bx-folder-plus',
+                        color: 'bg-amber-50 text-amber-600 border-amber-200'
+                      });
+                    }
+
+                    files.forEach((f: any) => {
+                      events.push({
+                        id: f.id,
+                        date: f.created_at || project.created_at,
+                        title: `File Uploaded: ${f.file_name}`,
+                        desc: `Uploaded onboarding document (${f.file_type || 'Asset'})`,
+                        icon: 'bx-file',
+                        color: 'bg-blue-50 text-blue-600 border-blue-200'
+                      });
+                    });
+
+                    deliverables.forEach((d: any) => {
+                      events.push({
+                        id: d.id,
+                        date: d.created_at || project.updated_at || project.created_at,
+                        title: `Deliverable Uploaded: ${d.file_name}`,
+                        desc: `Design asset delivered by staff designer`,
+                        icon: 'bx-layer',
+                        color: 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                      });
+                    });
+
+                    revisions.forEach((r: any) => {
+                      events.push({
+                        id: r.id,
+                        date: r.created_at || project.created_at,
+                        title: r.description?.includes('CLIENT FEEDBACK:') ? 'Homeowner Feedback Submitted' : `Revision Request (${r.status?.toUpperCase()})`,
+                        desc: r.description,
+                        icon: 'bx-comment-dots',
+                        color: r.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'
+                      });
+                    });
+
+                    events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                    return events.length === 0 ? (
+                      <p className="text-xs text-neutral-400 italic">No activity recorded yet.</p>
+                    ) : (
+                      <div className="relative border-l border-neutral-200 ml-3 pl-6 space-y-6">
+                        {events.map((ev) => (
+                          <div key={ev.id} className="relative">
+                            <div className={`absolute -left-[37px] top-0 w-6 h-6 rounded-full border flex items-center justify-center text-xs ${ev.color}`}>
+                              <i className={`bx ${ev.icon}`} />
+                            </div>
+                            <div className="space-y-0.5">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-xs font-bold text-neutral-900">{ev.title}</h4>
+                                <span className="text-[10px] text-neutral-400 font-mono">
+                                  {new Date(ev.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <p className="text-xs text-neutral-600 leading-relaxed font-medium whitespace-pre-line">{ev.desc}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>

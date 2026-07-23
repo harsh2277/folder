@@ -237,7 +237,7 @@ export default function AdminArchitectDetailPage() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-sm font-medium border ${proj.status === 'Approved' || proj.status === 'Closed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.status === 'In Design' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : proj.status === 'Under Review' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-sm font-medium border w-fit whitespace-nowrap ${proj.status === 'Approved' || proj.status === 'Closed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.status === 'In Design' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : proj.status === 'Under Review' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
                         {proj.status}
                       </span>
                     </td>

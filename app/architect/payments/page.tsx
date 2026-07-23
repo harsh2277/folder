@@ -180,7 +180,7 @@ export default function ArchitectPaymentsPage() {
       <div className="space-y-4 print-hide">
         {/* Interactive controls bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
-          <div className="relative flex-1 max-w-xs">
+          <div className="relative flex-1 max-w-md">
             <i className="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm"></i>
             <input
               type="text"

@@ -81,7 +81,7 @@ export default function DesignerProjectDetail({ params }: PageProps) {
           if (res.ok) {
             resData = await res.json();
           }
-        } catch (e) {}
+        } catch (e) { }
 
         if (!resData || !resData.project) {
           const { data: clientProj } = await supabase
@@ -157,7 +157,7 @@ export default function DesignerProjectDetail({ params }: PageProps) {
         if (res.ok && resData.success) {
           success = true;
         }
-      } catch (e) {}
+      } catch (e) { }
 
       if (!success) {
         // Direct client-side update fallback
@@ -373,9 +373,6 @@ export default function DesignerProjectDetail({ params }: PageProps) {
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-lg font-semibold text-neutral-900 tracking-tight leading-tight">{project.project_name}</h2>
-                <span className="text-xs px-2.5 py-0.5 bg-neutral-100 border border-neutral-200 text-neutral-600 rounded-md font-medium">
-                  {project.project_id_serial || 'KL-2026-XXXX'}
-                </span>
               </div>
               <p className="text-xs text-neutral-500 mt-0.5">
                 Client: {project.client_name} &bull; Plan: {project.pricing_plans?.name || 'N/A'}
@@ -397,18 +394,16 @@ export default function DesignerProjectDetail({ params }: PageProps) {
                     <div className={`absolute top-[16px] left-[50%] w-[calc(100%+24px)] h-[2px] z-0 ${idx < activeStepIndex ? 'bg-amber-600' : 'bg-neutral-200'}`} />
                   )}
                   {/* Circle Dot */}
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border font-sans text-xs font-semibold relative z-10 transition-all duration-300 ${
-                    isActive
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border font-sans text-xs font-semibold relative z-10 transition-all duration-300 ${isActive
                       ? 'bg-amber-600 border-amber-600 text-white ring-4 ring-amber-600/10 shadow-sm shadow-amber-600/10'
                       : isCompleted
                         ? 'bg-amber-600 border-amber-600 text-white'
                         : 'bg-white border-neutral-200 text-neutral-400'
-                  }`}>
+                    }`}>
                     {isCompleted ? <i className="bx bx-check text-xs"></i> : idx + 1}
                   </div>
-                  <span className={`text-xs mt-2 font-semibold transition-colors duration-200 text-center relative z-10 whitespace-nowrap ${
-                    isActive ? 'text-amber-700 font-bold' : isCompleted ? 'text-amber-600' : 'text-neutral-400'
-                  }`}>
+                  <span className={`text-xs mt-2 font-semibold transition-colors duration-200 text-center relative z-10 whitespace-nowrap ${isActive ? 'text-amber-700 font-bold' : isCompleted ? 'text-amber-600' : 'text-neutral-400'
+                    }`}>
                     {step.name}
                   </span>
                 </div>
@@ -421,14 +416,13 @@ export default function DesignerProjectDetail({ params }: PageProps) {
       {/* Main Section */}
       <main className="flex-1 overflow-y-auto p-4 bg-neutral-50/70">
         <div className="content-container">
-          
+
           {/* Action Message Banner */}
           {actionMessage && (
-            <div className={`mb-4 p-4 rounded-md text-xs font-semibold border flex items-center space-x-2 animate-fade-in ${
-              actionMessage.startsWith('Error') || actionMessage.includes('error')
+            <div className={`mb-4 p-4 rounded-md text-xs font-semibold border flex items-center space-x-2 animate-fade-in ${actionMessage.startsWith('Error') || actionMessage.includes('error')
                 ? 'bg-rose-50 border-rose-200 text-rose-800'
                 : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-            }`}>
+              }`}>
               <i className={`bx ${actionMessage.startsWith('Error') || actionMessage.includes('error') ? 'bx-error-circle text-base' : 'bx-check-circle text-base'}`}></i>
               <span>{actionMessage}</span>
             </div>
@@ -468,11 +462,10 @@ export default function DesignerProjectDetail({ params }: PageProps) {
                         key={tab}
                         type="button"
                         onClick={() => setActiveTab(tab as any)}
-                        className={`h-full text-sm font-semibold transition-all relative flex items-center space-x-1.5 border-b-2 cursor-pointer ${
-                          isCurrent
+                        className={`h-full text-sm font-semibold transition-all relative flex items-center space-x-1.5 border-b-2 cursor-pointer ${isCurrent
                             ? 'text-amber-600 border-amber-600'
                             : 'text-neutral-500 hover:text-neutral-800 border-transparent hover:border-neutral-350'
-                        }`}
+                          }`}
                       >
                         <span>{tab}</span>
                         {tab === 'Deliverables' && deliverables.length > 0 && (
@@ -764,13 +757,12 @@ export default function DesignerProjectDetail({ params }: PageProps) {
                                 <span className="text-neutral-400 font-medium">
                                   Requested: {new Date(rev.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                 </span>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold border ${
-                                  isApproved
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold border ${isApproved
                                     ? 'bg-amber-50 border-amber-100 text-amber-700 animate-pulse-subtle'
                                     : isResolved
                                       ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
                                       : 'bg-neutral-50 border-neutral-200 text-neutral-600'
-                                }`}>
+                                  }`}>
                                   {isApproved ? '⚠️ Action Required' : isResolved ? '✓ Resolved' : rev.status}
                                 </span>
                               </div>
@@ -837,7 +829,7 @@ export default function DesignerProjectDetail({ params }: PageProps) {
         <Portal>
           <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
             <div className="bg-white border border-neutral-200 rounded-lg max-w-lg w-full p-7 space-y-6 shadow-xl text-center">
-              
+
               {/* Top Centered Icon Badge */}
               <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-600 mx-auto">
                 <i className="bx bx-cloud-upload text-3xl"></i>
