@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useToast } from '@/components/ui';
 
 interface NotificationItem {
   id: number;
@@ -76,16 +77,20 @@ export default function AdminNotificationsPage() {
     return true;
   });
 
+  const { success: toastSuccess } = useToast();
+
   const toggleRead = (id: number) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !n.read } : n));
   };
 
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    toastSuccess('All notifications marked as read.');
   };
 
   const deleteNotification = (id: number) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+    toastSuccess('Notification removed.');
   };
 
   return (
@@ -113,11 +118,13 @@ export default function AdminNotificationsPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+      <div className="flex items-center justify-between pb-2 border-b border-neutral-100" role="tablist" aria-label="Notification filters">
         <div className="flex space-x-4">
           {(['all', 'unread', 'read'] as const).map(filter => (
             <button
               key={filter}
+              role="tab"
+              aria-selected={activeFilter === filter}
               onClick={() => setActiveFilter(filter)}
               className={`py-2 px-1 text-sm font-medium border-b-2 transition-colors cursor-pointer capitalize ${
                 activeFilter === filter

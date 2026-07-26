@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import CommandPalette from '@/components/ui/CommandPalette';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
+import { ToastProvider } from '@/components/ui';
 
 const navItems = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: 'bx bx-grid-alt', group: 'Overview' },
@@ -23,7 +24,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  // Persist sidebar collapse state in localStorage
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const saved = localStorage.getItem('admin_sidebar_collapsed');
+    return saved !== null ? saved === 'true' : window.innerWidth < 1024;
+  });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [allProjects, setAllProjects] = useState<any[]>([]);
 
@@ -34,13 +40,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { id: 4, title: 'Revision requested for project KL-2025-0003', time: '1d ago', read: true, icon: 'bx-git-pull-request', color: 'text-rose-600 bg-rose-50' }
   ]);
 
-  // Auto-collapse sidebar at 1024px (lg breakpoint)
+  // Auto-collapse sidebar below lg breakpoint; persist preference above lg
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
         setIsCollapsed(true);
-      } else {
-        setIsCollapsed(false);
       }
       if (window.innerWidth >= 768) {
         setIsMobileOpen(false);
@@ -50,6 +54,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Persist sidebar state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('admin_sidebar_collapsed', String(isCollapsed));
+    }
+  }, [isCollapsed]);
 
   const authFetchedRef = useRef(false);
 
@@ -111,50 +122,61 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="h-screen flex bg-neutral-900 text-neutral-800 overflow-hidden">
-      <CommandPalette projects={allProjects} basePath="/admin/projects" />
+    <ToastProvider>
+      <div className="h-screen flex bg-neutral-900 text-neutral-800 overflow-hidden">
+        {/* Skip to content — WCAG 2.4.1 */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-amber-500 focus:text-white focus:rounded-md focus:text-sm focus:font-medium focus:shadow-lg"
+        >
+          Skip to content
+        </a>
 
-      {/* Reusable Sidebar Component */}
-      <Sidebar
-        workspaceTitle="LightMap"
-        workspaceSubtitle="Admin Workspace"
-        workspaceIcon="bx bxs-bulb"
-        navItems={navItems}
-        isCollapsed={isCollapsed}
-        isMobileOpen={isMobileOpen}
-        setIsMobileOpen={setIsMobileOpen}
-        pathname={pathname}
-      />
+        <CommandPalette projects={allProjects} basePath="/admin/projects" />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white border border-neutral-200 rounded-md my-1.5 mr-1.5 ml-0.5 overflow-hidden">
-        {/* Reusable Topbar Header Component */}
-        <Topbar
-          portalName="Admin"
-          activeTab={activeTab}
+        {/* Reusable Sidebar Component */}
+        <Sidebar
+          workspaceTitle="LightMap"
+          workspaceSubtitle="Admin Workspace"
+          workspaceIcon="bx bxs-bulb"
+          navItems={navItems}
           isCollapsed={isCollapsed}
           isMobileOpen={isMobileOpen}
-          setIsCollapsed={setIsCollapsed}
           setIsMobileOpen={setIsMobileOpen}
-          profile={profile}
-          notifications={notifications}
-          setNotifications={setNotifications}
-          handleSignOut={handleSignOut}
-          notificationsBasePath="/admin/notifications"
-          showQuickSearch={true}
+          pathname={pathname}
         />
 
-        {/* Page Content */}
-        {pathname.startsWith('/admin/projects/') && !pathname.endsWith('/create') ? (
-          children
-        ) : (
-          <main className="flex-1 overflow-y-auto p-4 bg-neutral-50/30">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-white border border-neutral-200 rounded-md my-1.5 mr-1.5 ml-0.5 overflow-hidden">
+          {/* Reusable Topbar Header Component */}
+          <Topbar
+            portalName="Admin"
+            activeTab={activeTab}
+            isCollapsed={isCollapsed}
+            isMobileOpen={isMobileOpen}
+            setIsCollapsed={setIsCollapsed}
+            setIsMobileOpen={setIsMobileOpen}
+            profile={profile}
+            notifications={notifications}
+            setNotifications={setNotifications}
+            handleSignOut={handleSignOut}
+            notificationsBasePath="/admin/notifications"
+            showQuickSearch={true}
+          />
+
+          {/* Page Content — unified wrapper, no pathname conditionals */}
+          <main
+            id="main-content"
+            role="main"
+            tabIndex={-1}
+            className="flex-1 overflow-y-auto p-4 bg-neutral-50/30 focus:outline-none"
+          >
             <div className="content-container">
               {children}
             </div>
           </main>
-        )}
+        </div>
       </div>
-    </div>
+    </ToastProvider>
   );
 }

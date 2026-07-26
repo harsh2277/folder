@@ -6,8 +6,9 @@ import LayoutToggle from '@/components/ui/LayoutToggle';
 import Portal from '@/components/ui/Portal';
 import StatsCard from '@/components/ui/StatsCard';
 import SearchInput from '@/components/ui/SearchInput';
-import StatusBadge from '@/components/ui/StatusBadge';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import CustomSelect from '@/components/ui/CustomSelect';
+import EmptyState from '@/components/ui/EmptyState';
+import { StatusBadge, SkeletonPaymentsPage } from '@/components/ui';
 
 export default function AdminPaymentsPage() {
   const supabase = createClient();
@@ -15,6 +16,7 @@ export default function AdminPaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
 
@@ -90,21 +92,22 @@ export default function AdminPaymentsPage() {
     fetchPayments();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <svg className="animate-spin h-6 w-6 text-neutral-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      </div>
-    );
-  }
+  if (loading) return <SkeletonPaymentsPage />;
 
   // Calculate audit totals
   const totalInvoiced = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const completedPayments = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + Number(p.amount), 0);
   const pendingPayments = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + Number(p.amount), 0);
+
+  // Filter payments by search + status
+  const filteredPayments = payments.filter(pay => {
+    const matchesSearch =
+      (pay.invoice_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (pay.projects?.project_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (pay.projects?.client_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || pay.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="space-y-4">
@@ -246,24 +249,32 @@ export default function AdminPaymentsPage() {
             placeholder="Search invoices, projects, representatives..."
           />
 
-          {/* View Layout Toggle */}
-          <LayoutToggle viewMode={viewMode} onChange={setViewMode} />
+          <div className="flex items-center gap-2">
+            <CustomSelect
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: 'All', label: 'All Statuses' },
+                { value: 'completed', label: 'Completed' },
+                { value: 'pending', label: 'Pending' },
+                { value: 'failed', label: 'Failed' }
+              ]}
+            />
+            {/* View Layout Toggle */}
+            <LayoutToggle viewMode={viewMode} onChange={setViewMode} />
+          </div>
         </div>
 
         {/* List/Table Render Area */}
         {viewMode === 'card' ? (
+          filteredPayments.length === 0 ? (
+            <EmptyState title="No invoices found" description="Try adjusting your search or status filter." icon="bx-receipt" />
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {payments
-              .filter(pay => {
-                const matchesSearch = (pay.invoice_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  (pay.projects?.project_name && pay.projects.project_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                  (pay.projects?.client_name && pay.projects.client_name.toLowerCase().includes(searchQuery.toLowerCase()));
-                return matchesSearch;
-              })
-              .map((pay) => (
+            {filteredPayments.map((pay) => (
                 <div
                   key={pay.id}
-                  className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 hover: transition-all duration-200"
+                  className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 transition-all duration-200"
                 >
                   <div className="space-y-2">
                     <div className="flex justify-between items-start">
@@ -273,83 +284,86 @@ export default function AdminPaymentsPage() {
                       <StatusBadge status={pay.status} type="payment" />
                     </div>
                     <h3 className="text-sm font-medium text-neutral-900 line-clamp-1">{pay.projects?.project_name || 'Individual Project'}</h3>
-                    <p className="text-sm text-neutral-450 font-medium">Representative: {pay.projects?.client_name || 'Unassigned'}</p>
+                    <p className="text-sm text-neutral-500 font-medium">Rep: {pay.projects?.client_name || 'Unassigned'}</p>
                   </div>
 
                   <div className="pt-3 border-t border-neutral-100 space-y-2.5">
                     <div className="flex justify-between items-baseline">
-                      <span className="text-sm text-neutral-400 font-medium">Invoiced Amount</span>
+                      <span className="text-sm text-neutral-400 font-medium">Amount</span>
                       <span className="text-lg font-medium text-neutral-800 font-sans">₹{Number(pay.amount).toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between items-center pt-2">
                       <span className="text-sm text-neutral-400 font-sans font-medium">
-                        {new Date(pay.created_at).toLocaleDateString()}
+                        {new Date(pay.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                       <button
                         onClick={() => setSelectedInvoice(pay)}
                         className="inline-flex items-center p-2 hover:bg-neutral-50 text-neutral-600 hover:text-amber-600 border border-neutral-200 rounded-md transition-colors cursor-pointer text-sm"
-                        title="View Detailed Invoice"
+                        aria-label={`View invoice ${pay.invoice_number}`}
                       >
-                        <i className="bx bx-receipt text-sm mr-1"></i>
+                        <i className="bx bx-receipt text-sm mr-1" />
                         <span className="text-sm font-medium font-sans">Details</span>
                       </button>
                     </div>
                   </div>
                 </div>
-              ))}
+            ))}
           </div>
+          )
         ) : (
           <div className="overflow-x-auto mt-3 border border-neutral-200 rounded-md bg-white">
+            {filteredPayments.length === 0 ? (
+              <EmptyState title="No invoices found" description="Try adjusting your search or status filter." icon="bx-receipt" />
+            ) : (
             <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0 bg-white">
+              <caption className="sr-only">Invoice transactions, sorted by date</caption>
               <thead>
                 <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-normal text-xs">
-                  <th className="py-3 px-4 first:pl-5 last:pr-5">Invoice ID</th>
-                  <th className="py-3 px-4 first:pl-5 last:pr-5">Project Scope</th>
-                  <th className="py-3 px-4 first:pl-5 last:pr-5">Client Name</th>
-                  <th className="py-3 px-4 first:pl-5 last:pr-5">Amount</th>
-                  <th className="py-3 px-4 first:pl-5 last:pr-5">Settlement</th>
-                  <th className="py-3 px-4 first:pl-5 last:pr-5 text-right">Invoice</th>
+                  <th scope="col" className="py-3 px-4 first:pl-5">Date</th>
+                  <th scope="col" className="py-3 px-4">Invoice #</th>
+                  <th scope="col" className="py-3 px-4">Project</th>
+                  <th scope="col" className="py-3 px-4">Client</th>
+                  <th scope="col" className="py-3 px-4">Amount</th>
+                  <th scope="col" className="py-3 px-4">Status</th>
+                  <th scope="col" className="py-3 px-4 last:pr-5 text-right">Invoice</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 text-neutral-700 font-normal">
-                {payments
-                  .filter(pay => {
-                    const matchesSearch = (pay.invoice_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      (pay.projects?.project_name && pay.projects.project_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                      (pay.projects?.client_name && pay.projects.client_name.toLowerCase().includes(searchQuery.toLowerCase()));
-                    return matchesSearch;
-                  })
-                  .map((pay) => (
-                    <tr key={pay.id} className="hover:bg-neutral-50/80 transition-colors">
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-sm text-neutral-900">
-                        {pay.invoice_number}
-                      </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900">
-                        {pay.projects?.project_name || 'Individual Project'}
-                      </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500">
-                        {pay.projects?.client_name || 'Unassigned'}
-                      </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 font-sans text-neutral-900">
-                        ₹{Number(pay.amount).toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                        <StatusBadge status={pay.status} type="payment" />
-                      </td>
-                      <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
-                        <button
-                          onClick={() => setSelectedInvoice(pay)}
-                          className="inline-flex items-center px-3 py-1.5 hover:bg-neutral-50 text-neutral-600 hover:text-amber-600 border border-neutral-200 rounded-md transition-colors cursor-pointer text-sm font-medium"
-                          title="View Detailed Invoice"
-                        >
-                          <i className="bx bx-receipt text-sm mr-1.5"></i>
-                          <span>View Details</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                {filteredPayments.map((pay) => (
+                  <tr key={pay.id} className="hover:bg-neutral-50/80 transition-colors">
+                    <td className="py-3.5 px-4 first:pl-5 text-xs text-neutral-400 font-sans whitespace-nowrap">
+                      {new Date(pay.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="py-3.5 px-4 text-sm text-neutral-900 whitespace-nowrap">
+                      {pay.invoice_number}
+                    </td>
+                    <td className="py-3.5 px-4 text-neutral-900 max-w-xs truncate">
+                      {pay.projects?.project_name || 'Individual Project'}
+                    </td>
+                    <td className="py-3.5 px-4 text-neutral-500 whitespace-nowrap">
+                      {pay.projects?.client_name || 'Unassigned'}
+                    </td>
+                    <td className="py-3.5 px-4 font-sans text-neutral-900 whitespace-nowrap">
+                      ₹{Number(pay.amount).toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <StatusBadge status={pay.status} type="payment" />
+                    </td>
+                    <td className="py-3.5 px-4 last:pr-5 text-right">
+                      <button
+                        onClick={() => setSelectedInvoice(pay)}
+                        className="inline-flex items-center px-3 py-1.5 hover:bg-neutral-50 text-neutral-600 hover:text-amber-600 border border-neutral-200 rounded-md transition-colors cursor-pointer text-sm font-medium"
+                        aria-label={`View invoice ${pay.invoice_number}`}
+                      >
+                        <i className="bx bx-receipt text-sm mr-1.5" />
+                        <span>View</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
+            )}
           </div>
         )}
       </div>
@@ -357,11 +371,20 @@ export default function AdminPaymentsPage() {
       {/* Invoice Detail Modal (Printable) */}
       {selectedInvoice && (
         <Portal>
-          <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans print-modal-backdrop">
-            <div className="bg-white border border-neutral-200 rounded-md max-w-2xl w-full overflow-hidden print-invoice-card">
+          <div
+            className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans print-modal-backdrop"
+            onClick={(e) => { if (e.target === e.currentTarget) setSelectedInvoice(null); }}
+            onKeyDown={(e) => { if (e.key === 'Escape') setSelectedInvoice(null); }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="invoice-modal-title"
+              className="bg-white border border-neutral-200 rounded-md max-w-2xl w-full overflow-hidden print-invoice-card"
+            >
               {/* Modal Actions Bar (hidden during print) */}
               <div className="bg-neutral-50 px-6 py-3 border-b border-neutral-200 flex justify-between items-center print:hidden">
-                <span className="text-base font-medium text-neutral-650">Invoice Statement</span>
+                <span id="invoice-modal-title" className="text-base font-medium text-neutral-650">Invoice Statement</span>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => window.print()}

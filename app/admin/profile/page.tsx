@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { useToast, SkeletonUsersPage } from '@/components/ui';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -21,8 +22,7 @@ export default function ProfilePage() {
 
   const [name, setName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const { success: toastSuccess, error: toastError } = useToast();
 
   useEffect(() => {
     async function loadProfile() {
@@ -40,7 +40,7 @@ export default function ProfilePage() {
           .single();
 
         if (profError || !prof) {
-          setErrorMsg('Failed to load profile.');
+          toastError('Failed to load profile.');
           return;
         }
 
@@ -49,7 +49,7 @@ export default function ProfilePage() {
         setMobileNumber(prof.mobile_number || '');
       } catch (err) {
         console.error('Error loading profile:', err);
-        setErrorMsg('An error occurred while loading profile.');
+        toastError('An error occurred while loading profile.');
       } finally {
         setLoading(false);
       }
@@ -61,8 +61,6 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!profile) return;
     setSaving(true);
-    setErrorMsg(null);
-    setSuccessMsg(null);
 
     try {
       const { error } = await supabase
@@ -76,26 +74,17 @@ export default function ProfilePage() {
       if (error) throw error;
 
       setProfile(prev => prev ? { ...prev, name, mobile_number: mobileNumber } : null);
-      setSuccessMsg('Profile updated successfully!');
+      toastSuccess('Profile updated successfully!');
       router.refresh();
     } catch (err: any) {
       console.error('Error updating profile:', err);
-      setErrorMsg(err.message || 'Failed to update profile.');
+      toastError(err.message || 'Failed to update profile.');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="py-12 flex justify-center items-center">
-        <svg className="animate-spin h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      </div>
-    );
-  }
+  if (loading) return <SkeletonUsersPage />;
 
   return (
     <div className="max-w-xl mx-auto py-8">
@@ -104,18 +93,6 @@ export default function ProfilePage() {
           <h1 className="text-xl font-bold text-neutral-900">Account Profile</h1>
           <p className="text-xs text-neutral-450 mt-1">Manage your account information and preferences.</p>
         </div>
-
-        {errorMsg && (
-          <div className="p-3.5 bg-rose-50 border border-rose-150 text-rose-800 text-xs font-semibold rounded-sm">
-            {errorMsg}
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="p-3.5 bg-emerald-50 border border-emerald-150 text-emerald-800 text-xs font-semibold rounded-sm">
-            {successMsg}
-          </div>
-        )}
 
         <form onSubmit={handleUpdate} className="space-y-4">
           <div className="space-y-1.5">

@@ -8,8 +8,7 @@ import LayoutToggle from '@/components/ui/LayoutToggle';
 import EmptyState from '@/components/ui/EmptyState';
 import Portal from '@/components/ui/Portal';
 import SearchInput from '@/components/ui/SearchInput';
-import StatusBadge from '@/components/ui/StatusBadge';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { StatusBadge, useToast } from '@/components/ui';
 
 export default function AdminRevisionRequests() {
   const supabase = createClient();
@@ -22,16 +21,8 @@ export default function AdminRevisionRequests() {
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
 
-  // Feedback notifications
-  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-
-  const triggerToast = (type: 'success' | 'error', text: string) => {
-    setActionMessage({ type, text });
-    setTimeout(() => {
-      setActionMessage(null);
-    }, 4000);
-  };
+  const { success: toastSuccess, error: toastError } = useToast();
 
   useEffect(() => {
     async function fetchRequests() {
@@ -175,13 +166,10 @@ export default function AdminRevisionRequests() {
         setSelectedRequest((prev: any) => prev ? { ...prev, status: newStatus } : null);
       }
 
-      triggerToast(
-        'success',
-        `Successfully ${newStatus === 'approved' ? 'approved' : 'declined'} revision request.`
-      );
+      toastSuccess(`Successfully ${newStatus === 'approved' ? 'approved' : 'declined'} revision request.`);
     } catch (err: any) {
       console.error('Error updating revision request status:', err);
-      triggerToast('error', `Action failed: ${err.message || 'Unknown error'}`);
+      toastError(`Action failed: ${err.message || 'Unknown error'}`);
     } finally {
       setUpdatingId(null);
     }
@@ -231,67 +219,71 @@ export default function AdminRevisionRequests() {
         </div>
       </div>
 
-      {/* Toast Notification Banner */}
-      {actionMessage && (
-        <div className={`p-4 rounded-md text-sm font-medium border flex items-center justify-between animate-fade-in ${actionMessage.type === 'success'
-            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-            : 'bg-rose-50 text-rose-800 border-rose-200'
-          }`}>
-          <div className="flex items-center space-x-2">
-            <i className={`bx ${actionMessage.type === 'success' ? 'bx-check-circle text-lg text-emerald-600' : 'bx-error-circle text-lg text-rose-600'}`}></i>
-            <span>{actionMessage.text}</span>
-          </div>
-          <button onClick={() => setActionMessage(null)} className="text-neutral-400 hover:text-neutral-600 cursor-pointer">
-            <i className="bx bx-x text-lg"></i>
-          </button>
-        </div>
-      )}
-
-      {/* KPI Metric Cards */}
+      {/* KPI Metric Cards — Clickable Filters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
+        <button
+          onClick={() => setSelectedStatus('All')}
+          className={`bg-white border rounded-md p-5 flex items-center justify-between text-left transition-all cursor-pointer ${
+            selectedStatus === 'All' ? 'border-amber-500 ring-1 ring-amber-500 shadow-sm' : 'border-neutral-200 hover:border-neutral-300'
+          }`}
+        >
           <div className="space-y-1">
             <span className="text-sm font-medium text-neutral-400 block">Total Requests</span>
-            <span className="text-2xl font-medium text-neutral-900 font-sans">{totalCount}</span>
-            <span className="text-xs text-neutral-400 block">Logged revision queries</span>
+            <span className="text-2xl font-semibold text-neutral-900 font-sans">{totalCount}</span>
+            <span className="text-xs text-neutral-400 block">All logged queries</span>
           </div>
-          <div className="w-12 h-12 bg-blue-50 rounded-md flex items-center justify-center text-blue-600 border border-blue-100">
+          <div className="w-12 h-12 bg-blue-50 rounded-md flex items-center justify-center text-blue-600 border border-blue-100 shrink-0">
             <i className="bx bx-git-pull-request text-xl"></i>
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
+        <button
+          onClick={() => setSelectedStatus('pending')}
+          className={`bg-white border rounded-md p-5 flex items-center justify-between text-left transition-all cursor-pointer ${
+            selectedStatus === 'pending' ? 'border-amber-500 ring-1 ring-amber-500 shadow-sm' : 'border-neutral-200 hover:border-neutral-300'
+          }`}
+        >
           <div className="space-y-1">
             <span className="text-sm font-medium text-neutral-400 block">Pending Review</span>
-            <span className="text-2xl font-medium text-neutral-900 font-sans">{pendingCount}</span>
+            <span className="text-2xl font-semibold text-neutral-900 font-sans">{pendingCount}</span>
             <span className="text-xs text-neutral-400 block">Awaiting admin decision</span>
           </div>
-          <div className="w-12 h-12 bg-amber-50 rounded-md flex items-center justify-center text-amber-600 border border-amber-100">
+          <div className="w-12 h-12 bg-amber-50 rounded-md flex items-center justify-center text-amber-600 border border-amber-100 shrink-0">
             <i className="bx bx-time-five text-xl"></i>
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
+        <button
+          onClick={() => setSelectedStatus('approved')}
+          className={`bg-white border rounded-md p-5 flex items-center justify-between text-left transition-all cursor-pointer ${
+            selectedStatus === 'approved' ? 'border-amber-500 ring-1 ring-amber-500 shadow-sm' : 'border-neutral-200 hover:border-neutral-300'
+          }`}
+        >
           <div className="space-y-1">
             <span className="text-sm font-medium text-neutral-400 block">Approved</span>
-            <span className="text-2xl font-medium text-neutral-900 font-sans">{approvedCount}</span>
+            <span className="text-2xl font-semibold text-neutral-900 font-sans">{approvedCount}</span>
             <span className="text-xs text-neutral-400 block">In design processing</span>
           </div>
-          <div className="w-12 h-12 bg-emerald-50 rounded-md flex items-center justify-center text-emerald-600 border border-emerald-100">
+          <div className="w-12 h-12 bg-emerald-50 rounded-md flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
             <i className="bx bx-check-circle text-xl"></i>
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white border border-neutral-200 rounded-md p-5 flex items-center justify-between">
+        <button
+          onClick={() => setSelectedStatus('completed')}
+          className={`bg-white border rounded-md p-5 flex items-center justify-between text-left transition-all cursor-pointer ${
+            selectedStatus === 'completed' ? 'border-amber-500 ring-1 ring-amber-500 shadow-sm' : 'border-neutral-200 hover:border-neutral-300'
+          }`}
+        >
           <div className="space-y-1">
             <span className="text-sm font-medium text-neutral-400 block">Resolved / Closed</span>
-            <span className="text-2xl font-medium text-neutral-900 font-sans">{resolvedCount}</span>
+            <span className="text-2xl font-semibold text-neutral-900 font-sans">{resolvedCount}</span>
             <span className="text-xs text-neutral-400 block">Completed or declined</span>
           </div>
-          <div className="w-12 h-12 bg-purple-50 rounded-md flex items-center justify-center text-purple-600 border border-purple-100">
+          <div className="w-12 h-12 bg-purple-50 rounded-md flex items-center justify-center text-purple-600 border border-purple-100 shrink-0">
             <i className="bx bx-task text-xl"></i>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Control Bar: Search, Filter, Sort, Layout Toggle */}
@@ -461,32 +453,38 @@ export default function AdminRevisionRequests() {
                       <StatusBadge status={req.status} />
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right space-x-1.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => setSelectedRequest(req)}
-                        className="px-2.5 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 font-medium text-xs border border-neutral-200 rounded transition-colors cursor-pointer"
-                      >
-                        View
-                      </button>
-
                       {req.status === 'pending' ? (
                         <>
                           <button
                             disabled={updatingId === req.id}
                             onClick={() => handleUpdateStatus(req.id, req.project_id, 'approved')}
-                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded transition-colors cursor-pointer disabled:opacity-50"
+                            className="px-2.5 py-1.5 border border-emerald-200 text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100 font-medium text-xs rounded transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
+                            aria-label={`Approve request for ${req.projects?.project_name}`}
                           >
-                            Approve
+                            {updatingId === req.id && (
+                              <svg className="animate-spin h-3 w-3 text-emerald-700" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                            )}
+                            <span>Approve</span>
                           </button>
                           <button
                             disabled={updatingId === req.id}
                             onClick={() => handleUpdateStatus(req.id, req.project_id, 'declined')}
-                            className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded transition-colors cursor-pointer disabled:opacity-50"
+                            className="px-2.5 py-1.5 border border-rose-200 text-rose-700 bg-rose-50/60 hover:bg-rose-100 font-medium text-xs rounded transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
+                            aria-label={`Decline request for ${req.projects?.project_name}`}
                           >
-                            Decline
+                            <span>Decline</span>
                           </button>
                         </>
                       ) : (
-                        <span className="text-xs text-neutral-400 font-medium px-2">Reviewed</span>
+                        <button
+                          onClick={() => setSelectedRequest(req)}
+                          className="px-2.5 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-600 font-medium text-xs border border-neutral-200 rounded transition-colors cursor-pointer"
+                        >
+                          Details
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -500,8 +498,17 @@ export default function AdminRevisionRequests() {
       {/* Revision Request Detail Modal Drawer */}
       {selectedRequest && (
         <Portal>
-          <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
-            <div className="bg-white border border-neutral-200 rounded-md max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+          <div
+            className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans"
+            onClick={(e) => { if (e.target === e.currentTarget) setSelectedRequest(null); }}
+            onKeyDown={(e) => { if (e.key === 'Escape') setSelectedRequest(null); }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="revision-modal-title"
+              className="bg-white border border-neutral-200 rounded-md max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]"
+            >
               {/* Modal Header */}
               <div className="bg-neutral-50 px-6 py-4 border-b border-neutral-200 flex justify-between items-center">
                 <div>
@@ -509,7 +516,7 @@ export default function AdminRevisionRequests() {
                     <span className="text-xs font-medium text-neutral-400 font-sans">{selectedRequest.projects?.project_id_serial || 'KL-2026-XXXX'}</span>
                     <StatusBadge status={selectedRequest.status} />
                   </div>
-                  <h3 className="text-lg font-medium text-neutral-900 mt-1">{selectedRequest.projects?.project_name || 'Revision Request'}</h3>
+                  <h3 id="revision-modal-title" className="text-lg font-medium text-neutral-900 mt-1">{selectedRequest.projects?.project_name || 'Revision Request'}</h3>
                 </div>
 
                 <button
@@ -583,19 +590,28 @@ export default function AdminRevisionRequests() {
 
                 {selectedRequest.status === 'pending' && (
                   <div className="flex items-center space-x-2">
+                    <span className="text-xs text-neutral-400 font-medium hidden sm:inline">
+                      ℹ️ Approving will return project to &quot;In Design&quot;
+                    </span>
                     <button
                       disabled={updatingId === selectedRequest.id}
                       onClick={() => handleUpdateStatus(selectedRequest.id, selectedRequest.project_id, 'declined')}
-                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-sm rounded-md transition-colors cursor-pointer disabled:opacity-50"
+                      className="px-4 py-2 border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 font-medium text-xs sm:text-sm rounded-md transition-colors cursor-pointer disabled:opacity-50"
                     >
                       Decline Request
                     </button>
                     <button
                       disabled={updatingId === selectedRequest.id}
                       onClick={() => handleUpdateStatus(selectedRequest.id, selectedRequest.project_id, 'approved')}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-md transition-colors cursor-pointer disabled:opacity-50"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs sm:text-sm rounded-md transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                     >
-                      Approve Request
+                      {updatingId === selectedRequest.id && (
+                        <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      )}
+                      <span>Approve Request</span>
                     </button>
                   </div>
                 )}

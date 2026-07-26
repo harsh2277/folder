@@ -4,6 +4,7 @@ import { useState, useEffect, use, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { StatusBadge, PaymentBadge, DeadlineBadge } from '@/components/ui';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -760,26 +761,13 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                     <div>
                       <span className="text-xs text-neutral-400 font-medium block">Project Status</span>
                       <div className="mt-1.5 block">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 border border-blue-150 text-blue-600">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mr-1.5"></span>
-                          {project.status === 'Submitted' ? 'Submitted' : project.status}
-                        </span>
+                        <StatusBadge status={project.status} showDot size="md" />
                       </div>
                     </div>
                     <div>
                       <span className="text-xs text-neutral-400 font-medium block">Payment Status</span>
                       <div className="mt-1.5 block">
-                        {project.payment_status === 'paid' ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 border border-emerald-150 text-emerald-600">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
-                            Paid
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 border border-amber-150 text-amber-600">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
-                            Payment Due
-                          </span>
-                        )}
+                        <PaymentBadge status={project.payment_status} size="md" />
                       </div>
                     </div>
                   </div>

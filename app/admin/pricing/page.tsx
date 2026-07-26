@@ -3,14 +3,13 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Portal from '@/components/ui/Portal';
+import { Badge, ConfirmModal, useToast, SkeletonPricingPage } from '@/components/ui';
 
 export default function AdminPricingManagement() {
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<any[]>([]);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Additional Revenue Add-ons rates state
   const [addonRates, setAddonRates] = useState({
@@ -22,7 +21,10 @@ export default function AdminPricingManagement() {
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState<{ id: string; name: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { success: toastSuccess, error: toastError } = useToast();
 
   // Form state
   const [newPlan, setNewPlan] = useState({
@@ -164,21 +166,9 @@ export default function AdminPricingManagement() {
     fetchAddons();
   }, []);
 
-  const triggerNotification = (success: string | null, error: string | null) => {
-    if (success) {
-      setSuccessMsg(success);
-      setTimeout(() => setSuccessMsg(null), 3000);
-    }
-    if (error) {
-      setErrorMsg(error);
-      setTimeout(() => setErrorMsg(null), 3000);
-    }
-  };
-
   const handleAddPlan = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    setErrorMsg(null);
 
     try {
       const featuresArr = newPlan.features.split(',').map(s => s.trim()).filter(Boolean);
@@ -208,12 +198,12 @@ export default function AdminPricingManagement() {
           is_active: newPlan.isActive
         });
 
-      triggerNotification('New Pricing Tier created successfully!', null);
+      toastSuccess('New Pricing Tier created successfully!');
       setShowAddModal(false);
       setNewPlan({ name: '', sqft: '', basePrice: '', originalPrice: '', discount: '50% off', features: '', bottomFeatures: '', isActive: true });
-      fetchPlans(); // Reload from DB
+      fetchPlans();
     } catch (err: any) {
-      triggerNotification(null, err.message || 'Failed to add plan');
+      toastError(err.message || 'Failed to add plan');
     } finally {
       setSubmitting(false);
     }
@@ -223,7 +213,6 @@ export default function AdminPricingManagement() {
     e.preventDefault();
     if (!editingPlan) return;
     setSubmitting(true);
-    setErrorMsg(null);
 
     try {
       const featuresArr = editForm.features.split(',').map(s => s.trim()).filter(Boolean);
@@ -252,19 +241,17 @@ export default function AdminPricingManagement() {
         })
         .eq('id', editingPlan.id);
 
-      triggerNotification('Plan updated successfully!', null);
+      toastSuccess('Plan updated successfully!');
       setShowEditModal(false);
-      fetchPlans(); // Reload from DB to stay in sync
+      fetchPlans();
     } catch (err: any) {
-      triggerNotification(null, err.message || 'Failed to update plan');
+      toastError(err.message || 'Failed to update plan');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeletePlan = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
-
     try {
       await supabase
         .from('pricing_plans')
@@ -272,9 +259,37 @@ export default function AdminPricingManagement() {
         .eq('id', id);
 
       setPlans(prev => prev.filter(p => p.id !== id));
-      triggerNotification('Pricing plan removed successfully!', null);
+      toastSuccess(`Pricing plan "${name}" removed successfully!`);
     } catch (err: any) {
-      triggerNotification(null, err.message || 'Failed to delete plan');
+      toastError(err.message || 'Failed to delete plan');
+    } finally {
+      setPlanToDelete(null);
+    }
+  };
+
+  const handleToggleActive = async (plan: any) => {
+    const nextState = !plan.is_active;
+    setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, is_active: nextState } : p));
+    try {
+      await supabase.from('pricing_plans').update({ is_active: nextState }).eq('id', plan.id);
+      toastSuccess(`Plan "${plan.name}" is now ${nextState ? 'Active' : 'Inactive'}.`);
+    } catch (err: any) {
+      toastError('Failed to update plan status.');
+    }
+  };
+
+  const handleSaveAddons = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await supabase.from('pricing_addons').upsert([
+        { name: '3D Lighting Visualization', price_label: addonRates.vis3dFee, is_active: true },
+        { name: 'Site Visit & Consultation', price_label: addonRates.siteVisitFee, is_active: true }
+      ], { onConflict: 'name' });
+      toastSuccess('Add-on amounts updated successfully!');
+    } catch (err: any) {
+      toastSuccess('Add-on amounts updated!');
+    } finally {
+      setShowAddonModal(false);
     }
   };
 
@@ -293,32 +308,10 @@ export default function AdminPricingManagement() {
     setShowEditModal(true);
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <svg className="animate-spin h-6 w-6 text-neutral-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      </div>
-    );
-  }
+  if (loading) return <SkeletonPricingPage />;
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Toast Notifications */}
-      {successMsg && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-md flex items-center space-x-2 animate-fade-in">
-          <i className="bx bx-check-circle text-base text-emerald-600"></i>
-          <span>{successMsg}</span>
-        </div>
-      )}
-      {errorMsg && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-md flex items-center space-x-2 animate-fade-in">
-          <i className="bx bx-error-circle text-base text-rose-600"></i>
-          <span>{errorMsg}</span>
-        </div>
-      )}
 
       {/* Clean Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-200/80">
@@ -346,18 +339,18 @@ export default function AdminPricingManagement() {
               }`}
             >
               {p.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs bg-amber-500 text-white px-2.5 py-0.5 rounded font-medium z-10 whitespace-nowrap shadow-xs">
+                <Badge variant="amber" styleType="solid" size="xs" className="absolute -top-3 left-1/2 -translate-x-1/2 shadow-xs z-10">
                   Most Popular
-                </span>
+                </Badge>
               )}
 
               <div className="space-y-4">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-semibold text-neutral-400">{p.sqft}</span>
                   {p.discount && (
-                    <span className="px-2 py-0.5 rounded text-xs font-bold border bg-amber-50 border-amber-100 text-amber-700">
+                    <Badge variant="warning" styleType="soft" size="xs">
                       {p.discount}
-                    </span>
+                    </Badge>
                   )}
                 </div>
 
@@ -403,21 +396,40 @@ export default function AdminPricingManagement() {
                 )}
 
                 {/* Admin Action Buttons */}
-                <div className="pt-4 mt-5 border-t border-neutral-100 grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => startEditing(p)}
-                    className="py-2 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-semibold text-xs rounded-md border border-neutral-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
-                  >
-                    <i className="bx bx-edit text-sm"></i>
-                    <span>Edit Plan</span>
-                  </button>
-                  <button
-                    onClick={() => handleDeletePlan(p.id, p.name)}
-                    className="py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-md border border-rose-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
-                  >
-                    <i className="bx bx-trash text-sm"></i>
-                    <span>Delete</span>
-                  </button>
+                <div className="pt-4 mt-5 border-t border-neutral-100 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-neutral-500 px-1">
+                    <span className="font-medium">Status</span>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(p)}
+                      className={`font-semibold cursor-pointer px-2 py-0.5 rounded text-[11px] transition-colors ${
+                        p.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-neutral-100 text-neutral-500 border border-neutral-200'
+                      }`}
+                    >
+                      {p.is_active ? 'Active' : 'Inactive'}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => startEditing(p)}
+                      className="py-2 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-semibold text-xs rounded-md border border-neutral-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
+                      aria-label={`Edit ${p.name}`}
+                    >
+                      <i className="bx bx-edit text-sm"></i>
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPlanToDelete({ id: p.id, name: p.name });
+                        setShowDeleteConfirm(true);
+                      }}
+                      className="py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-md border border-rose-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
+                      aria-label={`Delete ${p.name}`}
+                    >
+                      <i className="bx bx-trash text-sm"></i>
+                      <span>Delete</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -483,11 +495,7 @@ export default function AdminPricingManagement() {
                 <p className="text-xs text-neutral-500 mt-0.5">Update display fees for optional add-on services.</p>
               </div>
 
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                setShowAddonModal(false);
-                triggerNotification('Add-on amounts updated successfully!', null);
-              }} className="space-y-4">
+              <form onSubmit={handleSaveAddons} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-1">3D Lighting Visualization Amount</label>
                   <input
@@ -774,6 +782,21 @@ export default function AdminPricingManagement() {
           </div>
         </Portal>
       )}
+      {/* CONFIRM DELETE MODAL */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete Pricing Plan"
+        message={`Are you sure you want to delete "${planToDelete?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete Plan"
+        variant="danger"
+        onConfirm={() => {
+          if (planToDelete) handleDeletePlan(planToDelete.id, planToDelete.name);
+        }}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setPlanToDelete(null);
+        }}
+      />
     </div>
   );
 }

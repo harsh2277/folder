@@ -6,6 +6,7 @@ import Link from 'next/link';
 import CustomSelect from '../../../../components/ui/CustomSelect';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import Portal from '@/components/ui/Portal';
+import { StatusBadge, DeadlineBadge } from '@/components/ui';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -539,10 +540,7 @@ export default function DesignerProjectDetail({ params }: PageProps) {
                       <div>
                         <span className="text-xs text-neutral-400 font-medium block">Design Status</span>
                         <div className="mt-1.5 block">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 border border-amber-150 text-amber-650">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
-                            {project.status === 'Submitted' ? 'Pending Review' : project.status}
-                          </span>
+                          <StatusBadge status={project.status} showDot size="md" />
                         </div>
                       </div>
                     </div>

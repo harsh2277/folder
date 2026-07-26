@@ -6,7 +6,7 @@ import CustomSelect from '../../../components/ui/CustomSelect';
 import Link from 'next/link';
 import Portal from '@/components/ui/Portal';
 import StatsCard from '@/components/ui/StatsCard';
-import StatusBadge from '@/components/ui/StatusBadge';
+import { StatusBadge, useToast, SkeletonDashboard } from '@/components/ui';
 
 export default function AdminDashboard() {
   const supabase = createClient();
@@ -20,11 +20,14 @@ export default function AdminDashboard() {
   const [readyForReviewProjects, setReadyForReviewProjects] = useState<any[]>([]);
   const [designers, setDesigners] = useState<any[]>([]);
   const [selectedDesigners, setSelectedDesigners] = useState<Record<string, string>>({});
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingProjId, setRejectingProjId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectSubmitting, setRejectSubmitting] = useState(false);
   const [activeMonth, setActiveMonth] = useState('Jul');
   const [hoveredRing, setHoveredRing] = useState<string | null>(null);
+  const { error: toastError, success: toastSuccess } = useToast();
   const [monthlyRevenuePoints, setMonthlyRevenuePoints] = useState<{ month: string; value: number }[]>([
     { month: 'Jan', value: 0 }, { month: 'Feb', value: 0 }, { month: 'Mar', value: 0 },
     { month: 'Apr', value: 0 }, { month: 'May', value: 0 }, { month: 'Jun', value: 0 },
@@ -234,131 +237,87 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <svg className="animate-spin h-6 w-6 text-neutral-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      </div>
-    );
-  }
-
-  const maxVal = 40; // max revenue axis
-  const avgVal = 27.6; // average revenue
-
-  const revenuePoints = [
-    { month: 'Jan', value: 18, prevValue: 12 },
-    { month: 'Feb', value: 23, prevValue: 15 },
-    { month: 'Mar', value: 25, prevValue: 19 },
-    { month: 'Apr', value: 21, prevValue: 22 },
-    { month: 'May', value: 28, prevValue: 24 },
-    { month: 'Jun', value: 32, prevValue: 25 },
-    { month: 'Jul', value: 32, prevValue: 28 },
-    { month: 'Aug', value: 31, prevValue: 27 },
-    { month: 'Sep', value: 29, prevValue: 26 },
-    { month: 'Oct', value: 32, prevValue: 30 },
-    { month: 'Nov', value: 32, prevValue: 29 },
-    { month: 'Dec', value: 28, prevValue: 27 }
-  ];
+  if (loading) return <SkeletonDashboard />;
 
   const handleApproveProject = async (id: string) => {
+    const designerId = selectedDesigners[id];
+    if (!designerId) {
+      toastError('Please select a designer before approving.');
+      return;
+    }
+    setApprovingId(id);
     try {
-      const designerId = selectedDesigners[id];
-      if (!designerId) {
-        alert('Please select and assign a designer before approving the project.');
-        return;
-      }
-
       const res = await fetch('/api/admin/projects/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: id,
-          designerId: designerId,
-          status: 'In Design'
-        })
+        body: JSON.stringify({ projectId: id, designerId, status: 'In Design' })
       });
-
       const resData = await res.json();
       if (!res.ok || resData.error) {
-        // Fallback
         const { error } = await supabase
           .from('projects')
-          .update({
-            status: 'In Design',
-            assigned_designer_id: designerId
-          })
+          .update({ status: 'In Design', assigned_designer_id: designerId })
           .eq('id', id);
         if (error) throw error;
       }
-
       setPendingProjects(prev => prev.filter(p => p.id !== id));
       setRecentProjects(prev => prev.map(p => p.id === id ? { ...p, status: 'In Design', assigned_designer_id: designerId } : p));
       setAllProjectsList(prev => prev.map(p => p.id === id ? { ...p, status: 'In Design', assigned_designer_id: designerId } : p));
+      toastSuccess('Project approved and assigned to designer.');
     } catch (err: any) {
-      alert('Failed to approve project: ' + err.message);
+      toastError('Failed to approve project: ' + err.message);
+    } finally {
+      setApprovingId(null);
     }
   };
 
   const handleRejectProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rejectingProjId || !rejectReason.trim()) return;
-
+    if (!rejectingProjId || !rejectReason.trim() || rejectReason.trim().length < 20) return;
+    setRejectSubmitting(true);
     try {
       const { error } = await supabase
         .from('projects')
-        .update({
-          status: 'Revision Requested',
-          project_notes: `Rejection Reason: ${rejectReason}`
-        })
+        .update({ status: 'Revision Requested', project_notes: `Rejection Reason: ${rejectReason}` })
         .eq('id', rejectingProjId);
-
       if (error) throw error;
-
       setPendingProjects(prev => prev.filter(p => p.id !== rejectingProjId));
       setRecentProjects(prev => prev.map(p => p.id === rejectingProjId ? { ...p, status: 'Revision Requested' } : p));
-
       setShowRejectModal(false);
       setRejectingProjId(null);
       setRejectReason('');
+      toastSuccess('Project returned to architect with rejection reason.');
     } catch (err: any) {
-      alert('Failed to reject project: ' + err.message);
+      toastError('Failed to reject project: ' + err.message);
+    } finally {
+      setRejectSubmitting(false);
     }
   };
 
   const handleApproveRevision = async (revId: string, projectId: string) => {
     try {
       const { error: revErr } = await supabase
-        .from('revision_requests')
-        .update({ status: 'approved' })
-        .eq('id', revId);
+        .from('revision_requests').update({ status: 'approved' }).eq('id', revId);
       if (revErr) throw revErr;
-
       const { error: projErr } = await supabase
-        .from('projects')
-        .update({ status: 'In Design' })
-        .eq('id', projectId);
+        .from('projects').update({ status: 'In Design' }).eq('id', projectId);
       if (projErr) throw projErr;
-
       setPendingRevisions(prev => prev.filter(r => r.id !== revId));
+      toastSuccess('Revision approved. Project moved to In Design.');
     } catch (err: any) {
-      alert('Error approving revision: ' + err.message);
+      toastError('Error approving revision: ' + err.message);
     }
   };
 
   const handleDeclineRevision = async (revId: string) => {
     try {
       const { error } = await supabase
-        .from('revision_requests')
-        .update({ status: 'declined' })
-        .eq('id', revId);
+        .from('revision_requests').update({ status: 'declined' }).eq('id', revId);
       if (error) throw error;
-
       setPendingRevisions(prev => prev.filter(r => r.id !== revId));
+      toastSuccess('Revision request declined.');
     } catch (err: any) {
-      alert('Error declining revision: ' + err.message);
+      toastError('Error declining revision: ' + err.message);
     }
   };
 
@@ -370,7 +329,8 @@ export default function AdminDashboard() {
         <div className="space-y-1 min-w-0">
           <h2 className="text-base sm:text-lg xl:text-xl font-medium tracking-tight truncate">Good morning, {adminName}</h2>
           <p className="text-xs sm:text-sm text-neutral-400 truncate">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} &mdash; {stats.underReviewProjects} critical deadlines remaining.
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            {stats.underReviewProjects > 0 && ` — ${stats.underReviewProjects} project${stats.underReviewProjects > 1 ? 's' : ''} under review.`}
           </p>
         </div>
         <div className="flex items-center flex-wrap gap-2 shrink-0">
@@ -391,74 +351,123 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Project Approval Requests Queue */}
+      {/* KPI Cards - always visible above fold */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 xl:gap-4">
+        <StatsCard
+          title="Revenue"
+          value={`₹${(stats.revenueTurnover / 100000).toFixed(1)}L`}
+          badgeText="+14%"
+          badgeClass="text-emerald-600 font-sans"
+          subtext="Paid invoices total"
+          icon="bx-trending-up"
+          iconBgClass="bg-blue-50 border-blue-100"
+          iconColorClass="text-blue-600"
+        />
+        <StatsCard
+          title="In Design"
+          value={stats.inDesignProjects}
+          badgeText="Active"
+          badgeClass="text-cyan-600 font-sans"
+          subtext="Projects in development"
+          icon="bx-pencil"
+          iconBgClass="bg-cyan-50 border-cyan-100"
+          iconColorClass="text-cyan-600"
+        />
+        <StatsCard
+          title="Total Projects"
+          value={stats.totalProjects}
+          badgeText="All"
+          badgeClass="text-indigo-600 font-sans"
+          subtext="All projects created"
+          icon="bx-folder-open"
+          iconBgClass="bg-indigo-50 border-indigo-100"
+          iconColorClass="text-indigo-600"
+        />
+        <StatsCard
+          title="Completed"
+          value={stats.completedProjects}
+          badgeText="Delivered"
+          badgeClass="text-emerald-600 font-sans"
+          subtext="Approved &amp; closed"
+          icon="bx-badge-check"
+          iconBgClass="bg-emerald-50 border-emerald-100"
+          iconColorClass="text-emerald-600"
+        />
+      </div>
+
+      {/* Approval Queue — shown below KPIs, only when pending work exists */}
       {pendingProjects.length > 0 && (
         <div className="bg-white border border-rose-200 rounded-md p-5 space-y-4">
           <div className="flex justify-between items-center pb-3 border-b border-rose-100">
             <div>
               <h3 className="text-sm font-medium text-rose-950 flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" aria-hidden="true"></span>
                 <span>Pending Project Approvals</span>
               </h3>
-              <p className="text-sm text-rose-500 font-medium mt-0.5">Projects submitted by architects awaiting administrator verification.</p>
+              <p className="text-xs text-rose-500 font-medium mt-0.5">Projects submitted by architects awaiting administrator verification.</p>
             </div>
-            <span className="text-sm font-medium bg-rose-50 text-rose-700 px-2 py-0.5 rounded border border-rose-100 font-sans">
+            <span className="text-xs font-semibold bg-rose-50 text-rose-700 px-2 py-0.5 rounded border border-rose-100 font-sans">
               {pendingProjects.length} Pending
             </span>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pendingProjects.map((p) => (
               <div key={p.id} className="bg-neutral-50/50 border border-neutral-200 rounded-md p-4 flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between items-start">
-                    <h4 className="text-base font-medium text-neutral-900 truncate max-w-[200px]" title={p.project_name}>{p.project_name}</h4>
-                    <span className="text-xs text-neutral-450 font-medium font-sans">ID: {p.id.substring(0, 8)}...</span>
+                    <div>
+                      <span className="text-xs text-neutral-400 font-medium font-sans block mb-0.5">{p.project_id_serial || 'KL-XXXX'}</span>
+                      <h4 className="text-sm font-semibold text-neutral-900 truncate max-w-[200px]" title={p.project_name}>{p.project_name}</h4>
+                    </div>
+                    <Link href={`/admin/projects/${p.id}`} className="text-xs text-amber-600 hover:underline shrink-0 ml-2">
+                      View →
+                    </Link>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm font-medium text-neutral-500">
+                  <div className="grid grid-cols-2 gap-2 text-xs font-medium text-neutral-500">
                     <div className="flex items-center space-x-1">
-                      <i className="bx bx-user text-neutral-400 text-base"></i>
+                      <i className="bx bx-user text-neutral-400 text-sm" aria-hidden="true"></i>
                       <span className="truncate">{p.client_name}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <i className="bx bx-area text-neutral-400 text-base"></i>
+                      <i className="bx bx-area text-neutral-400 text-sm" aria-hidden="true"></i>
                       <span>{p.area_sq_ft ? p.area_sq_ft.toLocaleString() : 'N/A'} sq ft</span>
                     </div>
                   </div>
                 </div>
-
                 <div className="space-y-3 pt-3 border-t border-neutral-100">
                   <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Assign Designer</label>
+                    <label className="block text-xs font-medium text-neutral-500 mb-1">Assign Designer <span className="text-rose-500">*</span></label>
                     <CustomSelect
                       value={selectedDesigners[p.id] || ''}
                       onChange={(val) => setSelectedDesigners(prev => ({ ...prev, [p.id]: val }))}
                       options={[
                         { value: '', label: '-- Choose Designer --' },
-                        ...designers.map((d) => ({
-                          value: d.id,
-                          label: `${d.name} (${d.email})`
-                        }))
+                        ...designers.map((d) => ({ value: d.id, label: `${d.name} (${d.email})` }))
                       ]}
                       className="w-full text-sm"
                     />
                   </div>
-
                   <div className="flex items-center justify-end space-x-2 pt-1">
                     <button
-                      onClick={() => {
-                        setRejectingProjId(p.id);
-                        setShowRejectModal(true);
-                      }}
-                      className="px-3 py-1.5 border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 rounded text-sm font-medium transition-all cursor-pointer active:scale-[0.98]"
+                      onClick={() => { setRejectingProjId(p.id); setShowRejectModal(true); }}
+                      className="px-3 py-1.5 border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 rounded text-xs font-semibold transition-all cursor-pointer active:scale-[0.98]"
+                      aria-label={`Request changes for ${p.project_name}`}
                     >
-                      Reject
+                      Request Changes
                     </button>
                     <button
                       onClick={() => handleApproveProject(p.id)}
-                      className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded text-sm font-medium transition-all cursor-pointer active:scale-[0.98]"
+                      disabled={approvingId === p.id || !selectedDesigners[p.id]}
+                      className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded text-xs font-semibold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      aria-label={`Approve project ${p.project_name}`}
                     >
-                      Approve
+                      {approvingId === p.id && (
+                        <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      )}
+                      {approvingId === p.id ? 'Approving...' : 'Approve'}
                     </button>
                   </div>
                 </div>
@@ -470,49 +479,7 @@ export default function AdminDashboard() {
 
 
 
-      {/* Grid of Key Performance Indicators */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 xl:gap-4">
-        <StatsCard
-          title="Revenue"
-          value={`₹${(stats.revenueTurnover / 100000).toFixed(1)}L`}
-          badgeText="+14%"
-          badgeClass="text-emerald-600 font-sans"
-          subtext="Settled payouts volume"
-          icon="bx-trending-up"
-          iconBgClass="bg-blue-50 border-blue-100"
-          iconColorClass="text-blue-600"
-        />
-        <StatsCard
-          title="In Design"
-          value={stats.inDesignProjects}
-          badgeText="Active"
-          badgeClass="text-cyan-600 font-sans"
-          subtext="Workspaces in development"
-          icon="bx-pencil"
-          iconBgClass="bg-cyan-50 border-cyan-100"
-          iconColorClass="text-cyan-600"
-        />
-        <StatsCard
-          title="Total Logged"
-          value={stats.totalProjects}
-          badgeText="Projects"
-          badgeClass="text-indigo-600 font-sans"
-          subtext="Registered index"
-          icon="bx-folder-open"
-          iconBgClass="bg-indigo-50 border-indigo-100"
-          iconColorClass="text-indigo-600"
-        />
-        <StatsCard
-          title="Completed"
-          value={stats.completedProjects}
-          badgeText="Delivered"
-          badgeClass="text-emerald-600 font-sans"
-          subtext="Approved & closed"
-          icon="bx-badge-check"
-          iconBgClass="bg-emerald-50 border-emerald-100"
-          iconColorClass="text-emerald-600"
-        />
-      </div>
+      {/* KPI cards already rendered above — skip duplicate section */}
 
       {/* Main Charts & Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -538,8 +505,8 @@ export default function AdminDashboard() {
               <span>₹0</span>
             </div>
 
-            {/* Main chart rendering area — overflow-hidden clips the tooltip inside the card */}
-            <div className="flex-1 flex flex-col justify-between relative min-w-0 overflow-hidden">
+            {/* Main chart rendering area */}
+            <div className="flex-1 flex flex-col justify-between relative min-w-0 overflow-visible">
 
               {/* Chart Grid Area (Horizontal background lines) */}
               <div className="absolute inset-x-0 bottom-8 top-6 flex flex-col justify-between pointer-events-none">
@@ -1018,46 +985,63 @@ export default function AdminDashboard() {
 
       </div>
 
-      {/* Reject Project Modal */}
+      {/* Request Changes Modal */}
       {showRejectModal && (
         <Portal>
-          <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
-            <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4">
+          <div
+            className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans"
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowRejectModal(false); setRejectReason(''); } }}
+          >
+            <div
+              role="dialog" aria-modal="true" aria-labelledby="reject-modal-title"
+              className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4"
+              onKeyDown={(e) => { if (e.key === 'Escape') { setShowRejectModal(false); setRejectReason(''); } }}
+            >
               <div>
-                <h3 className="text-lg font-medium text-neutral-900">Reject Project Creation</h3>
-                <p className="text-sm text-neutral-450 mt-1">Specify why this project cannot be approved. This feedback will be displayed to the submitting architect.</p>
+                <h3 id="reject-modal-title" className="text-base font-semibold text-neutral-900">Request Changes from Architect</h3>
+                <p className="text-sm text-neutral-500 mt-1">Specify what needs to change. This message will be sent back to the submitting architect.</p>
               </div>
-
               <form onSubmit={handleRejectProject} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Rejection Reason *</label>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-sm font-medium text-neutral-600">Reason <span className="text-rose-500">*</span></label>
+                    <span className={`text-xs font-sans ${rejectReason.length < 20 ? 'text-neutral-400' : 'text-emerald-600'}`}>
+                      {rejectReason.length}/500
+                    </span>
+                  </div>
                   <textarea
                     required
+                    minLength={20}
+                    maxLength={500}
                     rows={4}
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
                     placeholder="e.g. Please specify correct area dimensions in sq ft and attach updated layout drawings."
                     className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-rose-500 transition-colors font-medium resize-none"
+                    aria-describedby="reject-reason-hint"
                   />
+                  <p id="reject-reason-hint" className="text-xs text-neutral-400 mt-1">Minimum 20 characters. Be specific — this message is shown to the architect.</p>
                 </div>
-
                 <div className="flex justify-end space-x-2 pt-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowRejectModal(false);
-                      setRejectingProjId(null);
-                      setRejectReason('');
-                    }}
+                    onClick={() => { setShowRejectModal(false); setRejectingProjId(null); setRejectReason(''); }}
                     className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-sm font-medium text-neutral-600 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-sm font-medium transition-colors cursor-pointer"
+                    disabled={rejectSubmitting || rejectReason.trim().length < 20}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                   >
-                    Submit Rejection
+                    {rejectSubmitting && (
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    )}
+                    {rejectSubmitting ? 'Submitting...' : 'Send to Architect'}
                   </button>
                 </div>
               </form>

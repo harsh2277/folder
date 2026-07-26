@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { StatusBadge } from '@/components/ui';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -239,7 +240,10 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
               <i className="bx bxs-bulb"></i>
             </div>
             <div>
-              <h1 className="text-base font-bold text-neutral-900 tracking-tight leading-tight">{project.project_name}</h1>
+              <div className="flex items-center space-x-2">
+                <h1 className="text-base font-bold text-neutral-900 tracking-tight leading-tight">{project.project_name}</h1>
+                <StatusBadge status={project.status} showDot />
+              </div>
               <p className="text-xs text-neutral-500 mt-0.5">
                 Homeowner Review Portal · Architect: <span className="font-semibold text-neutral-700">{architectProfile?.name || 'Architect Partner'}</span>
               </p>
@@ -258,10 +262,7 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-center space-x-2">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${colorMap[statusInfo.color]}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse ${dotColor[statusInfo.color]}`}></span>
-                      {project.status}
-                    </span>
+                    <StatusBadge status={project.status} showDot size="md" />
                   </div>
                   <h2 className="text-xl font-bold text-neutral-900 mt-2">{statusInfo.label}</h2>
                   <p className="text-sm text-neutral-500 leading-relaxed max-w-sm mx-auto">{statusInfo.desc}</p>

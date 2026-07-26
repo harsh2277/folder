@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import LayoutToggle from '@/components/ui/LayoutToggle';
 import Portal from '@/components/ui/Portal';
 import SearchInput from '@/components/ui/SearchInput';
-import StatusBadge from '@/components/ui/StatusBadge';
+import { StatusBadge } from '@/components/ui';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function ArchitectPaymentsPage() {

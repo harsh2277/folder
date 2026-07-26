@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import EmptyState from '@/components/ui/EmptyState';
 import LayoutToggle from '@/components/ui/LayoutToggle';
 import CustomSelect from '@/components/ui/CustomSelect';
-import StatusBadge from '@/components/ui/StatusBadge';
+import { StatusBadge, DeadlineBadge } from '@/components/ui';
 import SearchInput from '@/components/ui/SearchInput';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
@@ -76,38 +76,14 @@ export default function DesignerProjectsList() {
     'Ready for Client Review', 'Revision Requested', 'Approved', 'Closed'
   ];
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Approved':
-      case 'Closed':
-        return 'bg-emerald-50 border-emerald-100/50 text-emerald-700';
-      case 'In Design':
-        return 'bg-indigo-50 border-indigo-100/50 text-indigo-700';
-      case 'Ready for Client Review':
-      case 'Under Review':
-        return 'bg-blue-50 border-blue-100/50 text-blue-700';
-      case 'Revision Requested':
-        return 'bg-rose-50 border-rose-100/50 text-rose-700';
-      case 'Payment Pending':
-        return 'bg-amber-50 border-amber-100/50 text-amber-700';
-      default:
-        return 'bg-neutral-50 border-neutral-200 text-neutral-600';
-    }
-  };
+
 
   const isSameId = (id1: any, id2: any) => {
     if (!id1 || !id2) return false;
     return String(id1).trim().toLowerCase() === String(id2).trim().toLowerCase();
   };
 
-  const getDeadlineBadge = (deadline: string | null | undefined) => {
-    if (!deadline) return null;
-    const daysLeft = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
-    if (daysLeft < 0) return { label: `${Math.abs(daysLeft)}d overdue`, cls: 'bg-rose-100 text-rose-700 border-rose-200' };
-    if (daysLeft <= 3) return { label: `${daysLeft}d left`, cls: 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse' };
-    if (daysLeft <= 7) return { label: `${daysLeft}d left`, cls: 'bg-amber-50 text-amber-700 border-amber-200' };
-    return { label: `${daysLeft}d left`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
-  };
+
 
   const myProjectsCount = currentUserId ? projects.filter(p => isSameId(p.assigned_designer_id, currentUserId)).length : 0;
 
@@ -184,10 +160,8 @@ export default function DesignerProjectsList() {
                       {proj.project_id_serial || 'KL-2025-XXXX'}
                     </span>
                     <div className="flex flex-col items-end gap-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border w-fit whitespace-nowrap ${getStatusBadge(proj.status)}`}>
-                        {proj.status}
-                      </span>
-                      {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
+                      <StatusBadge status={proj.status} type="workflow" />
+                      <DeadlineBadge deadline={proj.deadline} />
                     </div>
                   </div>
                   <h3 className="text-sm font-medium text-neutral-900 group-hover:text-amber-600 transition-colors line-clamp-1">
@@ -205,9 +179,7 @@ export default function DesignerProjectsList() {
                   </div>
                   <div className="flex justify-between items-center text-sm font-medium text-neutral-500">
                     <span>Design Status</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-medium border w-fit whitespace-nowrap ${getStatusBadge(proj.status)}`}>
-                      {proj.status}
-                    </span>
+                    <StatusBadge status={proj.status} size="sm" />
                   </div>
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-xs text-neutral-450 font-medium">
@@ -254,7 +226,7 @@ export default function DesignerProjectsList() {
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                       <div className="flex flex-col gap-1 items-start">
                         <StatusBadge status={proj.status} type="workflow" />
-                        {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border w-fit whitespace-nowrap ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
+                        <DeadlineBadge deadline={proj.deadline} />
                       </div>
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-xs text-neutral-450 font-medium">

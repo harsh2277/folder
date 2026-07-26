@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import CustomSelect from '@/components/ui/CustomSelect';
-import Link from 'next/link';
 import LayoutToggle from '@/components/ui/LayoutToggle';
 import Portal from '@/components/ui/Portal';
 import SearchInput from '@/components/ui/SearchInput';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import PasswordInput from '@/components/ui/PasswordInput';
+import { RoleBadge, ConfirmModal, useToast, SkeletonUsersPage } from '@/components/ui';
 
 export default function AdminUsersManagement() {
   const supabase = createClient();
@@ -23,8 +23,11 @@ export default function AdminUsersManagement() {
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const { success: toastSuccess, error: toastError } = useToast();
 
   // Form states
   const [newUser, setNewUser] = useState({
@@ -189,10 +192,6 @@ export default function AdminUsersManagement() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This will permanently delete their account and profile.')) {
-      return;
-    }
-
     try {
       const res = await fetch('/api/admin/users', {
         method: 'DELETE',
@@ -203,11 +202,13 @@ export default function AdminUsersManagement() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to delete user');
 
-      triggerNotification(data.message || 'User deleted successfully!', null);
+      toastSuccess(data.message || 'User deleted successfully!');
       setUsers(prev => prev.filter(u => u.id !== userId && u.email !== userId));
       fetchUsers();
     } catch (err: any) {
-      triggerNotification(null, friendlyError(err.message));
+      toastError(friendlyError(err.message));
+    } finally {
+      setUserToDelete(null);
     }
   };
 
@@ -220,16 +221,7 @@ export default function AdminUsersManagement() {
     return matchesSearch && matchesRole;
   });
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <svg className="animate-spin h-6 w-6 text-neutral-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      </div>
-    );
-  }
+  if (loading) return <SkeletonUsersPage />;
 
   const totalArchitects = users.filter(u => u.role === 'architect').length;
   const totalDesigners = users.filter(u => u.role === 'designer').length;
@@ -335,26 +327,10 @@ export default function AdminUsersManagement() {
                       {u.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="text-sm font-medium text-neutral-900 line-clamp-1">
-                        {u.role === 'architect' ? (
-                          <Link href={`/admin/architects/${u.id}`} className="text-amber-600 hover:underline">
-                            {u.name}
-                          </Link>
-                        ) : u.role === 'designer' ? (
-                          <Link href={`/admin/designers/${u.id}`} className="text-amber-600 hover:underline">
-                            {u.name}
-                          </Link>
-                        ) : u.role === 'admin' ? (
-                          <Link href={`/admin/admins/${u.id}`} className="text-amber-600 hover:underline">
-                            {u.name}
-                          </Link>
-                        ) : (
-                          u.name
-                        )}
+                      <h3 className="text-sm font-semibold text-neutral-900 line-clamp-1">
+                        {u.name}
                       </h3>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border mt-0.5 ${ u.role === 'admin' ? 'bg-rose-50 border-rose-100 text-rose-700' : u.role === 'designer' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-700' }`}>
-                        {u.role}
-                      </span>
+                      <RoleBadge role={u.role} className="mt-0.5" />
                     </div>
                   </div>
                   <div className="space-y-1.5 text-sm text-neutral-500 font-medium pt-2">
@@ -378,7 +354,10 @@ export default function AdminUsersManagement() {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteUser(u.id)}
+                      onClick={() => {
+                        setUserToDelete(u.id);
+                        setShowDeleteConfirm(true);
+                      }}
                       className="px-2.5 py-1 text-sm font-medium text-rose-750 bg-rose-50 border border-rose-100 rounded hover:bg-rose-100 transition-colors cursor-pointer"
                     >
                       Delete
@@ -408,20 +387,12 @@ export default function AdminUsersManagement() {
                       <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 flex items-center justify-center font-medium text-xs flex-shrink-0">
                         {u.name.substring(0, 2).toUpperCase()}
                       </div>
-                      {u.role === 'admin' ? (
-                        <Link href={`/admin/admins/${u.id}`} className="text-amber-600 hover:underline font-medium">
-                          {u.name}
-                        </Link>
-                      ) : (
-                        <span className="text-neutral-900">{u.name}</span>
-                      )}
+                      <span className="text-neutral-900 font-medium">{u.name}</span>
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500">{u.email}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-400 font-sans">{u.mobile_number || 'Not Provided'}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${ u.role === 'admin' ? 'bg-rose-50 border-rose-100 text-rose-700' : u.role === 'designer' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-700' }`}>
-                        {u.role}
-                      </span>
+                      <RoleBadge role={u.role} />
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-sm text-neutral-400 font-medium font-sans">
                       {new Date(u.created_at).toLocaleDateString()}
@@ -438,7 +409,10 @@ export default function AdminUsersManagement() {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDeleteUser(u.id)}
+                          onClick={() => {
+                            setUserToDelete(u.id);
+                            setShowDeleteConfirm(true);
+                          }}
                           className="px-2.5 py-1 text-sm font-medium text-rose-750 bg-rose-50 border border-rose-100 rounded hover:bg-rose-100 transition-colors cursor-pointer"
                         >
                           Delete
@@ -504,26 +478,20 @@ export default function AdminUsersManagement() {
                   <p className="text-xs text-neutral-400 mt-1">Use a real email domain like @gmail.com or @company.com</p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Password *</label>
-                  <input
-                    type="password"
-                    required
-                    minLength={8}
-                    value={newUser.password}
-                    onChange={(e) => {
-                      setNewUser(prev => ({ ...prev, password: e.target.value }));
-                      if (formError) setFormError(null);
-                    }}
-                    placeholder="••••••••"
-                    className={`w-full px-3 py-2 bg-neutral-50 border rounded-md text-sm focus:outline-none focus:bg-white transition-colors font-medium ${
-                      formError && formError.toLowerCase().includes('password')
-                        ? 'border-rose-300 focus:border-rose-400'
-                        : 'border-neutral-200 focus:border-amber-500'
-                    }`}
-                  />
-                  <p className="text-xs text-neutral-400 mt-1">Minimum 8 characters</p>
-                </div>
+                <PasswordInput
+                  id="new-user-password"
+                  label="Password *"
+                  required
+                  minLength={8}
+                  value={newUser.password}
+                  onChange={(e) => {
+                    setNewUser(prev => ({ ...prev, password: e.target.value }));
+                    if (formError) setFormError(null);
+                  }}
+                  placeholder="••••••••"
+                  helperText="Minimum 8 characters"
+                  error={Boolean(formError && formError.toLowerCase().includes('password'))}
+                />
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-600 mb-1.5">Access Role *</label>
@@ -683,7 +651,21 @@ export default function AdminUsersManagement() {
         </Portal>
       )}
 
-      {/* User created — no email confirmation required, users can log in immediately */}
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete User Account"
+        message="Are you sure you want to delete this user? This will permanently remove their credentials and profile access."
+        confirmLabel="Delete User"
+        variant="danger"
+        onConfirm={() => {
+          if (userToDelete) handleDeleteUser(userToDelete);
+        }}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setUserToDelete(null);
+        }}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import CustomSelect from '../../../../components/ui/CustomSelect';
 import Portal from '@/components/ui/Portal';
+import { StatusBadge, PaymentBadge, DeadlineBadge, useToast } from '@/components/ui';
 
 export default function AdminProjectDetail() {
   const params = useParams();
@@ -31,9 +32,9 @@ export default function AdminProjectDetail() {
   const [assignedDesignerId, setAssignedDesignerId] = useState('');
   const [deadline, setDeadline] = useState('');
   const [updating, setUpdating] = useState(false);
-  const [saveMessage, setSaveMessage] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const { success: toastSuccess, error: toastError } = useToast();
 
   const steps = [
     { name: 'Submitted', statusKey: 'Submitted' },
@@ -156,7 +157,6 @@ export default function AdminProjectDetail() {
   const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
     setUpdating(true);
-    setSaveMessage('');
 
     try {
       // 1. Update project details via Service Role API
@@ -196,8 +196,7 @@ export default function AdminProjectDetail() {
         })
         .eq('project_id', id);
 
-      setSaveMessage('Changes saved successfully!');
-      setTimeout(() => setSaveMessage(''), 3500);
+      toastSuccess('Changes saved successfully!');
 
       // Update local project object
       setProject((prev: any) => ({
@@ -209,7 +208,7 @@ export default function AdminProjectDetail() {
         deadline: deadline ? new Date(deadline).toISOString() : null,
       }));
     } catch (err: any) {
-      setSaveMessage(`Error: ${err.message}`);
+      toastError(`Error: ${err.message}`);
     } finally {
       setUpdating(false);
     }
@@ -217,11 +216,10 @@ export default function AdminProjectDetail() {
 
   const handleApprove = async () => {
     if (!assignedDesignerId) {
-      alert('Please select and assign a designer before approving the project.');
+      toastError('Please select and assign a designer before approving the project.');
       return;
     }
     setUpdating(true);
-    setSaveMessage('');
     try {
       const res = await fetch('/api/admin/projects/assign', {
         method: 'POST',
@@ -251,10 +249,9 @@ export default function AdminProjectDetail() {
         status: 'In Design',
         assigned_designer_id: assignedDesignerId
       }));
-      setSaveMessage('Project approved and moved to In Design status!');
-      setTimeout(() => setSaveMessage(''), 3500);
+      toastSuccess('Project approved and moved to In Design status!');
     } catch (err: any) {
-      setSaveMessage('Error: ' + err.message);
+      toastError('Error: ' + err.message);
     } finally {
       setUpdating(false);
     }
@@ -265,7 +262,6 @@ export default function AdminProjectDetail() {
     if (!rejectReason.trim()) return;
 
     setUpdating(true);
-    setSaveMessage('');
     try {
       const { error } = await supabase
         .from('projects')
@@ -283,12 +279,11 @@ export default function AdminProjectDetail() {
         status: 'Revision Requested',
         project_notes: `Rejection Reason: ${rejectReason}`
       }));
-      setSaveMessage('Revision requested successfully!');
+      toastSuccess('Revision requested successfully!');
       setShowRejectModal(false);
       setRejectReason('');
-      setTimeout(() => setSaveMessage(''), 3500);
     } catch (err: any) {
-      setSaveMessage('Error: ' + err.message);
+      toastError('Error: ' + err.message);
     } finally {
       setUpdating(false);
     }
@@ -296,7 +291,6 @@ export default function AdminProjectDetail() {
 
   const handleApproveRevision = async (revId: string) => {
     setUpdating(true);
-    setSaveMessage('');
     try {
       const { error: revErr } = await supabase
         .from('revision_requests')
@@ -313,10 +307,9 @@ export default function AdminProjectDetail() {
       setStatus('In Design');
       setProject((prev: any) => ({ ...prev, status: 'In Design' }));
       setRevisions(prev => prev.map((r: any) => r.id === revId ? { ...r, status: 'approved' } : r));
-      setSaveMessage('Revision approved — designer has been notified to work on changes.');
-      setTimeout(() => setSaveMessage(''), 3500);
+      toastSuccess('Revision approved — designer has been notified to work on changes.');
     } catch (err: any) {
-      setSaveMessage('Error: ' + err.message);
+      toastError('Error: ' + err.message);
     } finally {
       setUpdating(false);
     }
@@ -324,7 +317,6 @@ export default function AdminProjectDetail() {
 
   const handleDeclineRevision = async (revId: string) => {
     setUpdating(true);
-    setSaveMessage('');
     try {
       const { error } = await supabase
         .from('revision_requests')
@@ -333,10 +325,9 @@ export default function AdminProjectDetail() {
       if (error) throw error;
 
       setRevisions(prev => prev.map((r: any) => r.id === revId ? { ...r, status: 'declined' } : r));
-      setSaveMessage('Revision request declined.');
-      setTimeout(() => setSaveMessage(''), 3500);
+      toastSuccess('Revision request declined.');
     } catch (err: any) {
-      setSaveMessage('Error: ' + err.message);
+      toastError('Error: ' + err.message);
     } finally {
       setUpdating(false);
     }
@@ -410,7 +401,6 @@ export default function AdminProjectDetail() {
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-lg font-semibold text-neutral-900 tracking-tight leading-tight">{project.project_name}</h2>
-
               </div>
               <p className="text-xs text-neutral-500 mt-0.5">
                 Client: {project.client_name} &bull; Plan: {project.pricing_plans?.name || 'N/A'}
@@ -454,17 +444,6 @@ export default function AdminProjectDetail() {
       {/* Main Section */}
       <main className="flex-1 overflow-y-auto p-4 bg-neutral-50/70">
         <div className="content-container">
-
-          {/* Action Save Message Toast */}
-          {saveMessage && (
-            <div className={`mb-4 p-4 rounded-md text-xs font-semibold border flex items-center space-x-2 animate-fade-in ${saveMessage.startsWith('Error') || saveMessage.includes('error')
-                ? 'bg-rose-50 border-rose-200 text-rose-800'
-                : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              }`}>
-              <i className={`bx ${saveMessage.startsWith('Error') || saveMessage.includes('error') ? 'bx-error-circle text-base' : 'bx-check-circle text-base'}`}></i>
-              <span>{saveMessage}</span>
-            </div>
-          )}
 
           {/* Admin Approval Needed Action Banner */}
           {status === 'Submitted' && (
@@ -597,26 +576,13 @@ export default function AdminProjectDetail() {
                         <div>
                           <span className="text-xs text-neutral-400 font-medium block">Project Status</span>
                           <div className="mt-1.5 block">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 border border-blue-150 text-blue-600">
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mr-1.5"></span>
-                              {project.status}
-                            </span>
+                            <StatusBadge status={project.status} showDot size="md" />
                           </div>
                         </div>
                         <div>
                           <span className="text-xs text-neutral-400 font-medium block">Payment Status</span>
                           <div className="mt-1.5 block">
-                            {project.payment_status === 'paid' ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 border border-emerald-150 text-emerald-600">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
-                                Paid
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 border border-amber-150 text-amber-600">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
-                                Pending
-                              </span>
-                            )}
+                            <PaymentBadge status={project.payment_status} size="md" />
                           </div>
                         </div>
                       </div>
@@ -1006,24 +972,42 @@ export default function AdminProjectDetail() {
       {/* Reject Project Modal */}
       {showRejectModal && (
         <Portal>
-          <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
-            <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4">
+          <div
+            className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans"
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowRejectModal(false); setRejectReason(''); } }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reject-modal-title"
+              className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4"
+              onKeyDown={(e) => { if (e.key === 'Escape') { setShowRejectModal(false); setRejectReason(''); } }}
+            >
               <div>
-                <h3 className="text-lg font-bold text-neutral-900">Reject Project Submission</h3>
-                <p className="text-xs text-neutral-450 mt-1">Provide feedback on why this submission needs modification by the architect.</p>
+                <h3 id="reject-modal-title" className="text-base font-semibold text-neutral-900">Request Changes from Architect</h3>
+                <p className="text-xs text-neutral-500 mt-1">Provide feedback on why this submission needs modification.</p>
               </div>
 
               <form onSubmit={handleRejectSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-1.5">Rejection Reason *</label>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-semibold text-neutral-700">Rejection Reason <span className="text-rose-500">*</span></label>
+                    <span className={`text-xs font-sans ${rejectReason.length < 20 ? 'text-neutral-400' : 'text-emerald-600'}`}>
+                      {rejectReason.length}/500
+                    </span>
+                  </div>
                   <textarea
                     required
+                    minLength={20}
+                    maxLength={500}
                     rows={4}
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
                     placeholder="e.g. Please specify room height dimensions and attach clear floorplan drawings..."
                     className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-xs font-medium focus:outline-none focus:bg-white focus:border-rose-500 transition-colors resize-none"
+                    aria-describedby="reject-reason-hint"
                   />
+                  <p id="reject-reason-hint" className="text-xs text-neutral-400 mt-1">Minimum 20 characters.</p>
                 </div>
 
                 <div className="flex justify-end space-x-2 pt-2">
@@ -1039,8 +1023,8 @@ export default function AdminProjectDetail() {
                   </button>
                   <button
                     type="submit"
-                    disabled={updating}
-                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                    disabled={updating || rejectReason.trim().length < 20}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                   >
                     {updating ? 'Submitting...' : 'Submit Rejection'}
                   </button>

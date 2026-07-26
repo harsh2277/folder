@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CustomSelect from '@/components/ui/CustomSelect';
 import LayoutToggle from '@/components/ui/LayoutToggle';
-import StatusBadge from '@/components/ui/StatusBadge';
+import { StatusBadge, PaymentBadge, DeadlineBadge } from '@/components/ui';
 import SearchInput from '@/components/ui/SearchInput';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
@@ -80,29 +80,7 @@ export default function ArchitectProjectsList() {
       return 0;
     });
 
-  const getStatusBadge = (status: string) => {
-    if (status === 'Approved' || status === 'Closed') return 'bg-emerald-50 border-emerald-100/50 text-emerald-700';
-    if (status === 'In Design') return 'bg-indigo-50 border-indigo-100/50 text-indigo-700';
-    if (status === 'Under Review') return 'bg-blue-50 border-blue-100/50 text-blue-700';
-    if (status === 'Revision Requested') return 'bg-rose-50 border-rose-100/50 text-rose-700';
-    if (status === 'Submitted') return 'bg-amber-50 border-amber-100/50 text-amber-700';
-    return 'bg-neutral-50 border-neutral-200 text-neutral-600';
-  };
 
-  const getPaymentBadge = (status: string) => {
-    if (status === 'paid') return 'bg-emerald-50 border-emerald-100/50 text-emerald-700';
-    if (status === 'failed') return 'bg-rose-50 border-rose-100/50 text-rose-700';
-    return 'bg-amber-50 border-amber-100/50 text-amber-700';
-  };
-
-  const getDeadlineBadge = (deadline: string | null | undefined) => {
-    if (!deadline) return null;
-    const daysLeft = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
-    if (daysLeft < 0) return { label: `${Math.abs(daysLeft)}d overdue`, cls: 'bg-rose-100 text-rose-700 border-rose-200' };
-    if (daysLeft <= 3) return { label: `${daysLeft}d left`, cls: 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse' };
-    if (daysLeft <= 7) return { label: `${daysLeft}d left`, cls: 'bg-amber-50 text-amber-700 border-amber-200' };
-    return { label: `${daysLeft}d left`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
-  };
 
   if (loading) {
     return (
@@ -215,10 +193,8 @@ export default function ArchitectProjectsList() {
                       {proj.project_id_serial || 'Generating ID...'}
                     </span>
                     <div className="flex flex-col items-end gap-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border w-fit whitespace-nowrap ${getStatusBadge(proj.status)}`}>
-                        {proj.status}
-                      </span>
-                      {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
+                      <StatusBadge status={proj.status} type="workflow" />
+                      <DeadlineBadge deadline={proj.deadline} />
                     </div>
                   </div>
                   <h3 className="text-sm font-medium text-neutral-900 group-hover:text-amber-600 transition-colors line-clamp-1">
@@ -245,9 +221,7 @@ export default function ArchitectProjectsList() {
                   </div>
                   <div className="flex justify-between items-center text-xs font-medium text-neutral-500">
                     <span>Payment</span>
-                    <span className={`px-2.5 py-0.5 rounded-md text-xs font-medium border ${getPaymentBadge(proj.payment_status)}`}>
-                      {proj.payment_status}
-                    </span>
+                    <PaymentBadge status={proj.payment_status} />
                   </div>
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-xs text-neutral-450 font-medium">
@@ -305,12 +279,12 @@ export default function ArchitectProjectsList() {
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 text-sm font-medium">{proj.site_location || 'N/A'}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-550 text-sm">{Number(proj.area_sq_ft).toLocaleString()} sq ft</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <StatusBadge status={proj.payment_status} type="payment" />
+                      <PaymentBadge status={proj.payment_status} />
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                       <div className="flex flex-col gap-1 items-start">
                         <StatusBadge status={proj.status} type="workflow" />
-                        {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border w-fit whitespace-nowrap ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
+                        <DeadlineBadge deadline={proj.deadline} />
                       </div>
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-xs text-neutral-450 font-medium">

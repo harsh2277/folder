@@ -8,7 +8,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import EmptyState from '@/components/ui/EmptyState';
 import CustomSelect from '@/components/ui/CustomSelect';
 import LayoutToggle from '@/components/ui/LayoutToggle';
-import StatusBadge from '@/components/ui/StatusBadge';
+import { StatusBadge, PaymentBadge, DeadlineBadge, useToast } from '@/components/ui';
 import SearchInput from '@/components/ui/SearchInput';
 import PageHeader from '@/components/ui/PageHeader';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -29,6 +29,7 @@ export default function AdminProjectsList() {
   const [sortBy, setSortBy] = useState('newest');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const { error: toastError, success: toastSuccess } = useToast();
 
   useEffect(() => {
     async function fetchProjects() {
@@ -42,14 +43,7 @@ export default function AdminProjectsList() {
         setProjects(data || []);
       } catch (err) {
         console.error('Error fetching projects:', err);
-        // Fallback mock data in case of DB connection issues
-        setProjects([
-          { id: '1', project_id_serial: 'KL-2025-0001', project_name: 'Lotus Penthouse', client_name: 'Vikram Shah', area_sq_ft: 1800, payment_status: 'paid', status: 'In Design', site_location: 'Mumbai, MH', created_at: new Date().toISOString() },
-          { id: '2', project_id_serial: 'KL-2025-0002', project_name: 'Vertex IT Hub', client_name: 'Vertex Corp', area_sq_ft: 12500, payment_status: 'pending', status: 'Under Review', site_location: 'Bengaluru, KA', created_at: new Date().toISOString() },
-          { id: '3', project_id_serial: 'KL-2025-0003', project_name: 'Zoya Boutique', client_name: 'Zoya Lifestyle', area_sq_ft: 2200, payment_status: 'paid', status: 'Submitted', site_location: 'Delhi, DL', created_at: new Date().toISOString() },
-          { id: '4', project_id_serial: 'KL-2025-0004', project_name: 'Orion Workspace', client_name: 'Orion Enterprises', area_sq_ft: 8500, payment_status: 'paid', status: 'Approved', site_location: 'Pune, MH', created_at: new Date().toISOString() },
-          { id: '5', project_id_serial: 'KL-2025-0005', project_name: 'Azure Residences', client_name: 'BlueWave Developments', area_sq_ft: 4500, payment_status: 'failed', status: 'Payment Pending', site_location: 'Goa, GA', created_at: new Date().toISOString() }
-        ]);
+        setProjects([]);
       }
     }
 
@@ -110,14 +104,7 @@ export default function AdminProjectsList() {
     }
   };
 
-  const getDeadlineBadge = (deadline: string | null | undefined) => {
-    if (!deadline) return null;
-    const daysLeft = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
-    if (daysLeft < 0) return { label: `${Math.abs(daysLeft)}d overdue`, cls: 'bg-rose-100 text-rose-700 border-rose-200' };
-    if (daysLeft <= 3) return { label: `${daysLeft}d left`, cls: 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse' };
-    if (daysLeft <= 7) return { label: `${daysLeft}d left`, cls: 'bg-amber-50 text-amber-700 border-amber-200' };
-    return { label: `${daysLeft}d left`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
-  };
+
 
   const statuses = [
     'All', 'Submitted', 'Payment Pending', 'Under Review', 'In Design',
@@ -291,10 +278,8 @@ export default function AdminProjectsList() {
                       {proj.project_id_serial || 'KL-2025-XXXX'}
                     </span>
                     <div className="flex flex-col items-end gap-1">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border w-fit whitespace-nowrap ${proj.status === 'Approved' || proj.status === 'Closed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.status === 'In Design' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : proj.status === 'Under Review' ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
-                        {proj.status}
-                      </span>
-                      {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
+                      <StatusBadge status={proj.status} type="workflow" />
+                      <DeadlineBadge deadline={proj.deadline} />
                     </div>
                   </div>
                   <h3 className="text-sm font-medium text-neutral-900 line-clamp-1">{proj.project_name}</h3>
@@ -325,9 +310,7 @@ export default function AdminProjectsList() {
                   </div>
                   <div className="flex justify-between items-center text-sm font-medium text-neutral-500">
                     <span>Payment</span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium border ${proj.payment_status === 'paid' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : proj.payment_status === 'failed' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-amber-50 border-amber-100 text-amber-700' }`}>
-                      {proj.payment_status}
-                    </span>
+                    <PaymentBadge status={proj.payment_status} />
                   </div>
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-sm text-neutral-400 font-sans font-medium">
@@ -394,7 +377,7 @@ export default function AdminProjectsList() {
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
                       <div className="flex flex-col gap-1 items-start">
                         <StatusBadge status={proj.status} type="workflow" />
-                        {(() => { const d = getDeadlineBadge(proj.deadline); return d ? <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border w-fit whitespace-nowrap ${d.cls}`}><i className="bx bx-time-five mr-0.5" />{d.label}</span> : null; })()}
+                        <DeadlineBadge deadline={proj.deadline} />
                       </div>
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-sm text-neutral-400 font-medium font-sans">
@@ -440,7 +423,7 @@ export default function AdminProjectsList() {
               setProjects(prev => prev.filter(p => p.id !== projectToDelete));
             } catch (err) {
               console.error('Error deleting project:', err);
-              alert('Failed to delete project.');
+              toastError('Failed to delete project. Please try again.');
             }
           }
           setShowConfirm(false);

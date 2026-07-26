@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
+import { StatusBadge } from '@/components/ui';
 
 export default function ArchitectDashboard() {
   const supabase = createClient();
@@ -171,9 +172,7 @@ export default function ArchitectDashboard() {
                       <span className="block truncate">{p.client_name}</span>
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border whitespace-nowrap ${ p.status === 'Closed' || p.status === 'Approved' ? 'bg-emerald-50 border-emerald-100/50 text-emerald-700' : p.status === 'In Design' ? 'bg-indigo-50 border-indigo-100/50 text-indigo-700' : p.status === 'Submitted' ? 'bg-amber-50 border-amber-100/50 text-amber-700' : 'bg-neutral-50 border-neutral-200 text-neutral-600' }`}>
-                        {p.status === 'Submitted' ? 'Pending' : p.status}
-                      </span>
+                      <StatusBadge status={p.status} />
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
                       <Link

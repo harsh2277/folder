@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import CustomSelect from '../../../../../components/ui/CustomSelect';
+import { ConfirmModal, useToast } from '@/components/ui';
 
 export default function AdminProjectDeliverables() {
   const params = useParams();
@@ -17,9 +18,11 @@ export default function AdminProjectDeliverables() {
 
   // Upload states
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<'deliverable_report' | 'deliverable_boq' | 'deliverable_lux' | 'deliverable_layout'>('deliverable_report');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<{ id: string; path: string } | null>(null);
+  const { success: toastSuccess, error: toastError } = useToast();
 
   useEffect(() => {
     if (!id) return;
@@ -59,7 +62,6 @@ export default function AdminProjectDeliverables() {
     if (!selectedFile) return;
 
     setUploading(true);
-    setMessage('');
 
     try {
       const formData = new FormData();
@@ -75,24 +77,20 @@ export default function AdminProjectDeliverables() {
       if (resData.error) throw new Error(resData.error);
 
       setDeliverables((prev) => [...prev, resData.fileRecord]);
-      setMessage('Deliverable file uploaded successfully!');
+      toastSuccess('Deliverable file uploaded successfully!');
       setSelectedFile(null);
       
-      // Reset input element
       const fileInput = document.getElementById('file-input') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-
     } catch (err: any) {
       console.error(err);
-      setMessage(`Upload error: ${err.message}`);
+      toastError(`Upload error: ${err.message}`);
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (fileId: string, filePath: string) => {
-    if (!confirm('Are you sure you want to delete this deliverable?')) return;
-
     try {
       const res = await fetch(`/api/projects/${id}/files`, {
         method: 'DELETE',
@@ -104,9 +102,11 @@ export default function AdminProjectDeliverables() {
       if (resData.error) throw new Error(resData.error);
 
       setDeliverables((prev) => prev.filter((d) => d.id !== fileId));
-      setMessage('Deliverable deleted successfully!');
+      toastSuccess('Deliverable deleted successfully!');
     } catch (err: any) {
-      setMessage(`Delete error: ${err.message}`);
+      toastError(`Delete error: ${err.message}`);
+    } finally {
+      setFileToDelete(null);
     }
   };
 
@@ -156,12 +156,6 @@ export default function AdminProjectDeliverables() {
           <h3 className="text-sm font-medium text-neutral-900 border-b border-neutral-100 pb-3">
             Upload Deliverable
           </h3>
-
-          {message && (
-            <div className={`p-3 rounded-md text-sm font-medium ${ message.startsWith('Upload error') || message.startsWith('Delete error') ? 'bg-red-50 border border-red-200 text-red-800' : 'bg-emerald-50 border border-emerald-200 text-emerald-800' }`}>
-              {message}
-            </div>
-          )}
 
           <form onSubmit={handleUpload} className="space-y-5">
             <div>
@@ -236,8 +230,11 @@ export default function AdminProjectDeliverables() {
                       Download
                     </a>
                     <button
-                      onClick={() => handleDelete(del.id, del.file_path)}
-                      className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+                      onClick={() => {
+                        setFileToDelete({ id: del.id, path: del.file_path });
+                        setShowDeleteConfirm(true);
+                      }}
+                      className="text-sm font-medium text-red-600 hover:underline cursor-pointer"
                     >
                       Delete
                     </button>
@@ -249,6 +246,21 @@ export default function AdminProjectDeliverables() {
         </div>
 
       </div>
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete Deliverable File"
+        message="Are you sure you want to delete this deliverable file? This will remove access for architects and clients."
+        confirmLabel="Delete File"
+        variant="danger"
+        onConfirm={() => {
+          if (fileToDelete) handleDelete(fileToDelete.id, fileToDelete.path);
+        }}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setFileToDelete(null);
+        }}
+      />
     </div>
   );
 }
