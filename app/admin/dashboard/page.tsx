@@ -397,79 +397,65 @@ export default function AdminDashboard() {
 
       {/* Approval Queue — shown below KPIs, only when pending work exists */}
       {pendingProjects.length > 0 && (
-        <div className="bg-white border border-rose-200 rounded-md p-5 space-y-4">
-          <div className="flex justify-between items-center pb-3 border-b border-rose-100">
-            <div>
-              <h3 className="text-sm font-medium text-rose-950 flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" aria-hidden="true"></span>
-                <span>Pending Project Approvals</span>
-              </h3>
-              <p className="text-xs text-rose-500 font-medium mt-0.5">Projects submitted by architects awaiting administrator verification.</p>
-            </div>
-            <span className="text-xs font-semibold bg-rose-50 text-rose-700 px-2 py-0.5 rounded border border-rose-100 font-sans">
+        <div className="bg-white border border-rose-200 rounded-md overflow-hidden">
+          <div className="flex justify-between items-center px-4 py-3 border-b border-rose-100 bg-rose-50/40">
+            <h3 className="text-sm font-medium text-rose-950 flex items-center space-x-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" aria-hidden="true"></span>
+              <span>Pending Project Approvals</span>
+            </h3>
+            <span className="text-xs font-semibold bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-sans">
               {pendingProjects.length} Pending
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="divide-y divide-neutral-100">
             {pendingProjects.map((p) => (
-              <div key={p.id} className="bg-neutral-50/50 border border-neutral-200 rounded-md p-4 flex flex-col justify-between space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-xs text-neutral-400 font-medium font-sans block mb-0.5">{p.project_id_serial || 'KL-XXXX'}</span>
-                      <h4 className="text-sm font-semibold text-neutral-900 truncate max-w-[200px]" title={p.project_name}>{p.project_name}</h4>
-                    </div>
-                    <Link href={`/admin/projects/${p.id}`} className="text-xs text-amber-600 hover:underline shrink-0 ml-2">
-                      View →
+              <div key={p.id} className="flex flex-wrap md:flex-nowrap items-center gap-3 px-4 py-2.5 hover:bg-neutral-50/60 transition-colors">
+                <div className="min-w-0 flex-1 flex items-center gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/admin/projects/${p.id}`} className="text-sm font-semibold text-neutral-900 hover:text-amber-600 truncate block" title={p.project_name}>
+                      {p.project_name}
                     </Link>
+                    <span className="text-xs text-neutral-400 font-sans">{p.project_id_serial || 'KL-XXXX'} · {p.client_name}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs font-medium text-neutral-500">
-                    <div className="flex items-center space-x-1">
-                      <i className="bx bx-user text-neutral-400 text-sm" aria-hidden="true"></i>
-                      <span className="truncate">{p.client_name}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <i className="bx bx-area text-neutral-400 text-sm" aria-hidden="true"></i>
-                      <span>{p.area_sq_ft ? p.area_sq_ft.toLocaleString() : 'N/A'} sq ft</span>
-                    </div>
-                  </div>
+                  <span className="hidden sm:inline-flex items-center text-xs text-neutral-500 font-medium shrink-0">
+                    {p.area_sq_ft ? p.area_sq_ft.toLocaleString() : 'N/A'} sq ft
+                  </span>
                 </div>
-                <div className="space-y-3 pt-3 border-t border-neutral-100">
-                  <div>
-                    <label className="block text-xs font-medium text-neutral-500 mb-1">Assign Designer <span className="text-rose-500">*</span></label>
-                    <CustomSelect
-                      value={selectedDesigners[p.id] || ''}
-                      onChange={(val) => setSelectedDesigners(prev => ({ ...prev, [p.id]: val }))}
-                      options={[
-                        { value: '', label: '-- Choose Designer --' },
-                        ...designers.map((d) => ({ value: d.id, label: `${d.name} (${d.email})` }))
-                      ]}
-                      className="w-full text-sm"
-                    />
-                  </div>
-                  <div className="flex items-center justify-end space-x-2 pt-1">
-                    <button
-                      onClick={() => { setRejectingProjId(p.id); setShowRejectModal(true); }}
-                      className="px-3 py-1.5 border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 rounded text-xs font-semibold transition-all cursor-pointer active:scale-[0.98]"
-                      aria-label={`Request changes for ${p.project_name}`}
-                    >
-                      Request Changes
-                    </button>
-                    <button
-                      onClick={() => handleApproveProject(p.id)}
-                      disabled={approvingId === p.id || !selectedDesigners[p.id]}
-                      className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded text-xs font-semibold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                      aria-label={`Approve project ${p.project_name}`}
-                    >
-                      {approvingId === p.id && (
-                        <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                      )}
-                      {approvingId === p.id ? 'Approving...' : 'Approve'}
-                    </button>
-                  </div>
+
+                <div className="w-full md:w-52 shrink-0">
+                  <CustomSelect
+                    value={selectedDesigners[p.id] || ''}
+                    onChange={(val) => setSelectedDesigners(prev => ({ ...prev, [p.id]: val }))}
+                    options={[
+                      { value: '', label: 'Assign designer...' },
+                      ...designers.map((d) => ({ value: d.id, label: d.name }))
+                    ]}
+                    className="w-full text-sm"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => { setRejectingProjId(p.id); setShowRejectModal(true); }}
+                    className="px-2.5 py-1.5 border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 rounded text-xs font-semibold transition-all cursor-pointer active:scale-[0.98]"
+                    aria-label={`Request changes for ${p.project_name}`}
+                  >
+                    Request Changes
+                  </button>
+                  <button
+                    onClick={() => handleApproveProject(p.id)}
+                    disabled={approvingId === p.id || !selectedDesigners[p.id]}
+                    className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded text-xs font-semibold transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                    aria-label={`Approve project ${p.project_name}`}
+                  >
+                    {approvingId === p.id && (
+                      <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    )}
+                    {approvingId === p.id ? 'Approving...' : 'Approve'}
+                  </button>
                 </div>
               </div>
             ))}
@@ -603,7 +589,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <div className="relative w-44 h-44 flex items-center justify-center">
+            <div className="relative w-44 h-44 flex items-center justify-center" aria-hidden="true">
 
               {/* Outermost Ring: Approved */}
               <div
@@ -655,11 +641,15 @@ export default function AdminDashboard() {
               { key: 'indesign', label: 'In Design', color: '#06b6d4', count: stats.inDesignProjects, pct: stats.inDesignPercent },
               { key: 'underreview', label: 'Under Review', color: '#3b82f6', count: stats.underReviewProjects, pct: stats.underReviewPercent },
             ].map((item) => (
-              <div
+              <button
                 key={item.key}
-                className={`flex items-center justify-between text-xs font-medium cursor-pointer px-2 py-1.5 rounded transition-colors ${hoveredRing === item.key ? 'bg-neutral-50' : 'hover:bg-neutral-50/50'}`}
+                type="button"
+                className={`w-full flex items-center justify-between text-xs font-medium cursor-pointer px-2 py-1.5 rounded transition-colors text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500 ${hoveredRing === item.key ? 'bg-neutral-50' : 'hover:bg-neutral-50/50'}`}
                 onMouseEnter={() => setHoveredRing(item.key)}
                 onMouseLeave={() => setHoveredRing(null)}
+                onFocus={() => setHoveredRing(item.key)}
+                onBlur={() => setHoveredRing(null)}
+                aria-label={`${item.label}: ${item.count} of ${stats.totalProjects} projects, ${item.pct}%`}
               >
                 <div className="flex items-center space-x-2 min-w-0">
                   <span className="w-3 h-3 rounded-[3px] shrink-0" style={{ backgroundColor: item.color }}></span>
@@ -669,7 +659,7 @@ export default function AdminDashboard() {
                   <span className="text-neutral-400 whitespace-nowrap">{item.count}/{stats.totalProjects}</span>
                   <span className="text-neutral-900 font-medium w-8 text-right whitespace-nowrap">{item.pct}%</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>

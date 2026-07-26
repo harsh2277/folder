@@ -1,31 +1,16 @@
 import { NextResponse } from 'next/server';
-import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
+import { requireUser } from '@/utils/supabase/authorize';
 
 export async function GET() {
   try {
-    const cookieClient = await createCookieClient();
-    const adminClient = getSupabaseAdmin();
-
-    let user: any = null;
-    const { data: sessionData } = await cookieClient.auth.getSession();
-    if (sessionData?.session?.user) {
-      user = sessionData.session.user;
-    } else {
-      const { data: userData } = await cookieClient.auth.getUser();
-      user = userData?.user;
-    }
-
-    if (!user) {
+    const auth = await requireUser();
+    if (!auth) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await adminClient
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-    const role = profile?.role;
+    const adminClient = getSupabaseAdmin();
+    const { role, userId } = auth;
 
     let projectFilter: string[] | null = null;
     if (role !== 'admin') {
@@ -33,7 +18,7 @@ export async function GET() {
       const { data: scopedProjects } = await adminClient
         .from('projects')
         .select('id')
-        .eq(ownerColumn, user.id);
+        .eq(ownerColumn, userId);
       projectFilter = (scopedProjects || []).map((p: any) => p.id);
 
       if (projectFilter.length === 0) {

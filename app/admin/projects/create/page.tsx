@@ -107,6 +107,8 @@ export default function AdminProjectCreationWizard() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [fileCategory, setFileCategory] = useState('layout');
+  const [fileAreaSqFt, setFileAreaSqFt] = useState('');
+  const [fileAreaMismatchConfirmed, setFileAreaMismatchConfirmed] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -127,21 +129,26 @@ export default function AdminProjectCreationWizard() {
           const mappedUiPlans = plansData.map((d: any) => {
             const defaultMatch = UI_PLANS.find(p => p.name.toLowerCase() === d.name.toLowerCase() || p.id === d.id);
             const priceNum = Number(d.base_price_per_sq_ft);
-            const featuresArr = d.description
+            const bottomFeatures = defaultMatch?.bottomFeatures || ['1 Revision'];
+            const bottomSet = new Set(bottomFeatures.map((s: string) => s.toLowerCase()));
+            const featuresArr = (d.description
               ? d.description.split(',').map((s: string) => s.trim()).filter(Boolean)
-              : (defaultMatch?.features || ['Lighting Layout']);
+              : (defaultMatch?.features || ['Lighting Layout'])
+            ).filter((f: string) => !bottomSet.has(f.toLowerCase()));
+
+            const isCustomQuote = priceNum === 0 || d.base_price_per_sq_ft === null;
 
             return {
               id: d.id, // Real DB UUID or key
               name: d.name,
               sqft: defaultMatch?.sqft || (d.min_sq_ft ? `MIN ${Number(d.min_sq_ft).toLocaleString()} SQ.FT.` : 'CUSTOM AREA'),
-              discount: defaultMatch?.discount || '50% off',
+              discount: isCustomQuote ? undefined : (defaultMatch?.discount || '50% off'),
               popular: defaultMatch?.popular || false,
               price: priceNum > 0 ? priceNum : (defaultMatch?.price || null),
               originalPrice: defaultMatch?.originalPrice || (priceNum > 0 ? priceNum * 2 : null),
-              customQuote: priceNum === 0 || d.base_price_per_sq_ft === null,
+              customQuote: isCustomQuote,
               features: featuresArr,
-              bottomFeatures: defaultMatch?.bottomFeatures || ['1 Revision'],
+              bottomFeatures,
             };
           });
 
@@ -235,6 +242,7 @@ export default function AdminProjectCreationWizard() {
   };
 
   const handleAreaChange = (val: string) => {
+    if (val !== '' && (Number(val) < 0 || !/^\d*$/.test(val))) return;
     setProjectDetails(prev => ({ ...prev, areaSqFt: val }));
     const num = Number(val);
     if (!isNaN(num) && num > 0) {
@@ -708,6 +716,8 @@ export default function AdminProjectCreationWizard() {
                     <label className="block text-sm font-medium text-neutral-600">Total Area (sq.ft.) *</label>
                     <input
                       type="number"
+                      min="1"
+                      step="1"
                       value={projectDetails.areaSqFt}
                       onChange={(e) => handleAreaChange(e.target.value)}
                       placeholder="e.g. 2500"

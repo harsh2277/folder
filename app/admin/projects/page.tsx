@@ -8,7 +8,9 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import EmptyState from '@/components/ui/EmptyState';
 import CustomSelect from '@/components/ui/CustomSelect';
 import LayoutToggle from '@/components/ui/LayoutToggle';
-import { StatusBadge, PaymentBadge, DeadlineBadge, useToast } from '@/components/ui';
+import { StatusBadge, PaymentBadge, DeadlineBadge, useToast, Pagination } from '@/components/ui';
+
+const PAGE_SIZE = 10;
 import SearchInput from '@/components/ui/SearchInput';
 import PageHeader from '@/components/ui/PageHeader';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -29,6 +31,7 @@ export default function AdminProjectsList() {
   const [sortBy, setSortBy] = useState('newest');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [page, setPage] = useState(1);
   const { error: toastError, success: toastSuccess } = useToast();
 
   useEffect(() => {
@@ -127,6 +130,14 @@ export default function AdminProjectsList() {
       if (sortBy === 'area-asc') return Number(a.area_sq_ft) - Number(b.area_sq_ft);
       return 0;
     });
+
+  const pageCount = Math.max(1, Math.ceil(filteredProjects.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paginatedProjects = filteredProjects.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedStatus, selectedArchitectId, sortBy]);
 
   if (loading) {
     return <SkeletonLoader />;
@@ -267,7 +278,7 @@ export default function AdminProjectsList() {
           <EmptyState title="No projects found" description="Try adjusting your filters or search query." />
         ) : viewMode === 'card' ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {filteredProjects.map((proj) => (
+            {paginatedProjects.map((proj) => (
               <div
                 key={proj.id}
                 className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 hover: transition-all duration-200"
@@ -354,7 +365,7 @@ export default function AdminProjectsList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 text-neutral-700 font-normal">
-                {filteredProjects.map((proj) => (
+                {paginatedProjects.map((proj) => (
                   <tr
                     key={proj.id}
                     onClick={() => router.push(`/admin/projects/${proj.id}`)}
@@ -409,6 +420,14 @@ export default function AdminProjectsList() {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={currentPage}
+          pageCount={pageCount}
+          totalItems={filteredProjects.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
       </div>
 
       <ConfirmModal

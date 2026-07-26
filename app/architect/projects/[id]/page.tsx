@@ -210,9 +210,13 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
       return;
     }
 
-    setIsProcessingPayment(true);
+    const baseAmount = Number(project?.calculated_price || payment?.amount || 0);
+    if (baseAmount <= 0) {
+      alert('This project has no price recorded yet. Please contact your admin before paying.');
+      return;
+    }
 
-    const baseAmount = Number(payment?.amount || 5899);
+    setIsProcessingPayment(true);
     const grandTotal = Math.round(baseAmount * 1.18);
 
     let orderId: string;
@@ -694,7 +698,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                             <div className="space-y-2 text-xs">
                               <div className="flex justify-between text-neutral-500">
                                 <span>Project Total Fee:</span>
-                                <span className="font-semibold text-neutral-800">₹{Number(project.calculated_price || payment?.amount || 5899).toLocaleString('en-IN')}</span>
+                                <span className="font-semibold text-neutral-800">₹{Number(project.calculated_price || payment?.amount || 0).toLocaleString('en-IN')}</span>
                               </div>
                               {paymentList.length > 1 && (
                                 <div className="flex justify-between text-neutral-500">
@@ -709,7 +713,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                                 <span className="text-amber-600">
                                   ₹{paymentList.length > 1 
                                     ? (paymentList[0]?.status !== 'completed' ? Number(paymentList[0]?.amount || 0) : Number(paymentList[1]?.amount || 0)).toLocaleString('en-IN')
-                                    : Math.round(Number(payment?.amount || 5899) * 1.18).toLocaleString('en-IN')}
+                                    : Math.round(Number(payment?.amount || 0) * 1.18).toLocaleString('en-IN')}
                                 </span>
                               </div>
                             </div>
@@ -765,6 +769,15 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                     </div>
 
                     <div>
+                      <span className="text-xs text-neutral-400 font-medium block">Fixture Budget Range</span>
+                      <span className="text-sm font-semibold text-neutral-800 mt-1 block">{project.budget_range || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-neutral-400 font-medium block">Delivery Timeline</span>
+                      <span className="text-sm font-semibold text-neutral-800 mt-1 block">{project.timeline || 'N/A'}</span>
+                    </div>
+
+                    <div>
                       <span className="text-xs text-neutral-400 font-medium block">Assigned Designer</span>
                       <span className="text-sm font-semibold text-neutral-800 mt-1 block">{designer?.name || 'Unassigned'}</span>
                     </div>
@@ -773,7 +786,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                       <span className="text-sm font-semibold text-neutral-800 mt-1 block">
                         {project.deadline
                           ? new Date(project.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                          : '25 Jun 2026'}
+                          : 'Not set'}
                       </span>
                     </div>
 
@@ -1115,15 +1128,15 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-neutral-500 font-medium">Subtotal</span>
-                <span className="text-neutral-850 font-semibold">₹{Number(payment?.amount || 5899).toLocaleString('en-IN')}</span>
+                <span className="text-neutral-850 font-semibold">₹{Number(payment?.amount || 0).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-neutral-500 font-medium">Estimated GST (18%)</span>
-                <span className="text-neutral-850 font-semibold">₹{Math.round(Number(payment?.amount || 5899) * 0.18).toLocaleString('en-IN')}</span>
+                <span className="text-neutral-850 font-semibold">₹{Math.round(Number(payment?.amount || 0) * 0.18).toLocaleString('en-IN')}</span>
               </div>
               <div className="pt-3 border-t border-neutral-200 flex justify-between items-baseline">
                 <span className="text-sm font-semibold text-neutral-800">Grand Total</span>
-                <span className="text-lg font-bold text-amber-600">₹{Math.round(Number(payment?.amount || 5899) * 1.18).toLocaleString('en-IN')}</span>
+                <span className="text-lg font-bold text-amber-600">₹{Math.round(Number(payment?.amount || 0) * 1.18).toLocaleString('en-IN')}</span>
               </div>
             </div>
 

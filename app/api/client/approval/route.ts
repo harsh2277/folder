@@ -1,9 +1,21 @@
 import { NextResponse } from 'next/server';
 import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
+import { rateLimit, clientKeyFrom } from '@/utils/rateLimit';
 
 export async function POST(request: Request) {
   try {
+    // This endpoint is intentionally reachable without login (public client
+    // review link), so it's the most exposed write path in the app — rate
+    // limit it per client IP to blunt scripted abuse.
+    const rl = rateLimit(`client-approval:${clientKeyFrom(request)}`, 10, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again in a minute.' },
+        { status: 429, headers: { 'Retry-After': Math.ceil(rl.retryAfterMs / 1000).toString() } }
+      );
+    }
+
     const body = await request.json();
     const { projectId, action, clientName, clientEmail, feedbackNotes, rating } = body;
 

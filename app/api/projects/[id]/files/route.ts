@@ -1,33 +1,17 @@
 import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
+import { requireUser } from '@/utils/supabase/authorize';
 
 async function checkUserAuth(projectId: string) {
-  const cookieClient = await createCookieClient();
+  const ctx = await requireUser();
+  if (!ctx) return null;
+
   const supabaseAdmin = getSupabaseAdmin();
-
-  let user: any = null;
-  const { data: sessionData } = await cookieClient.auth.getSession();
-  if (sessionData?.session?.user) {
-    user = sessionData.session.user;
-  } else {
-    const { data: userData } = await cookieClient.auth.getUser();
-    user = userData?.user;
-  }
-
-  if (!user) return null;
-
-  // Fetch profile with admin client to bypass RLS policies
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  const role = profile?.role;
+  const { userId, role } = ctx;
 
   // Admin has access to all projects
   if (role === 'admin') {
-    return { user, role: 'admin' };
+    return { user: { id: userId }, role: 'admin' as const };
   }
 
   // Fetch project details to check ownership/assignment
@@ -41,16 +25,16 @@ async function checkUserAuth(projectId: string) {
     // New project not yet in DB (e.g. during creation flow) — allow the
     // authenticated architect/designer to attach initial files.
     if (role === 'architect' || role === 'designer') {
-      return { user, role };
+      return { user: { id: userId }, role };
     }
     return null;
   }
 
-  if (role === 'architect' && project.architect_id === user.id) {
-    return { user, role: 'architect' };
+  if (role === 'architect' && project.architect_id === userId) {
+    return { user: { id: userId }, role: 'architect' as const };
   }
-  if (role === 'designer' && project.assigned_designer_id === user.id) {
-    return { user, role: 'designer' };
+  if (role === 'designer' && project.assigned_designer_id === userId) {
+    return { user: { id: userId }, role: 'designer' as const };
   }
 
   return null;

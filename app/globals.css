@@ -49,6 +49,26 @@ html, body {
   --color-background: #ffffff;
   --color-foreground: #171717;
   --font-sans: "Google Sans Flex";
+
+  /* Darkened from Tailwind's default neutral-400 (#a3a3a3) — the default
+     failed WCAG AA contrast (2.4-2.6:1) against the app's white/near-white
+     backgrounds wherever used for secondary/muted text (270+ call sites).
+     This value keeps the same "muted" visual role while clearing 4.5:1. */
+  --color-neutral-400: #6b6b6b;
+
+  /* Darkened from Tailwind's default amber-500 (#fe9a00) — the brand
+     accent color used as a white-text button/active-nav background only
+     had 2.13:1 contrast (needs 4.5:1). amber-600 still fell short at
+     3.18:1, so this uses amber-700's tone (~5.2:1) — still clearly the
+     same gold/amber brand color, just deep enough for AA text contrast. */
+  --color-amber-500: #b45309;
+
+  /* Same fix as amber-500 above, applied to the other small-text status
+     accent colors that failed the same 4.5:1 contrast check on white
+     backgrounds (e.g. "+14%" / "Active" KPI labels). */
+  --color-emerald-600: #047857;
+  --color-cyan-600: #0e7490;
+  --color-amber-600: #b45309;
   --shadow: none;
   --shadow-sm: none;
   --shadow-md: none;

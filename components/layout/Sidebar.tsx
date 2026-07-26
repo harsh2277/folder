@@ -63,7 +63,7 @@ export default function Sidebar({
                 <span className="font-semibold text-white tracking-tight text-sm block truncate">
                   {workspaceTitle}
                 </span>
-                <span className="text-xs text-neutral-500 font-medium truncate block">
+                <span className="text-xs text-[#9a9a9a] font-medium truncate block">
                   {workspaceSubtitle}
                 </span>
               </div>
@@ -75,7 +75,7 @@ export default function Sidebar({
             {navGroups.map((group) => (
               <div key={group} className="space-y-0.5">
                 {(!isCollapsed || isMobileOpen) && (
-                  <p className="text-xs font-medium text-neutral-500 px-3 mb-1.5 truncate">
+                  <p className="text-xs font-medium text-[#9a9a9a] px-3 mb-1.5 truncate">
                     {group}
                   </p>
                 )}
@@ -96,7 +96,7 @@ export default function Sidebar({
                         } text-xs xl:text-sm font-medium ${
                           isActive
                             ? 'bg-amber-500 text-white font-medium'
-                            : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
+                            : 'text-[#9a9a9a] hover:bg-neutral-900 hover:text-white'
                         }`}
                       >
                         <div

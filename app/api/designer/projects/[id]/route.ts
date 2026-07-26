@@ -1,5 +1,6 @@
 import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
+import { requireProjectAccess } from '@/utils/supabase/authorize';
 
 export async function GET(
   request: Request,
@@ -8,7 +9,11 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Resolve best available client: cookie session (has user JWT) > admin client
+    const auth = await requireProjectAccess(id);
+    if (!auth) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const cookieClient = await createCookieClient();
     const adminClient = getSupabaseAdmin();
 

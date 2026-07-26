@@ -403,7 +403,7 @@ export default function AdminProjectDetail() {
                 <h2 className="text-lg font-semibold text-neutral-900 tracking-tight leading-tight">{project.project_name}</h2>
               </div>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Client: {project.client_name} &bull; Plan: {project.pricing_plans?.name || 'N/A'}
+                {project.project_id_serial || 'KL-XXXX'} &bull; Client: {project.client_name} &bull; Plan: {project.pricing_plans?.name || 'N/A'}
               </p>
             </div>
           </div>
@@ -537,6 +537,21 @@ export default function AdminProjectDetail() {
                         <div>
                           <span className="text-xs text-neutral-400 font-medium block">Total Area</span>
                           <span className="text-sm font-semibold text-neutral-800 mt-1 block">{project.area_sq_ft ? `${Number(project.area_sq_ft).toLocaleString()} sq.ft.` : 'N/A'}</span>
+                        </div>
+
+                        <div>
+                          <span className="text-xs text-neutral-400 font-medium block">Fixture Budget Range</span>
+                          <span className="text-sm font-semibold text-neutral-800 mt-1 block">{project.budget_range || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-neutral-400 font-medium block">Delivery Timeline</span>
+                          <span className="text-sm font-semibold text-neutral-800 mt-1 block">{project.timeline || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-neutral-400 font-medium block">Project Value</span>
+                          <span className="text-sm font-semibold text-neutral-800 mt-1 block">
+                            {project.calculated_price ? `₹${Number(project.calculated_price).toLocaleString('en-IN')}` : 'N/A'}
+                          </span>
                         </div>
 
                         <div>

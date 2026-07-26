@@ -1,25 +1,15 @@
 import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
+import { requireRole } from '@/utils/supabase/authorize';
 
 export async function POST(request: Request) {
   try {
-    const cookieClient = await createCookieClient();
-    const supabaseAdmin = getSupabaseAdmin();
-
-    const { data: { user } } = await cookieClient.auth.getUser();
-    if (!user) {
+    const auth = await requireRole(['admin']);
+    if (!auth) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (profile?.role !== 'admin') {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const supabaseAdmin = getSupabaseAdmin();
 
     const { projectId, designerId, status } = await request.json();
 

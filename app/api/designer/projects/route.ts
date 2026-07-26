@@ -1,27 +1,24 @@
 import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
+import { requireUser, requireProjectAccess } from '@/utils/supabase/authorize';
 
 export async function GET(request: Request) {
   try {
-    const cookieClient = await createCookieClient();
-    const adminClient = getSupabaseAdmin();
-
-    const { data: { user } } = await cookieClient.auth.getUser();
-    if (!user) {
+    const auth = await requireUser();
+    if (!auth) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const effectiveUserId = user.id;
+    const adminClient = getSupabaseAdmin();
+    const { userId: effectiveUserId, role } = auth;
     let designerName = 'Designer';
 
     const { data: profile } = await adminClient
       .from('profiles')
-      .select('name, role')
+      .select('name')
       .eq('id', effectiveUserId)
       .maybeSingle();
     if (profile?.name) designerName = profile.name;
-
-    const role = profile?.role;
 
     const selectCols = 'id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, created_at, assigned_designer_id';
 
@@ -51,11 +48,6 @@ export async function POST(request: Request) {
     const cookieClient = await createCookieClient();
     const adminClient = getSupabaseAdmin();
 
-    const { data: { user } } = await cookieClient.auth.getUser();
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const { projectId, status } = body;
 
@@ -63,26 +55,9 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Verify the caller is an admin or the designer assigned to this project
-    const { data: profile } = await adminClient
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-    const role = profile?.role;
-
-    const { data: project } = await adminClient
-      .from('projects')
-      .select('assigned_designer_id')
-      .eq('id', projectId)
-      .maybeSingle();
-
-    if (!project) {
-      return Response.json({ error: 'Project not found' }, { status: 404 });
-    }
-
-    if (role !== 'admin' && project.assigned_designer_id !== user.id) {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    const auth = await requireProjectAccess(projectId);
+    if (!auth) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     let updatedProject: any = null;

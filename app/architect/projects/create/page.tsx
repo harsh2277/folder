@@ -174,6 +174,7 @@ export default function ArchitectProjectCreationWizard() {
   };
 
   const handleAreaChange = (val: string) => {
+    if (val !== '' && (Number(val) < 0 || !/^\d*$/.test(val))) return;
     setProjectDetails(prev => ({ ...prev, areaSqFt: val }));
     const num = Number(val);
     if (!isNaN(num) && num > 0) {
@@ -810,6 +811,8 @@ export default function ArchitectProjectCreationWizard() {
                     <label className="block text-sm font-medium text-neutral-600">Total Area (sq.ft.) *</label>
                     <input
                       type="number"
+                      min="1"
+                      step="1"
                       value={projectDetails.areaSqFt}
                       onChange={(e) => handleAreaChange(e.target.value)}
                       placeholder="e.g. 2500"

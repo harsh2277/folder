@@ -7,7 +7,9 @@ import LayoutToggle from '@/components/ui/LayoutToggle';
 import Portal from '@/components/ui/Portal';
 import SearchInput from '@/components/ui/SearchInput';
 import PasswordInput from '@/components/ui/PasswordInput';
-import { RoleBadge, ConfirmModal, useToast, SkeletonUsersPage } from '@/components/ui';
+import { RoleBadge, ConfirmModal, useToast, SkeletonUsersPage, Pagination } from '@/components/ui';
+
+const PAGE_SIZE = 10;
 
 export default function AdminUsersManagement() {
   const supabase = createClient();
@@ -19,6 +21,7 @@ export default function AdminUsersManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [roleFilter, setRoleFilter] = useState('All');
+  const [page, setPage] = useState(1);
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -221,6 +224,14 @@ export default function AdminUsersManagement() {
     return matchesSearch && matchesRole;
   });
 
+  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, roleFilter]);
+
   if (loading) return <SkeletonUsersPage />;
 
   const totalArchitects = users.filter(u => u.role === 'architect').length;
@@ -316,7 +327,7 @@ export default function AdminUsersManagement() {
         {/* List/Table Render Area */}
         {viewMode === 'card' ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            {filteredUsers.map((u) => (
+            {paginatedUsers.map((u) => (
               <div
                 key={u.id}
                 className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 hover: transition-all duration-200"
@@ -381,7 +392,7 @@ export default function AdminUsersManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 text-neutral-700 font-normal">
-                {filteredUsers.map((u) => (
+                {paginatedUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-neutral-50/80 transition-colors">
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 flex items-center justify-center font-medium text-xs flex-shrink-0">
@@ -425,6 +436,14 @@ export default function AdminUsersManagement() {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={currentPage}
+          pageCount={pageCount}
+          totalItems={filteredUsers.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
       </div>
 
       {/* Add User Modal */}

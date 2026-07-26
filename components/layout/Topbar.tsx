@@ -111,11 +111,12 @@ export default function Topbar({
           <button
             type="button"
             onClick={() => setShowNotifications(!showNotifications)}
+            aria-label={notifications.some((n) => !n.read) ? 'Notifications (unread)' : 'Notifications'}
             className="relative p-1.5 hover:bg-neutral-100 rounded-md cursor-pointer transition-colors flex items-center justify-center text-neutral-600 focus:outline-none"
           >
-            <i className="bx bx-bell text-lg"></i>
+            <i className="bx bx-bell text-lg" aria-hidden="true"></i>
             {notifications.some((n) => !n.read) && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500"></span>
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500" aria-hidden="true"></span>
             )}
           </button>
 

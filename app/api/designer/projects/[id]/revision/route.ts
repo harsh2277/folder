@@ -1,34 +1,5 @@
-import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
-
-async function resolveUserId(): Promise<string | null> {
-  try {
-    const supabase = await createCookieClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user?.id) return user.id;
-  } catch (_) {}
-  return null;
-}
-
-async function isAuthorizedForProject(userId: string, projectId: string): Promise<boolean> {
-  const adminClient = getSupabaseAdmin();
-
-  const { data: profile } = await adminClient
-    .from('profiles')
-    .select('role')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (profile?.role === 'admin') return true;
-
-  const { data: project } = await adminClient
-    .from('projects')
-    .select('assigned_designer_id')
-    .eq('id', projectId)
-    .maybeSingle();
-
-  return project?.assigned_designer_id === userId;
-}
+import { requireProjectAccess } from '@/utils/supabase/authorize';
 
 /**
  * POST /api/designer/projects/[id]/revision
@@ -42,17 +13,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = await resolveUserId();
-    if (!userId) {
+    const { id } = await params;
+    const auth = await requireProjectAccess(id);
+    if (!auth) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const supabaseAdmin = getSupabaseAdmin();
-    const { id } = await params;
-
-    if (!(await isAuthorizedForProject(userId, id))) {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     const body = await request.json();
     const { revisionId, designerNotes } = body;

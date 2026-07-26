@@ -9,6 +9,7 @@ export { default as InputField } from './InputField';
 export { default as LayoutToggle } from './LayoutToggle';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as PageHeader } from './PageHeader';
+export { default as Pagination } from './Pagination';
 export { default as PasswordInput } from './PasswordInput';
 export { default as Portal } from './Portal';
 export { default as SearchInput } from './SearchInput';

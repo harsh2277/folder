@@ -8,7 +8,9 @@ import StatsCard from '@/components/ui/StatsCard';
 import SearchInput from '@/components/ui/SearchInput';
 import CustomSelect from '@/components/ui/CustomSelect';
 import EmptyState from '@/components/ui/EmptyState';
-import { StatusBadge, SkeletonPaymentsPage } from '@/components/ui';
+import { StatusBadge, SkeletonPaymentsPage, Pagination } from '@/components/ui';
+
+const PAGE_SIZE = 10;
 
 export default function AdminPaymentsPage() {
   const supabase = createClient();
@@ -19,6 +21,7 @@ export default function AdminPaymentsPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     async function fetchPayments() {
@@ -92,6 +95,10 @@ export default function AdminPaymentsPage() {
     fetchPayments();
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter]);
+
   if (loading) return <SkeletonPaymentsPage />;
 
   // Calculate audit totals
@@ -108,6 +115,10 @@ export default function AdminPaymentsPage() {
     const matchesStatus = statusFilter === 'All' || pay.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const pageCount = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paginatedPayments = filteredPayments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <div className="space-y-4">
@@ -271,7 +282,7 @@ export default function AdminPaymentsPage() {
             <EmptyState title="No invoices found" description="Try adjusting your search or status filter." icon="bx-receipt" />
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {filteredPayments.map((pay) => (
+            {paginatedPayments.map((pay) => (
                 <div
                   key={pay.id}
                   className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 transition-all duration-200"
@@ -329,7 +340,7 @@ export default function AdminPaymentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 text-neutral-700 font-normal">
-                {filteredPayments.map((pay) => (
+                {paginatedPayments.map((pay) => (
                   <tr key={pay.id} className="hover:bg-neutral-50/80 transition-colors">
                     <td className="py-3.5 px-4 first:pl-5 text-xs text-neutral-400 font-sans whitespace-nowrap">
                       {new Date(pay.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -366,6 +377,14 @@ export default function AdminPaymentsPage() {
             )}
           </div>
         )}
+
+        <Pagination
+          page={currentPage}
+          pageCount={pageCount}
+          totalItems={filteredPayments.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
       </div>
 
       {/* Invoice Detail Modal (Printable) */}

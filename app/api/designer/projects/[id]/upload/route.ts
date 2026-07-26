@@ -1,31 +1,6 @@
 import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
-
-async function authorizeDesigner(id: string) {
-  const cookieClient = await createCookieClient();
-  const adminClient = getSupabaseAdmin();
-
-  const { data: { user } } = await cookieClient.auth.getUser();
-  if (!user) return null;
-
-  const { data: profile } = await adminClient
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (profile?.role === 'admin') return { user };
-
-  const { data: project } = await adminClient
-    .from('projects')
-    .select('assigned_designer_id')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (project?.assigned_designer_id === user.id) return { user };
-
-  return null;
-}
+import { requireProjectAccess } from '@/utils/supabase/authorize';
 
 export async function POST(
   request: Request,
@@ -33,14 +8,14 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const auth = await authorizeDesigner(id);
+    const auth = await requireProjectAccess(id);
     if (!auth) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const cookieClient = await createCookieClient();
     const adminClient = getSupabaseAdmin();
-    const userId = auth.user.id;
+    const userId = auth.userId;
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -132,7 +107,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const auth = await authorizeDesigner(id);
+    const auth = await requireProjectAccess(id);
     if (!auth) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }

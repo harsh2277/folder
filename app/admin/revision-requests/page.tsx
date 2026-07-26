@@ -8,7 +8,9 @@ import LayoutToggle from '@/components/ui/LayoutToggle';
 import EmptyState from '@/components/ui/EmptyState';
 import Portal from '@/components/ui/Portal';
 import SearchInput from '@/components/ui/SearchInput';
-import { StatusBadge, useToast } from '@/components/ui';
+import { StatusBadge, useToast, Pagination } from '@/components/ui';
+
+const PAGE_SIZE = 10;
 
 export default function AdminRevisionRequests() {
   const supabase = createClient();
@@ -22,6 +24,7 @@ export default function AdminRevisionRequests() {
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
 
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const { success: toastSuccess, error: toastError } = useToast();
 
   useEffect(() => {
@@ -134,6 +137,10 @@ export default function AdminRevisionRequests() {
     fetchRequests();
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedStatus, sortBy]);
+
   const handleUpdateStatus = async (id: string, projectId: string, newStatus: 'approved' | 'declined') => {
     setUpdatingId(id);
     try {
@@ -204,6 +211,10 @@ export default function AdminRevisionRequests() {
       if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
+
+  const pageCount = Math.max(1, Math.ceil(filteredRequests.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paginatedRequests = filteredRequests.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   if (loading) {
     return <SkeletonLoader />;
@@ -322,6 +333,7 @@ export default function AdminRevisionRequests() {
       </div>
 
       {/* Data Render Container */}
+      <>
       {filteredRequests.length === 0 ? (
         <EmptyState
           title="No revision requests found"
@@ -331,7 +343,7 @@ export default function AdminRevisionRequests() {
       ) : viewMode === 'card' ? (
         /* Grid / Card View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredRequests.map((req) => {
+          {paginatedRequests.map((req) => {
             const [architectRequest, designerResolution] = (req.description || '').split('\n\n=== DESIGNER_RESOLUTION ===\n');
 
             return (
@@ -427,7 +439,7 @@ export default function AdminRevisionRequests() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 text-neutral-700 font-medium">
-              {filteredRequests.map((req) => {
+              {paginatedRequests.map((req) => {
                 const [architectRequest] = (req.description || '').split('\n\n=== DESIGNER_RESOLUTION ===\n');
 
                 return (
@@ -494,6 +506,15 @@ export default function AdminRevisionRequests() {
           </table>
         </div>
       )}
+
+      <Pagination
+        page={currentPage}
+        pageCount={pageCount}
+        totalItems={filteredRequests.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
+      </>
 
       {/* Revision Request Detail Modal Drawer */}
       {selectedRequest && (

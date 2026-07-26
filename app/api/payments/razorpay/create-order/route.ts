@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
 import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
+import { rateLimit, clientKeyFrom } from '@/utils/rateLimit';
 
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_TBHxoNcpPx7OW9';
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
 export async function POST(request: Request) {
   try {
+    const rl = rateLimit(`razorpay-order:${clientKeyFrom(request)}`, 15, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many payment attempts. Please wait a minute and try again.' },
+        { status: 429, headers: { 'Retry-After': Math.ceil(rl.retryAfterMs / 1000).toString() } }
+      );
+    }
+
     if (!RAZORPAY_KEY_SECRET) {
       return NextResponse.json(
         { error: 'Payment gateway is not configured on the server (missing RAZORPAY_KEY_SECRET).' },

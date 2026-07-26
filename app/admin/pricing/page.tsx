@@ -116,9 +116,14 @@ export default function AdminPricingManagement() {
         const dbPlans = data.map((d: any) => {
           const defaultMatch = defaultPlans.find(dp => dp.name.toLowerCase() === d.name.toLowerCase());
           const priceNum = Number(d.base_price_per_sq_ft);
-          const featuresArr = d.description
+          const bottomFeatures = defaultMatch?.bottomFeatures || ['1 Revision'];
+          const bottomSet = new Set(bottomFeatures.map((s: string) => s.toLowerCase()));
+          const featuresArr = (d.description
             ? d.description.split(',').map((s: string) => s.trim()).filter(Boolean)
-            : (defaultMatch?.features || ['Lighting Layout']);
+            : (defaultMatch?.features || ['Lighting Layout'])
+          ).filter((f: string) => !bottomSet.has(f.toLowerCase()));
+
+          const isCustomQuote = priceNum === 0 || d.base_price_per_sq_ft === null;
 
           return {
             id: d.id,
@@ -126,11 +131,11 @@ export default function AdminPricingManagement() {
             sqft: defaultMatch?.sqft || (d.min_sq_ft ? `MIN ${Number(d.min_sq_ft).toLocaleString()} SQ.FT.` : 'CUSTOM AREA'),
             price: priceNum > 0 ? priceNum : (defaultMatch?.price || null),
             originalPrice: defaultMatch?.originalPrice || (priceNum > 0 ? priceNum * 2 : null),
-            discount: defaultMatch?.discount || '50% off',
+            discount: isCustomQuote ? undefined : (defaultMatch?.discount || '50% off'),
             popular: defaultMatch?.popular || false,
-            customQuote: priceNum === 0 || d.base_price_per_sq_ft === null,
+            customQuote: isCustomQuote,
             features: featuresArr,
-            bottomFeatures: defaultMatch?.bottomFeatures || ['1 Revision'],
+            bottomFeatures,
             is_active: d.is_active ?? true
           };
         });
@@ -454,7 +459,7 @@ export default function AdminPricingManagement() {
             </div>
             <div className="text-right shrink-0">
               <span className="text-base font-bold text-amber-600 font-sans block">{addonRates.siteVisitFee}</span>
-              <span className="text-[10px] text-neutral-400 font-medium block">Custom Quote</span>
+              <span className="text-[10px] text-neutral-400 font-medium block">Per Visit</span>
             </div>
           </div>
         </div>
