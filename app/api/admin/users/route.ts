@@ -29,16 +29,14 @@ async function getAdminAuthContext(request?: Request) {
 
   if (!user) return null;
 
-  // Check admin role
-  let role: string | null = user.user_metadata?.role || null;
-  if (!role) {
-    const { data: prof } = await client
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-    role = prof?.role || null;
-  }
+  // Check admin role — always trust the profiles table, never client-editable user_metadata
+  let role: string | null = null;
+  const { data: prof } = await client
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+  role = prof?.role || null;
 
   if (!role) {
     const adminClient = getSupabaseAdmin();

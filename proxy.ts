@@ -37,6 +37,8 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Paths requiring protection
+  // Note: /client/* is intentionally excluded — it's an unauthenticated,
+  // UUID-link-based client portal (no Supabase account for clients exists).
   const isProtectedPath =
     pathname.startsWith('/admin') ||
     pathname.startsWith('/architect') ||

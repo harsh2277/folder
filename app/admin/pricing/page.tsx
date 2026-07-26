@@ -99,38 +99,47 @@ export default function AdminPricingManagement() {
 
   async function fetchPlans() {
     try {
-      // Clear any stale localStorage overrides so DB is always the source of truth
       if (typeof window !== 'undefined') {
         localStorage.removeItem('lightmap_pricing_plan_overrides');
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('pricing_plans')
         .select('id, name, description, base_price_per_sq_ft, min_sq_ft, is_active')
         .order('min_sq_ft', { ascending: true });
 
-      // Build name→DB record lookup
-      const dbByName: Record<string, any> = {};
-      if (data) {
-        data.forEach((d: any) => { dbByName[d.name] = d; });
-      }
+      if (error) throw error;
 
-      // Merge defaultPlans display metadata with live DB prices/IDs
-      const currentPlans = defaultPlans.map(p => {
-        const dbRecord = dbByName[p.name];
-        if (dbRecord) {
-          const dbPrice = Number(dbRecord.base_price_per_sq_ft);
+      if (data && data.length > 0) {
+        const dbNames = new Set(data.map((d: any) => d.name.toLowerCase()));
+
+        const dbPlans = data.map((d: any) => {
+          const defaultMatch = defaultPlans.find(dp => dp.name.toLowerCase() === d.name.toLowerCase());
+          const priceNum = Number(d.base_price_per_sq_ft);
+          const featuresArr = d.description
+            ? d.description.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : (defaultMatch?.features || ['Lighting Layout']);
+
           return {
-            ...p,
-            id: dbRecord.id, // Use real DB UUID
-            price: dbPrice > 0 ? dbPrice : p.price,
-            is_active: dbRecord.is_active
+            id: d.id,
+            name: d.name,
+            sqft: defaultMatch?.sqft || (d.min_sq_ft ? `MIN ${Number(d.min_sq_ft).toLocaleString()} SQ.FT.` : 'CUSTOM AREA'),
+            price: priceNum > 0 ? priceNum : (defaultMatch?.price || null),
+            originalPrice: defaultMatch?.originalPrice || (priceNum > 0 ? priceNum * 2 : null),
+            discount: defaultMatch?.discount || '50% off',
+            popular: defaultMatch?.popular || false,
+            customQuote: priceNum === 0 || d.base_price_per_sq_ft === null,
+            features: featuresArr,
+            bottomFeatures: defaultMatch?.bottomFeatures || ['1 Revision'],
+            is_active: d.is_active ?? true
           };
-        }
-        return p;
-      });
+        });
 
-      setPlans(currentPlans);
+        const missingDefaults = defaultPlans.filter(dp => !dbNames.has(dp.name.toLowerCase()));
+        setPlans([...dbPlans, ...missingDefaults]);
+      } else {
+        setPlans(defaultPlans);
+      }
     } catch (err) {
       console.error('Error fetching plans:', err);
       setPlans(defaultPlans);
@@ -168,42 +177,45 @@ export default function AdminPricingManagement() {
 
   const handleAddPlan = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const planName = newPlan.name.trim();
+    if (!planName) return;
+
+    // Client-side check for duplicate name
+    const isDuplicate = plans.some(p => p.name.toLowerCase() === planName.toLowerCase());
+    if (isDuplicate) {
+      toastError(`A pricing plan named "${planName}" already exists. Please choose a unique name.`);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       const featuresArr = newPlan.features.split(',').map(s => s.trim()).filter(Boolean);
-      const bottomFeaturesArr = newPlan.bottomFeatures.split(',').map(s => s.trim()).filter(Boolean);
-      const planPrice = newPlan.basePrice ? parseFloat(newPlan.basePrice) : null;
-      const planOrigPrice = newPlan.originalPrice ? parseFloat(newPlan.originalPrice) : null;
+      const planPrice = newPlan.basePrice ? parseFloat(newPlan.basePrice) : 0;
 
-      const createdPlan = {
-        id: `custom_${Date.now()}`,
-        name: newPlan.name,
-        sqft: newPlan.sqft || 'CUSTOM AREA',
-        price: planPrice,
-        originalPrice: planOrigPrice,
-        discount: newPlan.discount || '50% off',
-        features: featuresArr.length > 0 ? featuresArr : ['Lighting Layout'],
-        bottomFeatures: bottomFeaturesArr.length > 0 ? bottomFeaturesArr : ['1 Revision'],
-        is_active: newPlan.isActive
-      };
-
-      await supabase
+      const { error: insertError } = await supabase
         .from('pricing_plans')
         .insert({
-          name: newPlan.name,
+          name: planName,
           description: featuresArr.join(', '),
-          base_price_per_sq_ft: planPrice || 0,
+          base_price_per_sq_ft: planPrice,
           min_sq_ft: 1000,
           is_active: newPlan.isActive
         });
 
-      toastSuccess('New Pricing Tier created successfully!');
+      if (insertError) throw insertError;
+
+      toastSuccess(`Pricing Tier "${planName}" created successfully!`);
       setShowAddModal(false);
       setNewPlan({ name: '', sqft: '', basePrice: '', originalPrice: '', discount: '50% off', features: '', bottomFeatures: '', isActive: true });
       fetchPlans();
     } catch (err: any) {
-      toastError(err.message || 'Failed to add plan');
+      if (err.code === '23505' || err.message?.includes('duplicate key') || err.message?.includes('pricing_plans_name_key')) {
+        toastError(`A pricing plan named "${planName}" already exists in the database. Please enter a unique name.`);
+      } else {
+        toastError(err.message || 'Failed to add plan');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -214,38 +226,33 @@ export default function AdminPricingManagement() {
     if (!editingPlan) return;
     setSubmitting(true);
 
+    const planName = editForm.name.trim();
+
     try {
       const featuresArr = editForm.features.split(',').map(s => s.trim()).filter(Boolean);
-      const bottomFeaturesArr = editForm.bottomFeatures.split(',').map(s => s.trim()).filter(Boolean);
-      const updatedPrice = editForm.basePrice !== '' ? parseFloat(editForm.basePrice) : null;
-      const updatedOrigPrice = editForm.originalPrice !== '' ? parseFloat(editForm.originalPrice) : null;
+      const updatedPrice = editForm.basePrice !== '' ? parseFloat(editForm.basePrice) : 0;
 
-      const updatedPlanData = {
-        name: editForm.name,
-        sqft: editForm.sqft,
-        price: updatedPrice,
-        originalPrice: updatedOrigPrice,
-        discount: editForm.discount,
-        features: featuresArr,
-        bottomFeatures: bottomFeaturesArr
-      };
-
-      // Update in Supabase
-      await supabase
+      const { error: updateError } = await supabase
         .from('pricing_plans')
         .update({
-          name: editForm.name,
+          name: planName,
           description: featuresArr.join(', '),
-          base_price_per_sq_ft: updatedPrice || 0,
+          base_price_per_sq_ft: updatedPrice,
           is_active: editForm.isActive
         })
         .eq('id', editingPlan.id);
 
-      toastSuccess('Plan updated successfully!');
+      if (updateError) throw updateError;
+
+      toastSuccess(`Plan "${planName}" updated successfully!`);
       setShowEditModal(false);
       fetchPlans();
     } catch (err: any) {
-      toastError(err.message || 'Failed to update plan');
+      if (err.code === '23505' || err.message?.includes('duplicate key') || err.message?.includes('pricing_plans_name_key')) {
+        toastError(`A pricing plan named "${planName}" already exists in the database. Please enter a unique name.`);
+      } else {
+        toastError(err.message || 'Failed to update plan');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -264,17 +271,6 @@ export default function AdminPricingManagement() {
       toastError(err.message || 'Failed to delete plan');
     } finally {
       setPlanToDelete(null);
-    }
-  };
-
-  const handleToggleActive = async (plan: any) => {
-    const nextState = !plan.is_active;
-    setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, is_active: nextState } : p));
-    try {
-      await supabase.from('pricing_plans').update({ is_active: nextState }).eq('id', plan.id);
-      toastSuccess(`Plan "${plan.name}" is now ${nextState ? 'Active' : 'Inactive'}.`);
-    } catch (err: any) {
-      toastError('Failed to update plan status.');
     }
   };
 
@@ -396,40 +392,26 @@ export default function AdminPricingManagement() {
                 )}
 
                 {/* Admin Action Buttons */}
-                <div className="pt-4 mt-5 border-t border-neutral-100 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-neutral-500 px-1">
-                    <span className="font-medium">Status</span>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleActive(p)}
-                      className={`font-semibold cursor-pointer px-2 py-0.5 rounded text-[11px] transition-colors ${
-                        p.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-neutral-100 text-neutral-500 border border-neutral-200'
-                      }`}
-                    >
-                      {p.is_active ? 'Active' : 'Inactive'}
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => startEditing(p)}
-                      className="py-2 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-semibold text-xs rounded-md border border-neutral-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
-                      aria-label={`Edit ${p.name}`}
-                    >
-                      <i className="bx bx-edit text-sm"></i>
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setPlanToDelete({ id: p.id, name: p.name });
-                        setShowDeleteConfirm(true);
-                      }}
-                      className="py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-md border border-rose-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
-                      aria-label={`Delete ${p.name}`}
-                    >
-                      <i className="bx bx-trash text-sm"></i>
-                      <span>Delete</span>
-                    </button>
-                  </div>
+                <div className="pt-4 mt-5 border-t border-neutral-100 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => startEditing(p)}
+                    className="py-2 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 font-semibold text-xs rounded-md border border-neutral-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
+                    aria-label={`Edit ${p.name}`}
+                  >
+                    <i className="bx bx-edit text-sm"></i>
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPlanToDelete({ id: p.id, name: p.name });
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-md border border-rose-200 transition-all cursor-pointer flex items-center justify-center space-x-1 active:scale-[0.98]"
+                    aria-label={`Delete ${p.name}`}
+                  >
+                    <i className="bx bx-trash text-sm"></i>
+                    <span>Delete</span>
+                  </button>
                 </div>
               </div>
             </div>

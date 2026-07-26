@@ -7,6 +7,10 @@ import CustomSelect from '../../../../components/ui/CustomSelect';
 import Portal from '../../../../components/ui/Portal';
 import { useToast, SkeletonDashboard } from '@/components/ui';
 
+function generateClientPassword() {
+  return Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4);
+}
+
 interface PricingPlan {
   id: string;
   name: string;
@@ -111,10 +115,39 @@ export default function AdminProjectCreationWizard() {
         const { data: plansData, error: plansError } = await supabase
           .from('pricing_plans')
           .select('*')
-          .eq('is_active', true);
+          .eq('is_active', true)
+          .order('min_sq_ft', { ascending: true });
 
         if (plansError) throw plansError;
         setPlans(plansData || []);
+
+        if (plansData && plansData.length > 0) {
+          const dbNames = new Set(plansData.map((d: any) => d.name.toLowerCase()));
+
+          const mappedUiPlans = plansData.map((d: any) => {
+            const defaultMatch = UI_PLANS.find(p => p.name.toLowerCase() === d.name.toLowerCase() || p.id === d.id);
+            const priceNum = Number(d.base_price_per_sq_ft);
+            const featuresArr = d.description
+              ? d.description.split(',').map((s: string) => s.trim()).filter(Boolean)
+              : (defaultMatch?.features || ['Lighting Layout']);
+
+            return {
+              id: d.id, // Real DB UUID or key
+              name: d.name,
+              sqft: defaultMatch?.sqft || (d.min_sq_ft ? `MIN ${Number(d.min_sq_ft).toLocaleString()} SQ.FT.` : 'CUSTOM AREA'),
+              discount: defaultMatch?.discount || '50% off',
+              popular: defaultMatch?.popular || false,
+              price: priceNum > 0 ? priceNum : (defaultMatch?.price || null),
+              originalPrice: defaultMatch?.originalPrice || (priceNum > 0 ? priceNum * 2 : null),
+              customQuote: priceNum === 0 || d.base_price_per_sq_ft === null,
+              features: featuresArr,
+              bottomFeatures: defaultMatch?.bottomFeatures || ['1 Revision'],
+            };
+          });
+
+          const missingDefaults = UI_PLANS.filter(p => !dbNames.has(p.name.toLowerCase()));
+          setUiPlans([...mappedUiPlans, ...missingDefaults]);
+        }
 
         // Fetch architects
         const { data: archsData, error: archsError } = await supabase
@@ -135,11 +168,6 @@ export default function AdminProjectCreationWizard() {
         setDesigners(desData || []);
       } catch (err: any) {
         console.error('Error loading initialization data:', err);
-        setPlans([
-          { id: '19acfba5-8ffc-47cf-b1d0-e8cb8ad9ce0d', name: 'Basic Lighting Plan', description: 'Includes basic light layout.', base_price_per_sq_ft: '15.00', min_sq_ft: '500.00' },
-          { id: '3b147280-ebd7-4e61-97b2-a96b7e767888', name: 'Premium Design Plan', description: 'Custom lighting layouts.', base_price_per_sq_ft: '25.00', min_sq_ft: '500.00' },
-          { id: 'aeed1171-ee5b-4456-83b5-c456df6133ff', name: 'BOQ + Design Package', description: 'Complete lighting design.', base_price_per_sq_ft: '40.00', min_sq_ft: '1000.00' },
-        ]);
       } finally {
         setLoading(false);
       }
@@ -149,11 +177,8 @@ export default function AdminProjectCreationWizard() {
 
   const getDbPlanId = () => {
     if (plans.length === 0) return selectedPlanId;
-    if (selectedPlanId === 'essential') return plans[0]?.id || '';
-    if (selectedPlanId === 'professional') return plans[1]?.id || plans[0]?.id || '';
-    if (selectedPlanId === 'premium') return plans[2]?.id || plans[0]?.id || '';
-    if (selectedPlanId === 'enterprise') return plans[3]?.id || plans[0]?.id || '';
-    return selectedPlanId;
+    const match = plans.find(p => p.id === selectedPlanId || p.name.toLowerCase() === uiPlans.find(u => u.id === selectedPlanId)?.name.toLowerCase());
+    return match?.id || selectedPlanId;
   };
 
   const [uiPlans, setUiPlans] = useState(UI_PLANS);
@@ -282,7 +307,7 @@ export default function AdminProjectCreationWizard() {
           payment_status: isPaid ? 'paid' : 'pending',
           status: 'In Design',
           client_username: clientUsername,
-          client_password_hash: 'kelvinlightings',
+          client_password_hash: generateClientPassword(),
         })
         .select()
         .single();
@@ -389,7 +414,7 @@ export default function AdminProjectCreationWizard() {
       </div>
 
       {errorMsg && (
-        <div className="p-4 bg-red-55 border border-red-200 rounded-md text-red-800 text-sm font-medium flex items-center space-x-2 max-w-3xl mx-auto">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm font-medium flex items-center space-x-2 max-w-3xl mx-auto">
           <i className="bx bx-error-circle text-lg animate-pulse"></i>
           <span>{errorMsg}</span>
         </div>

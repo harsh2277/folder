@@ -215,38 +215,51 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
     const baseAmount = Number(payment?.amount || 5899);
     const grandTotal = Math.round(baseAmount * 1.18);
 
+    let orderId: string;
+    let keyId: string;
+    try {
+      const orderRes = await fetch('/api/payments/razorpay/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: id, amount: grandTotal }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error || 'Failed to initialize payment');
+      orderId = orderData.orderId;
+      keyId = orderData.keyId;
+    } catch (err) {
+      console.error('Error creating payment order:', err);
+      setIsProcessingPayment(false);
+      return;
+    }
+
     const options = {
-      key: "rzp_test_TBHxoNcpPx7OW9",
+      key: keyId,
+      order_id: orderId,
       amount: grandTotal * 100, // Amount in paise (Grand Total including 18% GST)
       currency: "INR",
       name: "LightMap",
       description: `Payment for ${project?.project_name || 'Project'} (incl. 18% GST)`,
       handler: async function (response: any) {
         try {
-          // 1. Update project status and payment status in supabase
-          const { error: projectError } = await supabase
-            .from('projects')
-            .update({
-              payment_status: 'paid',
-              status: 'Under Review'
-            })
-            .eq('id', id);
+          const verifyRes = await fetch('/api/payments/razorpay/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              projectId: id,
+              paymentId: payment?.id,
+              kind: 'full',
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            }),
+          });
+          const verifyData = await verifyRes.json();
+          if (!verifyRes.ok || !verifyData.success) {
+            throw new Error(verifyData.error || 'Payment verification failed');
+          }
 
-          if (projectError) throw projectError;
-
-          // 2. Update payment status in payments table
-          const { error: paymentError } = await supabase
-            .from('payments')
-            .update({
-              status: 'completed',
-              amount: grandTotal,
-              transaction_id: response.razorpay_payment_id
-            })
-            .eq('project_id', id);
-
-          if (paymentError) throw paymentError;
-
-          // 3. Update local states
+          // Update local states
           setProject((prev: any) => ({
             ...prev,
             payment_status: 'paid',
@@ -291,28 +304,49 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
     setIsProcessingPayment(true);
     const amountToPay = Number(m2.amount || 0);
 
+    let orderId: string;
+    let keyId: string;
+    try {
+      const orderRes = await fetch('/api/payments/razorpay/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: id, amount: amountToPay }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error || 'Failed to initialize payment');
+      orderId = orderData.orderId;
+      keyId = orderData.keyId;
+    } catch (err) {
+      console.error('Error creating milestone 2 payment order:', err);
+      setIsProcessingPayment(false);
+      return;
+    }
+
     const options = {
-      key: "rzp_test_TBHxoNcpPx7OW9",
+      key: keyId,
+      order_id: orderId,
       amount: amountToPay * 100, // Amount in paise
       currency: "INR",
       name: "LightMap",
       description: `50% Final Release Payment for ${project?.project_name || 'Project'}`,
       handler: async function (response: any) {
         try {
-          await supabase
-            .from('payments')
-            .update({
-              status: 'completed',
-              transaction_id: response.razorpay_payment_id
-            })
-            .eq('id', m2.id);
-
-          await supabase
-            .from('projects')
-            .update({
-              payment_status: 'paid'
-            })
-            .eq('id', id);
+          const verifyRes = await fetch('/api/payments/razorpay/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              projectId: id,
+              paymentId: m2.id,
+              kind: 'milestone2',
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            }),
+          });
+          const verifyData = await verifyRes.json();
+          if (!verifyRes.ok || !verifyData.success) {
+            throw new Error(verifyData.error || 'Payment verification failed');
+          }
 
           setProject((prev: any) => ({ ...prev, payment_status: 'paid' }));
           setPaymentList((prev: any[]) => prev.map(p => p.id === m2.id ? { ...p, status: 'completed', transaction_id: response.razorpay_payment_id } : p));

@@ -63,7 +63,7 @@ export async function GET() {
     const invoiced = projects.reduce((sum: number, p: any) => {
       const projectPayments = p.payments || [];
       const projectPaidSum = projectPayments
-        .filter((pay: any) => pay.status === 'completed')
+        .filter((pay: any) => pay.status === 'completed' || pay.status === 'paid')
         .reduce((paySum: number, pay: any) => paySum + Number(pay.amount), 0);
       return sum + projectPaidSum;
     }, 0);

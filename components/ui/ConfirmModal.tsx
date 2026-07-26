@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Portal from './Portal';
 
 interface ConfirmModalProps {
@@ -11,7 +11,7 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   variant?: 'danger' | 'default';
   loading?: boolean;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -27,6 +27,12 @@ export default function ConfirmModal({
   onClose,
 }: ConfirmModalProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const isBusy = loading || isProcessing;
+
+  useEffect(() => {
+    if (isOpen) setIsProcessing(false);
+  }, [isOpen]);
 
   // Focus trap + ESC close
   useEffect(() => {
@@ -90,20 +96,25 @@ export default function ConfirmModal({
             <button
               ref={cancelRef}
               onClick={onClose}
-              disabled={loading}
+              disabled={isBusy}
               className="px-4 py-2 text-sm font-medium bg-white border border-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500 disabled:opacity-50"
             >
               {cancelLabel}
             </button>
             <button
-              onClick={() => {
-                onConfirm();
-                onClose();
+              onClick={async () => {
+                setIsProcessing(true);
+                try {
+                  await onConfirm();
+                } finally {
+                  setIsProcessing(false);
+                  onClose();
+                }
               }}
-              disabled={loading}
+              disabled={isBusy}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors focus-visible:outline focus-visible:outline-2 disabled:opacity-50 flex items-center gap-1.5 ${confirmBtnClass}`}
             >
-              {loading && (
+              {isBusy && (
                 <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />

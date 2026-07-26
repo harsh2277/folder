@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 import CustomSelect from '../../../../components/ui/CustomSelect';
 import Portal from '../../../../components/ui/Portal';
 
+function generateClientPassword() {
+  return Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4);
+}
+
 interface PricingPlan {
   id: string;
   name: string;
@@ -241,7 +245,7 @@ export default function ArchitectProjectCreationWizard() {
           payment_status: isPaid ? 'paid' : 'pending',
           status: 'Submitted',
           client_username: clientUsername,
-          client_password_hash: 'kelvinlightings',
+          client_password_hash: generateClientPassword(),
         })
         .select()
         .single();
@@ -384,8 +388,27 @@ export default function ArchitectProjectCreationWizard() {
       console.error("Prefill error:", e);
     }
 
+    let orderId: string;
+    let keyId: string;
+    try {
+      const orderRes = await fetch('/api/payments/razorpay/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id, amount: chargeAmount }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error || 'Failed to initialize payment');
+      orderId = orderData.orderId;
+      keyId = orderData.keyId;
+    } catch (err: any) {
+      setSubmitting(false);
+      setErrorMsg(err.message || 'Failed to initialize payment.');
+      return;
+    }
+
     const options = {
-      key: "rzp_test_TBHxoNcpPx7OW9",
+      key: keyId,
+      order_id: orderId,
       amount: chargeAmount * 100, // in paise
       currency: "INR",
       name: "LightMap",
@@ -394,35 +417,26 @@ export default function ArchitectProjectCreationWizard() {
         : `Grand Total for ${project.project_name}`,
       handler: async function (response: any) {
         try {
-          await supabase
-            .from('projects')
-            .update({
-              payment_status: paymentSchedule === 'milestone' ? 'partial' : 'paid',
-              status: 'Under Review'
-            })
-            .eq('id', project.id);
-
-          // Update first payment record
-          const { data: pays } = await supabase
-            .from('payments')
-            .select('id')
-            .eq('project_id', project.id)
-            .order('created_at', { ascending: true });
-
-          if (pays && pays.length > 0) {
-            await supabase
-              .from('payments')
-              .update({
-                status: 'completed',
-                transaction_id: response.razorpay_payment_id
-              })
-              .eq('id', pays[0].id);
+          const verifyRes = await fetch('/api/payments/razorpay/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              projectId: project.id,
+              kind: paymentSchedule === 'milestone' ? 'milestone1' : 'full',
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            }),
+          });
+          const verifyData = await verifyRes.json();
+          if (!verifyRes.ok || !verifyData.success) {
+            throw new Error(verifyData.error || 'Payment verification failed');
           }
 
           router.push(`/architect/payments/success?project_id=${project.id}&amount=${chargeAmount}&transaction_id=${response.razorpay_payment_id}`);
         } catch (err) {
-          console.error("Error updating payment in handler:", err);
-          router.push(`/architect/payments/success?project_id=${project.id}&amount=${chargeAmount}&transaction_id=${response.razorpay_payment_id}`);
+          console.error("Error verifying payment:", err);
+          router.push(`/architect/payments/failed?project_id=${project.id}&amount=${chargeAmount}`);
         }
       },
       prefill: {
@@ -486,7 +500,7 @@ export default function ArchitectProjectCreationWizard() {
       </div>
 
       {errorMsg && (
-        <div className="p-4 bg-red-55 border border-red-200 rounded-md text-red-800 text-sm font-medium flex items-center space-x-2 max-w-3xl mx-auto">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm font-medium flex items-center space-x-2 max-w-3xl mx-auto">
           <i className="bx bx-error-circle text-lg animate-pulse"></i>
           <span>{errorMsg}</span>
         </div>

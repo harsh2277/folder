@@ -20,39 +20,42 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: revData } = await adminClient
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    const role = profile?.role;
+
+    let projectFilter: string[] | null = null;
+    if (role !== 'admin') {
+      const ownerColumn = role === 'designer' ? 'assigned_designer_id' : 'architect_id';
+      const { data: scopedProjects } = await adminClient
+        .from('projects')
+        .select('id')
+        .eq(ownerColumn, user.id);
+      projectFilter = (scopedProjects || []).map((p: any) => p.id);
+
+      if (projectFilter.length === 0) {
+        return NextResponse.json({ success: true, revisions: [] });
+      }
+    }
+
+    let query = adminClient
       .from('revision_requests')
       .select('*, projects!project_id(id, project_name, project_id_serial, client_name)')
       .order('created_at', { ascending: false });
 
-    let finalRevisions = revData || [];
-    if (!revData || revData.length === 0) {
-      const { data: fallbackRev } = await adminClient
-        .from('revision_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      const { data: allProjects } = await adminClient
-        .from('projects')
-        .select('id, project_name, project_id_serial, client_name');
-
-      finalRevisions = (fallbackRev || []).map((r: any) => {
-        const matched = (allProjects || []).find((p: any) => p.id === r.project_id);
-        return {
-          ...r,
-          projects: matched ? {
-            id: matched.id,
-            project_name: matched.project_name,
-            project_id_serial: matched.project_id_serial,
-            client_name: matched.client_name
-          } : null
-        };
-      });
+    if (projectFilter) {
+      query = query.in('project_id', projectFilter);
     }
+
+    const { data: revData, error: revError } = await query;
+    if (revError) throw revError;
 
     return NextResponse.json({
       success: true,
-      revisions: finalRevisions || []
+      revisions: revData || []
     });
 
   } catch (err: any) {

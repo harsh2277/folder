@@ -10,6 +10,26 @@ async function resolveUserId(): Promise<string | null> {
   return null;
 }
 
+async function isAuthorizedForProject(userId: string, projectId: string): Promise<boolean> {
+  const adminClient = getSupabaseAdmin();
+
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profile?.role === 'admin') return true;
+
+  const { data: project } = await adminClient
+    .from('projects')
+    .select('assigned_designer_id')
+    .eq('id', projectId)
+    .maybeSingle();
+
+  return project?.assigned_designer_id === userId;
+}
+
 /**
  * POST /api/designer/projects/[id]/revision
  * Body: { revisionId: string, designerNotes: string }
@@ -29,6 +49,11 @@ export async function POST(
 
     const supabaseAdmin = getSupabaseAdmin();
     const { id } = await params;
+
+    if (!(await isAuthorizedForProject(userId, id))) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { revisionId, designerNotes } = body;
 

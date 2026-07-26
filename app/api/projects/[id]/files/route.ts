@@ -23,7 +23,7 @@ async function checkUserAuth(projectId: string) {
     .eq('id', user.id)
     .maybeSingle();
 
-  const role = profile?.role || user.user_metadata?.role || 'architect';
+  const role = profile?.role;
 
   // Admin has access to all projects
   if (role === 'admin') {
@@ -37,18 +37,20 @@ async function checkUserAuth(projectId: string) {
     .eq('id', projectId)
     .maybeSingle();
 
-  if (project) {
-    if (project.architect_id === user.id) {
-      return { user, role: 'architect' };
+  if (!project) {
+    // New project not yet in DB (e.g. during creation flow) — allow the
+    // authenticated architect/designer to attach initial files.
+    if (role === 'architect' || role === 'designer') {
+      return { user, role };
     }
-    if (project.assigned_designer_id === user.id) {
-      return { user, role: 'designer' };
-    }
+    return null;
   }
 
-  // Allow project owner or architect/designer creating deliverables
-  if (role === 'architect' || role === 'designer') {
-    return { user, role };
+  if (role === 'architect' && project.architect_id === user.id) {
+    return { user, role: 'architect' };
+  }
+  if (role === 'designer' && project.assigned_designer_id === user.id) {
+    return { user, role: 'designer' };
   }
 
   return null;

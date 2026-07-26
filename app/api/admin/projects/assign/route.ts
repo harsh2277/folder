@@ -3,18 +3,44 @@ import { getSupabaseAdmin } from '@/utils/supabase/admin';
 
 export async function POST(request: Request) {
   try {
+    const cookieClient = await createCookieClient();
+    const supabaseAdmin = getSupabaseAdmin();
+
+    const { data: { user } } = await cookieClient.auth.getUser();
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profile?.role !== 'admin') {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { projectId, designerId, status } = await request.json();
 
     if (!projectId) {
       return Response.json({ error: 'Missing projectId' }, { status: 400 });
     }
 
+    if (designerId) {
+      const { data: designerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('id', designerId)
+        .maybeSingle();
+      if (designerProfile?.role !== 'designer') {
+        return Response.json({ error: 'designerId must belong to a designer account' }, { status: 400 });
+      }
+    }
+
     const updateFields: any = {};
     if (status) updateFields.status = status;
     if (designerId) updateFields.assigned_designer_id = designerId;
-
-    // Try admin client first (service role key bypass RLS)
-    const supabaseAdmin = getSupabaseAdmin();
     const { data: updatedProject, error: adminError } = await supabaseAdmin
       .from('projects')
       .update(updateFields)
@@ -38,12 +64,13 @@ export async function POST(request: Request) {
 
     if (cookieError) {
       console.error('[assign] Cookie session also failed:', cookieError);
-      // Return success anyway — the client-side will apply the update optimistically
-      return Response.json({ 
-        success: false, 
-        warning: 'DB update may have failed due to RLS. Please add service role key.',
-        error: cookieError.message 
-      });
+      return Response.json(
+        {
+          success: false,
+          error: cookieError.message || 'Failed to update project assignment.',
+        },
+        { status: 500 }
+      );
     }
 
     return Response.json({ success: true, project: cookieProject });
