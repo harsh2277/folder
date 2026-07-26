@@ -30,6 +30,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [userProfile, setUserProfile] = useState<{ name: string; email: string } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showPaymentGateModal, setShowPaymentGateModal] = useState(false);
 
   const steps = [
     { name: 'Submitted', statusKey: 'Submitted' },
@@ -144,7 +145,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
 
         // Filter out design deliverables
         if (filesData) {
-          setDeliverables(filesData.filter((f: any) => f.profiles?.role === 'designer'));
+          setDeliverables(filesData.filter((f: any) => f.category === 'deliverable' || f.profiles?.role === 'designer'));
         }
 
         // Fetch revision requests
@@ -333,6 +334,19 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
     rzp.open();
   };
 
+  // Check if milestone balance payment (M2) is still pending before allowing revision request
+  const pendingBalancePayment = paymentList.find(
+    (p) => p.status === 'pending' && p.invoice_number?.includes('M2')
+  );
+
+  const handleRequestRevisionClick = () => {
+    if (pendingBalancePayment) {
+      setShowPaymentGateModal(true);
+    } else {
+      router.push(`/architect/projects/${id}/revision-request`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -470,13 +484,13 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
 
               {activeTab === 'Revisions' && (
                 <div className="flex items-center h-full">
-                  <Link
-                    href={`/architect/projects/${id}/revision-request`}
+                  <button
+                    onClick={handleRequestRevisionClick}
                     className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-sm text-sm font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer shadow-sm shadow-amber-500/10"
                   >
                     <i className="bx bx-comment-edit text-base"></i>
                     <span>Request Revision</span>
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>
@@ -1108,6 +1122,94 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                 <span>Pay Now with Razorpay</span>
               )}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Gate Modal — shown when M2 balance is pending and architect tries to request a revision */}
+      {showPaymentGateModal && pendingBalancePayment && (
+        <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in font-sans">
+          <div className="bg-white border border-neutral-200 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+            {/* Top accent bar */}
+            <div className="h-1 w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500" />
+
+            <div className="p-6 space-y-5">
+              {/* Header */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
+                    <i className="bx bx-lock-alt text-xl text-amber-600"></i>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-neutral-900">Complete Payment to Continue</h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">Revision requests require full payment</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPaymentGateModal(false)}
+                  className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700 transition-colors cursor-pointer"
+                >
+                  <i className="bx bx-x text-lg"></i>
+                </button>
+              </div>
+
+              {/* Amount callout */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 space-y-1">
+                <p className="text-xs text-amber-700 font-semibold">Outstanding Balance Payment</p>
+                <p className="text-2xl font-black text-neutral-900">
+                  ₹{Number(pendingBalancePayment.amount).toLocaleString('en-IN')}
+                </p>
+                <p className="text-[11px] text-neutral-500 font-medium">
+                  {pendingBalancePayment.invoice_number || '50% Balance — Final Instalment'}
+                </p>
+              </div>
+
+              {/* Explanation */}
+              <div className="space-y-3">
+                <p className="text-xs text-neutral-600 leading-relaxed">
+                  Your design is complete! 🎉 To protect our designers' work, revision requests are only available after the final balance payment is cleared. Please complete the payment to unlock this feature.
+                </p>
+                <div className="flex items-start space-x-2 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                  <i className="bx bx-info-circle text-blue-500 text-sm mt-0.5 shrink-0"></i>
+                  <p className="text-[11px] text-blue-700 font-medium leading-relaxed">
+                    Once payment is completed, you'll be able to request revisions and the design team will continue working on your project.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center space-x-3 pt-1">
+                <button
+                  onClick={() => setShowPaymentGateModal(false)}
+                  className="flex-1 py-2.5 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 font-bold text-xs rounded-lg transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPaymentGateModal(false);
+                    handlePayMilestone2(pendingBalancePayment);
+                  }}
+                  disabled={isProcessingPayment}
+                  className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-bold text-xs rounded-lg transition-all shadow-md shadow-amber-500/20 cursor-pointer flex items-center justify-center space-x-1.5"
+                >
+                  {isProcessingPayment ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="bx bx-credit-card text-sm"></i>
+                      <span>Pay ₹{Number(pendingBalancePayment.amount).toLocaleString('en-IN')} Now</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

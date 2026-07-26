@@ -24,6 +24,7 @@ export default function AdminUsersManagement() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Form states
   const [newUser, setNewUser] = useState({
@@ -77,14 +78,48 @@ export default function AdminUsersManagement() {
     }
     if (error) {
       setErrorMsg(error);
-      setTimeout(() => setErrorMsg(null), 3000);
+      setTimeout(() => setErrorMsg(null), 4000);
     }
+  };
+
+  // Translate raw Supabase/API errors into human-friendly messages
+  const friendlyError = (raw: string): string => {
+    if (!raw) return 'Something went wrong. Please try again.';
+    const msg = raw.toLowerCase();
+    if (msg.includes('email address') && msg.includes('invalid'))
+      return 'The email address you entered is invalid. Please use a real email like name@company.com';
+    if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('user already exists') || msg.includes('duplicate'))
+      return 'This email is already registered. Try a different email address.';
+    if (msg.includes('password') && (msg.includes('short') || msg.includes('weak') || msg.includes('characters')))
+      return 'Password is too weak. Please use at least 8 characters with letters and numbers.';
+    if (msg.includes('rate limit') || msg.includes('too many'))
+      return 'Too many requests. Please wait a moment and try again.';
+    if (msg.includes('unauthorized') || msg.includes('not allowed'))
+      return 'You do not have permission to perform this action.';
+    if (msg.includes('network') || msg.includes('fetch'))
+      return 'Network error. Please check your connection and try again.';
+    // Return raw but cleaned up
+    return raw.replace(/^Error:\s*/i, '');
   };
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    setErrorMsg(null);
+    setFormError(null);
+
+    // Client-side validation
+    if (!newUser.email.includes('@') || !newUser.email.includes('.')) {
+      setFormError('Please enter a valid email address (e.g. name@company.com)');
+      setSubmitting(false);
+      return;
+    }
+    if (newUser.password.length < 8) {
+      setFormError('Password must be at least 8 characters long.');
+      setSubmitting(false);
+      return;
+    }
+
+    const addedEmail = newUser.email;
 
     try {
       const res = await fetch('/api/admin/users', {
@@ -96,12 +131,25 @@ export default function AdminUsersManagement() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create user');
 
-      triggerNotification('User created successfully!', null);
+      const addedUserObj = {
+        id: data.user?.id || crypto.randomUUID(),
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        mobile_number: newUser.mobileNumber || '',
+        created_at: new Date().toISOString()
+      };
+
+      // Optimistically add user to table state
+      setUsers(prev => [addedUserObj, ...prev.filter(u => u.id !== addedUserObj.id)]);
       setShowAddModal(false);
+      setFormError(null);
       setNewUser({ email: '', password: '', name: '', role: 'architect', mobileNumber: '' });
+      triggerNotification(`User "${newUser.name}" created successfully. They can now log in directly.`, null);
       fetchUsers();
     } catch (err: any) {
-      triggerNotification(null, err.message);
+      // Show error INSIDE the modal so it stays open
+      setFormError(friendlyError(err.message));
     } finally {
       setSubmitting(false);
     }
@@ -110,7 +158,7 @@ export default function AdminUsersManagement() {
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    setErrorMsg(null);
+    setFormError(null);
 
     try {
       const res = await fetch('/api/admin/users', {
@@ -130,10 +178,11 @@ export default function AdminUsersManagement() {
 
       triggerNotification('User updated successfully!', null);
       setShowEditModal(false);
+      setFormError(null);
       setEditingUser(null);
       fetchUsers();
     } catch (err: any) {
-      triggerNotification(null, err.message);
+      setFormError(friendlyError(err.message));
     } finally {
       setSubmitting(false);
     }
@@ -154,10 +203,11 @@ export default function AdminUsersManagement() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to delete user');
 
-      triggerNotification('User deleted successfully!', null);
+      triggerNotification(data.message || 'User deleted successfully!', null);
+      setUsers(prev => prev.filter(u => u.id !== userId && u.email !== userId));
       fetchUsers();
     } catch (err: any) {
-      triggerNotification(null, err.message);
+      triggerNotification(null, friendlyError(err.message));
     }
   };
 
@@ -408,93 +458,124 @@ export default function AdminUsersManagement() {
         <Portal>
           <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
             <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4">
-            <div>
-              <h3 className="text-lg font-medium text-neutral-900">Add New User</h3>
-              <p className="text-base text-neutral-400">Create credentials and profile metadata for staff or architect portal access.</p>
+              <div>
+                <h3 className="text-lg font-medium text-neutral-900">Add New User</h3>
+                <p className="text-sm text-neutral-400">Create credentials and profile metadata for staff or architect portal access.</p>
+              </div>
+
+              {/* Inline form error — stays visible inside modal */}
+              {formError && (
+                <div className="flex items-start space-x-2.5 p-3 bg-rose-50 border border-rose-200 rounded-md">
+                  <i className="bx bx-error-circle text-rose-500 text-lg flex-shrink-0 mt-0.5"></i>
+                  <p className="text-sm text-rose-700 font-medium leading-snug">{formError}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleAddUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newUser.name}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Sarah Jenkins"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={newUser.email}
+                    onChange={(e) => {
+                      setNewUser(prev => ({ ...prev, email: e.target.value }));
+                      if (formError) setFormError(null);
+                    }}
+                    placeholder="sarah@company.com"
+                    className={`w-full px-3 py-2 bg-neutral-50 border rounded-md text-sm focus:outline-none focus:bg-white transition-colors font-medium ${
+                      formError && formError.toLowerCase().includes('email')
+                        ? 'border-rose-300 focus:border-rose-400'
+                        : 'border-neutral-200 focus:border-amber-500'
+                    }`}
+                  />
+                  <p className="text-xs text-neutral-400 mt-1">Use a real email domain like @gmail.com or @company.com</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Password *</label>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    value={newUser.password}
+                    onChange={(e) => {
+                      setNewUser(prev => ({ ...prev, password: e.target.value }));
+                      if (formError) setFormError(null);
+                    }}
+                    placeholder="••••••••"
+                    className={`w-full px-3 py-2 bg-neutral-50 border rounded-md text-sm focus:outline-none focus:bg-white transition-colors font-medium ${
+                      formError && formError.toLowerCase().includes('password')
+                        ? 'border-rose-300 focus:border-rose-400'
+                        : 'border-neutral-200 focus:border-amber-500'
+                    }`}
+                  />
+                  <p className="text-xs text-neutral-400 mt-1">Minimum 8 characters</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Access Role *</label>
+                  <CustomSelect
+                    value={newUser.role}
+                    onChange={(val) => setNewUser(prev => ({ ...prev, role: val }))}
+                    options={[
+                      { value: 'architect', label: 'Architect' },
+                      { value: 'designer', label: 'Designer' }
+                    ]}
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Contact Phone</label>
+                  <input
+                    type="text"
+                    value={newUser.mobileNumber}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, mobileNumber: e.target.value }))}
+                    placeholder="+91 XXXXX XXXXX"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddModal(false); setFormError(null); }}
+                    disabled={submitting}
+                    className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-sm font-medium text-neutral-600 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-sm font-medium transition-colors cursor-pointer disabled:opacity-55 flex items-center space-x-1.5"
+                  >
+                    {submitting && (
+                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    )}
+                    <span>{submitting ? 'Creating...' : 'Create User'}</span>
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleAddUser} className="space-y-4">
-              <div>
-                <label className="block text-base font-medium text-neutral-600 mb-1.5">Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={newUser.name}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Sarah Jenkins"
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-base focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-base font-medium text-neutral-600 mb-1.5">Email Address *</label>
-                <input
-                  type="email"
-                  required
-                  value={newUser.email}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="sarah@example.com"
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-base focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-base font-medium text-neutral-600 mb-1.5">Password *</label>
-                <input
-                  type="password"
-                  required
-                  value={newUser.password}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-base focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-base font-medium text-neutral-600 mb-1.5">Access Role *</label>
-                <CustomSelect
-                  value={newUser.role}
-                  onChange={(val) => setNewUser(prev => ({ ...prev, role: val }))}
-                  options={[
-                    { value: 'architect', label: 'Architect' },
-                    { value: 'designer', label: 'Designer' }
-                  ]}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label className="block text-base font-medium text-neutral-600 mb-1.5">Contact Phone</label>
-                <input
-                  type="text"
-                  value={newUser.mobileNumber}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, mobileNumber: e.target.value }))}
-                  placeholder="+91 XXXXX XXXXX"
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-base focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  disabled={submitting}
-                  className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-base font-medium text-neutral-600 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-base font-medium transition-colors cursor-pointer disabled:opacity-55"
-                >
-                  {submitting ? 'Creating...' : 'Create User'}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      </Portal>
+        </Portal>
       )}
 
       {/* Edit User Modal */}
@@ -502,83 +583,107 @@ export default function AdminUsersManagement() {
         <Portal>
           <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
             <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-4">
-            <div>
-              <h3 className="text-lg font-medium text-neutral-900">Update User Profile</h3>
-              <p className="text-base text-neutral-400">Modify credentials, system access roles, or contact numbers.</p>
+              <div>
+                <h3 className="text-lg font-medium text-neutral-900">Update User Profile</h3>
+                <p className="text-sm text-neutral-400">Modify credentials, system access roles, or contact numbers.</p>
+              </div>
+
+              {/* Inline form error — stays visible inside modal */}
+              {formError && (
+                <div className="flex items-start space-x-2.5 p-3 bg-rose-50 border border-rose-200 rounded-md">
+                  <i className="bx bx-error-circle text-rose-500 text-lg flex-shrink-0 mt-0.5"></i>
+                  <p className="text-sm text-rose-700 font-medium leading-snug">{formError}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingUser.name}
+                    onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={editingUser.email}
+                    onChange={(e) => {
+                      setEditingUser({ ...editingUser, email: e.target.value });
+                      if (formError) setFormError(null);
+                    }}
+                    className={`w-full px-3 py-2 bg-neutral-50 border rounded-md text-sm focus:outline-none focus:bg-white transition-colors font-medium ${
+                      formError && formError.toLowerCase().includes('email')
+                        ? 'border-rose-300 focus:border-rose-400'
+                        : 'border-neutral-200 focus:border-amber-500'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Access Role *</label>
+                  <CustomSelect
+                    value={editingUser.role}
+                    onChange={(val) => setEditingUser({ ...editingUser, role: val })}
+                    options={[
+                      { value: 'architect', label: 'Architect' },
+                      { value: 'designer', label: 'Designer' }
+                    ]}
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Contact Phone</label>
+                  <input
+                    type="text"
+                    value={editingUser.mobile_number || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, mobile_number: e.target.value })}
+                    placeholder="+91 XXXXX XXXXX"
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingUser(null);
+                      setFormError(null);
+                    }}
+                    disabled={submitting}
+                    className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-sm font-medium text-neutral-600 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-sm font-medium transition-colors cursor-pointer disabled:opacity-55 flex items-center space-x-1.5"
+                  >
+                    {submitting && (
+                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    )}
+                    <span>{submitting ? 'Saving...' : 'Save Updates'}</span>
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleUpdateUser} className="space-y-4">
-              <div>
-                <label className="block text-base font-medium text-neutral-600 mb-1.5">Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={editingUser.name}
-                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-base focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-base font-medium text-neutral-600 mb-1.5">Email Address *</label>
-                <input
-                  type="email"
-                  required
-                  value={editingUser.email}
-                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-base focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-base font-medium text-neutral-600 mb-1.5">Access Role *</label>
-                <CustomSelect
-                  value={editingUser.role}
-                  onChange={(val) => setEditingUser({ ...editingUser, role: val })}
-                  options={[
-                    { value: 'architect', label: 'Architect' },
-                    { value: 'designer', label: 'Designer' }
-                  ]}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label className="block text-base font-medium text-neutral-600 mb-1.5">Contact Phone</label>
-                <input
-                  type="text"
-                  value={editingUser.mobile_number || ''}
-                  onChange={(e) => setEditingUser({ ...editingUser, mobile_number: e.target.value })}
-                  placeholder="+91 XXXXX XXXXX"
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-base focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setEditingUser(null);
-                  }}
-                  disabled={submitting}
-                  className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-md text-base font-medium text-neutral-600 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-base font-medium transition-colors cursor-pointer disabled:opacity-55"
-                >
-                  {submitting ? 'Saving...' : 'Save Updates'}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      </Portal>
+        </Portal>
       )}
+
+      {/* User created — no email confirmation required, users can log in immediately */}
     </div>
   );
 }

@@ -111,10 +111,12 @@ export default function ArchitectProjectCreationWizard() {
         setPlans(data || []);
       } catch (err: any) {
         console.error('Error loading plans:', err);
+        // Fallback with current correct Amplex plan names (matched by name in getDbPlanId)
         setPlans([
-          { id: '19acfba5-8ffc-47cf-b1d0-e8cb8ad9ce0d', name: 'Basic Lighting Plan', description: 'Includes basic light layout.', base_price_per_sq_ft: '15.00', min_sq_ft: '500.00' },
-          { id: '3b147280-ebd7-4e61-97b2-a96b7e767888', name: 'Premium Design Plan', description: 'Custom lighting layouts.', base_price_per_sq_ft: '25.00', min_sq_ft: '500.00' },
-          { id: 'aeed1171-ee5b-4456-83b5-c456df6133ff', name: 'BOQ + Design Package', description: 'Complete lighting design.', base_price_per_sq_ft: '40.00', min_sq_ft: '1000.00' },
+          { id: 'fallback-essential', name: 'Amplex Essential', description: 'Lighting Layout, Fixture Suggestions, 1 Revision', base_price_per_sq_ft: '4999', min_sq_ft: '0' },
+          { id: 'fallback-professional', name: 'Amplex Professional', description: 'Lighting Layout, Fixture Suggestions, Lux Guidance, 2 Revisions', base_price_per_sq_ft: '9999', min_sq_ft: '1501' },
+          { id: 'fallback-premium', name: 'Amplex Premium', description: 'Detailed Lighting Layout, Lux Calculations, 3 Revisions, 2 Site Visits', base_price_per_sq_ft: '24999', min_sq_ft: '5001' },
+          { id: 'fallback-enterprise', name: 'Amplex Enterprise', description: 'Complete Lighting Design Support, Multiple Revisions, Dedicated Designer', base_price_per_sq_ft: '0', min_sq_ft: '10001' },
         ]);
       } finally {
         setLoading(false);
@@ -128,49 +130,27 @@ export default function ArchitectProjectCreationWizard() {
   }, []);
 
   const getDbPlanId = () => {
-    if (plans.length === 0) return selectedPlanId;
-    if (selectedPlanId === 'essential') return plans[0]?.id || '';
-    if (selectedPlanId === 'professional') return plans[1]?.id || plans[0]?.id || '';
-    if (selectedPlanId === 'premium') return plans[2]?.id || plans[0]?.id || '';
-    if (selectedPlanId === 'enterprise') return plans[3]?.id || plans[0]?.id || '';
-    return selectedPlanId;
+    if (plans.length === 0) return '';
+    // Match by name (most reliable — works even if DB order changes)
+    const nameMap: Record<string, string> = {
+      essential: 'Amplex Essential',
+      professional: 'Amplex Professional',
+      premium: 'Amplex Premium',
+      enterprise: 'Amplex Enterprise',
+    };
+    const targetName = nameMap[selectedPlanId];
+    const matched = plans.find(p => p.name === targetName);
+    return matched?.id || plans[0]?.id || '';
   };
 
-  const [uiPlans, setUiPlans] = useState(UI_PLANS);
+  const [uiPlans] = useState(UI_PLANS);
 
   useEffect(() => {
-    const syncCustomRates = () => {
-      try {
-        const storedOverridesStr = localStorage.getItem('lightmap_pricing_plan_overrides');
-        if (storedOverridesStr) {
-          const overrides = JSON.parse(storedOverridesStr);
-          setUiPlans(prev =>
-            prev.map(p => {
-              const ov = overrides[p.id];
-              if (ov) {
-                return {
-                  ...p,
-                  name: ov.name || p.name,
-                  sqft: ov.sqft || p.sqft,
-                  price: ov.price !== undefined ? ov.price : p.price,
-                  originalPrice: ov.originalPrice !== undefined ? ov.originalPrice : p.originalPrice,
-                  discount: ov.discount !== undefined ? ov.discount : p.discount,
-                  features: ov.features || p.features,
-                  bottomFeatures: ov.bottomFeatures || p.bottomFeatures
-                };
-              }
-              return p;
-            })
-          );
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
+    // Clear any stale localStorage overrides so UI_PLANS is always the source of truth
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('lightmap_pricing_plan_overrides');
+    }
 
-    syncCustomRates();
-    window.addEventListener('storage', syncCustomRates);
-    return () => window.removeEventListener('storage', syncCustomRates);
   }, []);
 
   const calculateTotalPrice = () => {
@@ -292,18 +272,24 @@ export default function ArchitectProjectCreationWizard() {
         });
       if (remarksError) throw remarksError;
 
-      // 4. Upload File if any
+      // 4. Upload File if any (non-fatal: file upload failures do not block project creation)
       if (uploadedFile) {
-        const formData = new FormData();
-        formData.append('file', uploadedFile);
-        formData.append('category', fileCategory);
+        try {
+          const formData = new FormData();
+          formData.append('file', uploadedFile);
+          formData.append('category', fileCategory);
 
-        const uploadRes = await fetch(`/api/projects/${project.id}/files`, {
-          method: 'POST',
-          body: formData,
-        });
-        const uploadData = await uploadRes.json();
-        if (uploadData.error) throw new Error(uploadData.error);
+          const uploadRes = await fetch(`/api/projects/${project.id}/files`, {
+            method: 'POST',
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData.error) {
+            console.warn('File upload warning (project saved successfully):', uploadData.error);
+          }
+        } catch (uploadErr) {
+          console.warn('File upload failed (project saved successfully):', uploadErr);
+        }
       }
 
       // 5. Create Payment record(s)

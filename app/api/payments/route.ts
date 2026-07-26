@@ -32,10 +32,32 @@ export async function GET() {
     if (projectIds.length > 0) {
       const { data: payData } = await adminClient
         .from('payments')
-        .select('*, projects(project_name, client_name, project_id_serial, area_sq_ft, pricing_plans(name, base_price_per_sq_ft))')
+        .select('*, projects!project_id(project_name, client_name, project_id_serial, area_sq_ft, pricing_plans(name, base_price_per_sq_ft))')
         .in('project_id', projectIds)
         .order('created_at', { ascending: false });
-      payments = payData || [];
+      
+      if (payData && payData.length > 0) {
+        payments = payData;
+      } else {
+        const { data: rawPay } = await adminClient
+          .from('payments')
+          .select('*')
+          .in('project_id', projectIds)
+          .order('created_at', { ascending: false });
+        
+        const { data: rawProj } = await adminClient
+          .from('projects')
+          .select('id, project_name, client_name, project_id_serial, area_sq_ft')
+          .in('id', projectIds);
+
+        payments = (rawPay || []).map((p: any) => {
+          const matchProj = (rawProj || []).find((pr: any) => pr.id === p.project_id);
+          return {
+            ...p,
+            projects: matchProj || null
+          };
+        });
+      }
     }
 
     return NextResponse.json({

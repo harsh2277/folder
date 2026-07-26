@@ -15,7 +15,7 @@ export default function AdminPricingManagement() {
   // Additional Revenue Add-ons rates state
   const [addonRates, setAddonRates] = useState({
     vis3dFee: '₹5,000+',
-    siteVisitFee: 'Extra'
+    siteVisitFee: '₹2,500'
   });
   const [showAddonModal, setShowAddonModal] = useState(false);
 
@@ -97,51 +97,36 @@ export default function AdminPricingManagement() {
 
   async function fetchPlans() {
     try {
-      // Check stored custom overrides
-      const storedOverridesStr = typeof window !== 'undefined' ? localStorage.getItem('lightmap_pricing_plan_overrides') : null;
-      let storedOverrides: Record<string, any> = {};
-      if (storedOverridesStr) {
-        try {
-          storedOverrides = JSON.parse(storedOverridesStr);
-        } catch (e) {
-          console.error('Error parsing stored overrides:', e);
-        }
+      // Clear any stale localStorage overrides so DB is always the source of truth
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lightmap_pricing_plan_overrides');
       }
 
       const { data } = await supabase
         .from('pricing_plans')
         .select('id, name, description, base_price_per_sq_ft, min_sq_ft, is_active')
-        .order('base_price_per_sq_ft', { ascending: true });
+        .order('min_sq_ft', { ascending: true });
 
-      let currentPlans = defaultPlans.map(p => {
-        const ov = storedOverrides[p.id];
-        if (ov) {
+      // Build name→DB record lookup
+      const dbByName: Record<string, any> = {};
+      if (data) {
+        data.forEach((d: any) => { dbByName[d.name] = d; });
+      }
+
+      // Merge defaultPlans display metadata with live DB prices/IDs
+      const currentPlans = defaultPlans.map(p => {
+        const dbRecord = dbByName[p.name];
+        if (dbRecord) {
+          const dbPrice = Number(dbRecord.base_price_per_sq_ft);
           return {
             ...p,
-            name: ov.name || p.name,
-            sqft: ov.sqft || p.sqft,
-            price: ov.price !== undefined ? ov.price : p.price,
-            originalPrice: ov.originalPrice !== undefined ? ov.originalPrice : p.originalPrice,
-            discount: ov.discount !== undefined ? ov.discount : p.discount,
-            features: ov.features || p.features,
-            bottomFeatures: ov.bottomFeatures || p.bottomFeatures
+            id: dbRecord.id, // Use real DB UUID
+            price: dbPrice > 0 ? dbPrice : p.price,
+            is_active: dbRecord.is_active
           };
         }
         return p;
       });
-
-      if (data && data.length > 0) {
-        currentPlans = currentPlans.map((p, idx) => {
-          const matchedDb = data.find((d: any) => d.name?.toLowerCase().includes(p.id)) || data[idx];
-          if (matchedDb && matchedDb.base_price_per_sq_ft && !storedOverrides[p.id]) {
-            const dbPrice = Number(matchedDb.base_price_per_sq_ft);
-            if (dbPrice > 0) {
-              p.price = dbPrice;
-            }
-          }
-          return p;
-        });
-      }
 
       setPlans(currentPlans);
     } catch (err) {
@@ -152,8 +137,31 @@ export default function AdminPricingManagement() {
     }
   }
 
+  async function fetchAddons() {
+    try {
+      const { data, error } = await supabase
+        .from('pricing_addons')
+        .select('name, price, price_label')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        const vis3d = data.find((a: any) => a.name.includes('3D'));
+        const site = data.find((a: any) => a.name.includes('Site'));
+        setAddonRates({
+          vis3dFee: vis3d?.price_label || `₹${Number(vis3d?.price || 5000).toLocaleString('en-IN')}+`,
+          siteVisitFee: site?.price_label || `₹${Number(site?.price || 2500).toLocaleString('en-IN')}`
+        });
+      }
+    } catch (err) {
+      // Table may not exist yet — keep hardcoded defaults
+      console.warn('pricing_addons table not found, using defaults');
+    }
+  }
+
   useEffect(() => {
     fetchPlans();
+    fetchAddons();
   }, []);
 
   const triggerNotification = (success: string | null, error: string | null) => {
@@ -164,18 +172,6 @@ export default function AdminPricingManagement() {
     if (error) {
       setErrorMsg(error);
       setTimeout(() => setErrorMsg(null), 3000);
-    }
-  };
-
-  const syncOverridesToStore = (planId: string, updatedPlanData: any) => {
-    try {
-      const storedOverridesStr = localStorage.getItem('lightmap_pricing_plan_overrides');
-      const overrides = storedOverridesStr ? JSON.parse(storedOverridesStr) : {};
-      overrides[planId] = updatedPlanData;
-      localStorage.setItem('lightmap_pricing_plan_overrides', JSON.stringify(overrides));
-      window.dispatchEvent(new Event('storage'));
-    } catch (e) {
-      console.error('Error saving pricing plan overrides:', e);
     }
   };
 
@@ -212,12 +208,10 @@ export default function AdminPricingManagement() {
           is_active: newPlan.isActive
         });
 
-      syncOverridesToStore(createdPlan.id, createdPlan);
-      setPlans(prev => [...prev, createdPlan]);
-
       triggerNotification('New Pricing Tier created successfully!', null);
       setShowAddModal(false);
       setNewPlan({ name: '', sqft: '', basePrice: '', originalPrice: '', discount: '50% off', features: '', bottomFeatures: '', isActive: true });
+      fetchPlans(); // Reload from DB
     } catch (err: any) {
       triggerNotification(null, err.message || 'Failed to add plan');
     } finally {
@@ -258,14 +252,9 @@ export default function AdminPricingManagement() {
         })
         .eq('id', editingPlan.id);
 
-      // Sync overrides for Add Project creation wizards
-      syncOverridesToStore(editingPlan.id, updatedPlanData);
-
-      // Update local state
-      setPlans(prev => prev.map(p => p.id === editingPlan.id ? { ...p, ...updatedPlanData } : p));
-
-      triggerNotification('Plan & Revisions/Site Visits updated successfully!', null);
+      triggerNotification('Plan updated successfully!', null);
       setShowEditModal(false);
+      fetchPlans(); // Reload from DB to stay in sync
     } catch (err: any) {
       triggerNotification(null, err.message || 'Failed to update plan');
     } finally {

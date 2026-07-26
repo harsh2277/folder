@@ -187,32 +187,6 @@ export default function AdminRevisionRequests() {
     }
   };
 
-  const handleExportCSV = () => {
-    const headers = ['Request Date', 'Project Name', 'Project ID', 'Architect Name', 'Status', 'Architect Instructions'];
-    const rows = filteredRequests.map(req => {
-      const [architectReq] = (req.description || '').split('\n\n=== DESIGNER_RESOLUTION ===\n');
-      return [
-        new Date(req.created_at).toLocaleDateString(),
-        `"${(req.projects?.project_name || '').replace(/"/g, '""')}"`,
-        `"${(req.projects?.project_id_serial || 'N/A').replace(/"/g, '""')}"`,
-        `"${(req.architect?.name || 'Assigned Architect').replace(/"/g, '""')}"`,
-        req.status,
-        `"${(architectReq || '').replace(/"/g, '""')}"`
-      ];
-    });
-
-    const csvContent = 'data:text/csv;charset=utf-8,'
-      + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `revision_requests_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   // Metrics computation
   const totalCount = requests.length;
   const pendingCount = requests.filter(r => r.status === 'pending').length;
@@ -254,16 +228,6 @@ export default function AdminRevisionRequests() {
         <div>
           <h2 className="text-xl font-medium text-neutral-900 font-sans">Revision Requests Review</h2>
           <p className="text-sm text-neutral-400 mt-0.5 font-medium">Review and manage design modifications requested by partner architects.</p>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleExportCSV}
-            className="px-3.5 py-2 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 rounded-md text-sm font-medium transition-colors flex items-center space-x-1.5 cursor-pointer shadow-2xs"
-          >
-            <i className="bx bx-download text-sm text-neutral-450"></i>
-            <span>Export CSV</span>
-          </button>
         </div>
       </div>
 

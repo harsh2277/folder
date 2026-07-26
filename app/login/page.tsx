@@ -68,7 +68,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
       {/* Container */}
       <div className="w-full max-w-md p-8 bg-white border border-neutral-200 rounded-md">
-        
+
         {/* Branding header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center p-3 bg-amber-50 rounded-md mb-4 border border-amber-200">
@@ -108,7 +108,7 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setEmail('design123@gmail.com'); setPassword('design123'); }}
+              onClick={() => { setEmail('designer@gmail.com'); setPassword('design123'); }}
               className="px-2.5 py-1 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded hover:bg-amber-100 transition-all cursor-pointer"
             >
               🔑 Designer

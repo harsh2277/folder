@@ -18,13 +18,19 @@ async function checkAdminAuth() {
 
 export async function GET() {
   try {
+    // Require valid admin session
+    const adminUser = await checkAdminAuth();
+    if (!adminUser) {
+      return Response.json({ error: 'Unauthorized: Admin role required' }, { status: 401 });
+    }
+
     const supabaseAdmin = getSupabaseAdmin();
 
-    // Fetch designers (all staff/designer profiles)
+    // Fetch only designer profiles for the Workload Tracker
     const { data: designers, error: desError } = await supabaseAdmin
       .from('profiles')
       .select('id, name, email, role')
-      .neq('role', 'architect');
+      .eq('role', 'designer');
 
     if (desError) throw desError;
 

@@ -34,7 +34,7 @@ export default function AdminPaymentsPage() {
             receipt_number,
             created_at,
             project_id,
-            projects (
+            projects!project_id (
               project_id_serial,
               project_name,
               client_name,

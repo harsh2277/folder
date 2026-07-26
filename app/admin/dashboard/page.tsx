@@ -122,9 +122,28 @@ export default function AdminDashboard() {
         try {
           const { data: revData } = await supabase
             .from('revision_requests')
-            .select('*, projects(project_name, project_id_serial, client_name)')
+            .select('*, projects!project_id(project_name, project_id_serial, client_name)')
             .order('created_at', { ascending: false });
-          rawRevisions = revData || [];
+          
+          if (revData && revData.length > 0) {
+            rawRevisions = revData;
+          } else {
+            const { data: fallbackRev } = await supabase
+              .from('revision_requests')
+              .select('*')
+              .order('created_at', { ascending: false });
+            rawRevisions = (fallbackRev || []).map((r: any) => {
+              const matchedProj = (projects || []).find((p: any) => p.id === r.project_id);
+              return {
+                ...r,
+                projects: matchedProj ? {
+                  project_name: matchedProj.project_name,
+                  project_id_serial: matchedProj.project_id_serial,
+                  client_name: matchedProj.client_name
+                } : null
+              };
+            });
+          }
         } catch (e) {
           console.warn('Error loading revision requests for admin dashboard:', e);
         }
@@ -694,70 +713,116 @@ export default function AdminDashboard() {
         
         {/* Column 1: Designer Workload & Capacity Tracker */}
         <div className="bg-white border border-neutral-200 rounded-md p-5 space-y-4 flex flex-col justify-between">
-          <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
-            <div>
-              <h3 className="text-sm font-medium text-neutral-900 font-sans flex items-center space-x-2">
-                <i className="bx bx-group text-amber-600 text-base"></i>
-                <span>Designer Workload &amp; Capacity Tracker</span>
-              </h3>
-              <p className="text-xs text-neutral-450 mt-0.5">Real-time design team allocation &amp; active project loads</p>
-            </div>
-            <Link href="/admin/users?role=designer" className="text-xs font-medium text-amber-600 hover:underline shrink-0">
-              Manage
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 flex-1">
-            {designers.length === 0 ? (
-              <div className="col-span-full py-8 text-center text-xs text-neutral-400">
-                No active designers registered.
+          <div className="space-y-3">
+            <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
+              <div>
+                <h3 className="text-sm font-medium text-neutral-900 font-sans flex items-center space-x-2">
+                  <i className="bx bx-group text-amber-600 text-base"></i>
+                  <span>Designer Workload &amp; Capacity Tracker</span>
+                </h3>
+                <p className="text-xs text-neutral-450 mt-0.5">Real-time design team allocation &amp; active project loads</p>
               </div>
-            ) : (
-              designers.map((d: any) => {
-                const activeCount = allProjectsList.filter((p: any) => p.assigned_designer_id === d.id && (p.status === 'In Design' || p.status === 'Under Review' || p.status === 'Submitted')).length;
-                const capacityPercent = Math.min(Math.round((activeCount / 5) * 100), 100);
-                const capacityStatus = activeCount <= 1 ? 'Available' : activeCount <= 3 ? 'Moderate' : 'At Capacity';
-                const badgeClass = activeCount <= 1
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                  : activeCount <= 3
-                    ? 'bg-amber-50 border-amber-200 text-amber-700'
-                    : 'bg-rose-50 border-rose-200 text-rose-700';
+              <Link href="/admin/users?role=designer" className="text-xs font-medium text-amber-600 hover:underline shrink-0 flex items-center space-x-1">
+                <span>Manage Team</span>
+                <i className="bx bx-right-arrow-alt text-xs"></i>
+              </Link>
+            </div>
 
-                return (
-                  <div key={d.id} className="border border-neutral-200 rounded-md p-3 bg-neutral-50/50 space-y-2.5">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center space-x-2 min-w-0">
-                        <div className="w-7 h-7 rounded-full bg-neutral-900 text-amber-500 font-bold text-[11px] flex items-center justify-center shrink-0">
-                          {(d.name || 'D').substring(0, 2).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs font-bold text-neutral-900 truncate block">
-                            {d.name}
-                          </span>
-                          <span className="text-[10px] text-neutral-450 truncate block">{d.email}</span>
-                        </div>
-                      </div>
-                      <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded border whitespace-nowrap ${badgeClass}`}>
-                        {capacityStatus}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1 pt-0.5">
-                      <div className="flex justify-between text-[11px] font-medium text-neutral-500">
-                        <span>Load:</span>
-                        <span className="font-bold text-neutral-800">{activeCount} / 5</span>
-                      </div>
-                      <div className="w-full bg-neutral-200 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-300 ${activeCount <= 1 ? 'bg-emerald-500' : activeCount <= 3 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                          style={{ width: `${capacityPercent}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+            {/* Team Capacity Metrics Bar */}
+            {designers.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 py-2 px-3 bg-neutral-50/80 rounded-md border border-neutral-100 text-xs">
+                <div className="text-center border-r border-neutral-200/60">
+                  <span className="text-neutral-400 block text-[10px] uppercase tracking-wider font-semibold">Total Team</span>
+                  <span className="font-bold text-neutral-900 text-sm font-sans">{designers.length}</span>
+                </div>
+                <div className="text-center border-r border-neutral-200/60">
+                  <span className="text-neutral-400 block text-[10px] uppercase tracking-wider font-semibold">Available</span>
+                  <span className="font-bold text-emerald-600 text-sm font-sans">
+                    {designers.filter((d: any) => {
+                      const count = allProjectsList.filter((p: any) => p.assigned_designer_id === d.id && (p.status === 'In Design' || p.status === 'Under Review' || p.status === 'Submitted')).length;
+                      return count <= 1;
+                    }).length}
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className="text-neutral-400 block text-[10px] uppercase tracking-wider font-semibold">Avg Utilization</span>
+                  <span className="font-bold text-amber-600 text-sm font-sans">
+                    {designers.length > 0
+                      ? Math.round(
+                          (designers.reduce((acc: number, d: any) => {
+                            const count = allProjectsList.filter((p: any) => p.assigned_designer_id === d.id && (p.status === 'In Design' || p.status === 'Under Review' || p.status === 'Submitted')).length;
+                            return acc + Math.min((count / 5) * 100, 100);
+                          }, 0) / designers.length)
+                        )
+                      : 0}%
+                  </span>
+                </div>
+              </div>
             )}
+
+            {/* Clean Non-Boxed List Layout */}
+            <div className="divide-y divide-neutral-100 flex-1 pt-1">
+              {designers.length === 0 ? (
+                <div className="py-8 text-center text-xs text-neutral-400">
+                  No active designers registered.
+                </div>
+              ) : (
+                designers.map((d: any) => {
+                  const activeCount = allProjectsList.filter((p: any) => p.assigned_designer_id === d.id && (p.status === 'In Design' || p.status === 'Under Review' || p.status === 'Submitted')).length;
+                  const capacityPercent = Math.min(Math.round((activeCount / 5) * 100), 100);
+                  const capacityStatus = activeCount <= 1 ? 'Available' : activeCount <= 3 ? 'Moderate' : 'At Capacity';
+                  const dotColor = activeCount <= 1 ? 'bg-emerald-500' : activeCount <= 3 ? 'bg-amber-500' : 'bg-rose-500';
+                  const badgeClass = activeCount <= 1
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/70'
+                    : activeCount <= 3
+                      ? 'bg-amber-50 text-amber-700 border-amber-200/70'
+                      : 'bg-rose-50 text-rose-700 border-rose-200/70';
+                  const barColor = activeCount <= 1 ? 'bg-emerald-500' : activeCount <= 3 ? 'bg-amber-500' : 'bg-rose-500';
+
+                  return (
+                    <div key={d.id} className="py-3 first:pt-1 last:pb-1 hover:bg-neutral-50/60 transition-colors px-1 rounded-md">
+                      <div className="flex items-center justify-between gap-3 mb-1.5">
+                        <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+                          <div className="w-8 h-8 rounded-full bg-neutral-900 text-amber-400 font-bold text-xs flex items-center justify-center shrink-0 shadow-sm border border-neutral-800 font-sans">
+                            {(d.name || 'D').substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-semibold text-neutral-900 truncate">
+                              {d.name}
+                            </h4>
+                            <p className="text-[11px] text-neutral-400 truncate">{d.email}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-3 shrink-0">
+                          <div className="text-right hidden sm:block">
+                            <span className="text-xs font-bold text-neutral-800 font-sans">{activeCount} / 5</span>
+                            <span className="text-[10px] text-neutral-400 block font-normal">Active Projects</span>
+                          </div>
+                          <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full border inline-flex items-center gap-1.5 whitespace-nowrap ${badgeClass}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${dotColor} ${activeCount <= 1 ? 'animate-pulse' : ''}`}></span>
+                            <span>{capacityStatus}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 mt-2">
+                        <div className="flex justify-between items-center text-[10px] text-neutral-400 font-medium">
+                          <span className="sm:hidden font-semibold text-neutral-700">{activeCount} / 5 active projects</span>
+                          <span className="ml-auto font-sans">{capacityPercent}% capacity</span>
+                        </div>
+                        <div className="w-full bg-neutral-100 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-500 rounded-full ${barColor}`}
+                            style={{ width: `${capacityPercent}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
 

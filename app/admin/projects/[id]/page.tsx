@@ -105,7 +105,7 @@ export default function AdminProjectDetail() {
         setFiles(filesData || []);
 
         if (filesData) {
-          setDeliverables(filesData.filter((f: any) => f.profiles?.role === 'designer'));
+          setDeliverables(filesData.filter((f: any) => f.category === 'deliverable' || f.profiles?.role === 'designer'));
         }
 
         // Fetch revision requests
