@@ -44,19 +44,17 @@ export default function Sidebar({
 
       {/* Sidebar — dark theme */}
       <aside
-        className={`bg-neutral-950 flex flex-col justify-between text-neutral-300 transition-all duration-300 fixed inset-y-0 left-0 z-50 md:static md:translate-x-0 ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        } ${isCollapsed ? 'md:w-14' : 'md:w-56 xl:w-56 2xl:w-64'} w-64`}
+        className={`bg-neutral-950 flex flex-col justify-between text-neutral-300 transition-all duration-300 fixed inset-y-0 left-0 z-50 md:static md:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          } ${isCollapsed ? 'md:w-14' : 'md:w-56 xl:w-56 2xl:w-64'} w-64`}
       >
         <div className="overflow-y-auto flex-1">
           {/* Logo & Branding */}
           <div
-            className={`p-3 xl:p-4 flex items-center bg-neutral-950 border-b border-neutral-900 ${
-              isCollapsed && !isMobileOpen ? 'justify-center' : 'space-x-2.5'
-            }`}
+            className={`p-3 xl:p-4 flex items-center bg-neutral-950 border-b border-neutral-900 ${isCollapsed && !isMobileOpen ? 'justify-center' : 'space-x-2.5'
+              }`}
           >
             <div className="w-8 h-8 rounded-md overflow-hidden bg-neutral-900 border border-neutral-800 flex items-center justify-center flex-shrink-0">
-              <img src="/logo.png" alt="LightMap Logo" className="w-full h-full object-cover" />
+              <img src="https://gncpstvyexbkwibdqzua.supabase.co/storage/v1/object/public/project-assets/logo/ChatGPT%20Image%20Jul%2023,%202026,%2012_07_04%20PM.png" alt="LightMap Logo" className="w-full h-full object-cover" />
             </div>
             {(!isCollapsed || isMobileOpen) && (
               <div className="min-w-0">
@@ -89,20 +87,17 @@ export default function Sidebar({
                         href={item.path}
                         onClick={() => setIsMobileOpen(false)}
                         title={isCollapsed && !isMobileOpen ? item.name : undefined}
-                        className={`flex items-center transition-all group ${
-                          isCollapsed && !isMobileOpen
+                        className={`flex items-center transition-all group ${isCollapsed && !isMobileOpen
                             ? 'justify-center p-2 mx-auto w-9 h-9 xl:w-10 xl:h-10 rounded-md'
                             : 'justify-between px-3 py-2 rounded-md'
-                        } text-xs xl:text-sm font-medium ${
-                          isActive
+                          } text-xs xl:text-sm font-medium ${isActive
                             ? 'bg-amber-500 text-white font-medium'
                             : 'text-[#9a9a9a] hover:bg-neutral-900 hover:text-white'
-                        }`}
+                          }`}
                       >
                         <div
-                          className={`flex items-center ${
-                            isCollapsed && !isMobileOpen ? 'justify-center' : 'space-x-2.5'
-                          }`}
+                          className={`flex items-center ${isCollapsed && !isMobileOpen ? 'justify-center' : 'space-x-2.5'
+                            }`}
                         >
                           <i className={`${item.icon} text-base xl:text-lg`}></i>
                           {(!isCollapsed || isMobileOpen) && (
