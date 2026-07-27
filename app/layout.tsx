@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Lighting Design Portal",
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>{children}</body>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

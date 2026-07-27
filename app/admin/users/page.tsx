@@ -219,6 +219,7 @@ export default function AdminUsersManagement() {
 
   const filteredUsers = users
     .filter(u => {
+      if (u.role === 'admin') return false; // Admin accounts are managed outside this directory
       const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (u.mobile_number && u.mobile_number.includes(searchQuery));
@@ -324,8 +325,7 @@ export default function AdminUsersManagement() {
               options={[
                 { value: 'All', label: 'All Roles' },
                 { value: 'architect', label: 'Architect' },
-                { value: 'designer', label: 'Designer' },
-                { value: 'admin', label: 'Admin' }
+                { value: 'designer', label: 'Designer' }
               ]}
             />
             <CustomSelect
@@ -375,14 +375,12 @@ export default function AdminUsersManagement() {
                     Joined: {new Date(u.created_at).toLocaleDateString()}
                   </span>
                   <div className="flex items-center space-x-1.5">
-                    {u.role === 'admin' && (
-                      <Link
-                        href={`/admin/admins/${u.id}`}
-                        className="px-2.5 py-1 text-sm font-medium text-amber-600 border border-amber-200 bg-amber-50 rounded hover:bg-amber-100 transition-colors cursor-pointer"
-                      >
-                        View
-                      </Link>
-                    )}
+                    <Link
+                      href={`/admin/users/${u.id}`}
+                      className="px-2.5 py-1 text-sm font-medium text-amber-600 border border-amber-200 bg-amber-50 rounded hover:bg-amber-100 transition-colors cursor-pointer"
+                    >
+                      View
+                    </Link>
                     <button
                       onClick={() => {
                         setEditingUser(u);
@@ -438,14 +436,12 @@ export default function AdminUsersManagement() {
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
                       <div className="flex items-center justify-end space-x-2">
-                        {u.role === 'admin' && (
-                          <Link
-                            href={`/admin/admins/${u.id}`}
-                            className="px-2.5 py-1 text-sm font-medium text-amber-600 border border-amber-200 bg-amber-50 rounded hover:bg-amber-100 transition-colors cursor-pointer"
-                          >
-                            View
-                          </Link>
-                        )}
+                        <Link
+                          href={`/admin/users/${u.id}`}
+                          className="px-2.5 py-1 text-sm font-medium text-amber-600 border border-amber-200 bg-amber-50 rounded hover:bg-amber-100 transition-colors cursor-pointer"
+                        >
+                          View
+                        </Link>
                         <button
                           onClick={() => {
                             setEditingUser(u);

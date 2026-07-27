@@ -8,7 +8,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import EmptyState from '@/components/ui/EmptyState';
 import CustomSelect from '@/components/ui/CustomSelect';
 import LayoutToggle from '@/components/ui/LayoutToggle';
-import { StatusBadge, PaymentBadge, DeadlineBadge, useToast, Pagination } from '@/components/ui';
+import { StatusBadge, PaymentBadge, DeadlineBadge, useToast, Pagination, SkeletonProjectsList } from '@/components/ui';
 
 const PAGE_SIZE = 10;
 import SearchInput from '@/components/ui/SearchInput';
@@ -140,7 +140,7 @@ export default function AdminProjectsList() {
   }, [searchQuery, selectedStatus, selectedArchitectId, sortBy]);
 
   if (loading) {
-    return <SkeletonLoader />;
+    return <SkeletonProjectsList />;
   }
 
   return (
@@ -450,39 +450,6 @@ export default function AdminProjectsList() {
         }}
         onClose={() => { setShowConfirm(false); setProjectToDelete(null); }}
       />
-    </div>
-  );
-}
-
-function SkeletonLoader() {
-  return (
-    <div className="space-y-6 animate-pulse">
-      <div className="flex justify-between items-center pb-4 border-b border-neutral-100">
-        <div className="space-y-2">
-          <div className="h-6 w-48 bg-neutral-200 rounded"></div>
-          <div className="h-4 w-80 bg-neutral-100 rounded"></div>
-        </div>
-        <div className="h-10 w-24 bg-neutral-200 rounded"></div>
-      </div>
-      <div className="flex items-center justify-between gap-3">
-        <div className="h-10 w-64 bg-neutral-100 rounded"></div>
-        <div className="flex space-x-2">
-          <div className="h-10 w-32 bg-neutral-100 rounded"></div>
-          <div className="h-10 w-32 bg-neutral-100 rounded"></div>
-          <div className="h-10 w-20 bg-neutral-100 rounded"></div>
-        </div>
-      </div>
-      <div className="border border-neutral-100 rounded-md p-4 bg-white space-y-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="flex justify-between items-center py-2 border-b last:border-0 border-neutral-50">
-            <div className="space-y-2 flex-1">
-              <div className="h-4 w-1/4 bg-neutral-200 rounded"></div>
-              <div className="h-3 w-1/6 bg-neutral-100 rounded"></div>
-            </div>
-            <div className="h-4 w-20 bg-neutral-200 rounded"></div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

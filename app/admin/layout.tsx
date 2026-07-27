@@ -6,7 +6,18 @@ import { useRouter, usePathname } from 'next/navigation';
 import CommandPalette from '@/components/ui/CommandPalette';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
-import { ToastProvider } from '@/components/ui';
+
+function timeAgo(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
 
 const navItems = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: 'bx bx-grid-alt', group: 'Overview' },
@@ -33,12 +44,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [allProjects, setAllProjects] = useState<any[]>([]);
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New architect registration: Amit Patel', time: '10m ago', read: false, icon: 'bx-user-plus', color: 'text-amber-600 bg-amber-50' },
-    { id: 2, title: 'New onboarding project: Modern Penthouse', time: '1h ago', read: false, icon: 'bx-folder-plus', color: 'text-blue-600 bg-blue-50' },
-    { id: 3, title: 'Payment completed for project KL-2025-0001', time: '3h ago', read: true, icon: 'bx-credit-card', color: 'text-emerald-600 bg-emerald-50' },
-    { id: 4, title: 'Revision requested for project KL-2025-0003', time: '1d ago', read: true, icon: 'bx-git-pull-request', color: 'text-rose-600 bg-rose-50' }
-  ]);
+  // Notification badge state — mirrors the real Supabase-backed data and
+  // read/dismissed tracking used by /admin/notifications so the bell badge
+  // reflects the actual unread count instead of a hardcoded placeholder.
+  const [notifications, setNotifications] = useState<Array<{ id: string | number; title: string; time: string; read: boolean; icon: string; color: string }>>([]);
 
   // Auto-collapse sidebar below lg breakpoint; persist preference above lg
   useEffect(() => {
@@ -92,6 +101,57 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             .order('created_at', { ascending: false });
           setAllProjects(projs || []);
         } catch (e) { }
+
+        // Fetch recent events for the notification bell badge, using the
+        // same read/dismissed tracking (localStorage key) as the full
+        // /admin/notifications page so the badge count stays accurate.
+        try {
+          const NOTIF_STORAGE_KEY = 'lightmap_admin_notification_state';
+          let readIds = new Set<string>();
+          let dismissedIds = new Set<string>();
+          try {
+            const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              readIds = new Set(parsed.read || []);
+              dismissedIds = new Set(parsed.dismissed || []);
+            }
+          } catch { }
+
+          const [{ data: recentProjects }, { data: recentPayments }, { data: recentRevisions }] = await Promise.all([
+            supabase.from('projects').select('id, project_name, created_at').order('created_at', { ascending: false }).limit(10),
+            supabase.from('payments').select('id, created_at, projects!project_id(project_name)').eq('status', 'completed').order('created_at', { ascending: false }).limit(10),
+            supabase.from('revision_requests').select('id, created_at, projects!project_id(project_name)').eq('status', 'pending').order('created_at', { ascending: false }).limit(10),
+          ]);
+
+          const items = [
+            ...(recentProjects || []).map((p: any) => ({
+              id: `project_${p.id}`, title: `New project submitted: ${p.project_name}`, created_at: p.created_at,
+              icon: 'bx-folder-plus', color: 'text-blue-600 bg-blue-50',
+            })),
+            ...(recentPayments || []).map((pay: any) => ({
+              id: `payment_${pay.id}`, title: `Payment completed${pay.projects ? ` for ${pay.projects.project_name}` : ''}`, created_at: pay.created_at,
+              icon: 'bx-credit-card', color: 'text-emerald-600 bg-emerald-50',
+            })),
+            ...(recentRevisions || []).map((rev: any) => ({
+              id: `revision_${rev.id}`, title: `Revision requested${rev.projects ? ` for ${rev.projects.project_name}` : ''}`, created_at: rev.created_at,
+              icon: 'bx-git-pull-request', color: 'text-rose-600 bg-rose-50',
+            })),
+          ]
+            .filter((item) => !dismissedIds.has(item.id))
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 6)
+            .map((item) => ({
+              id: item.id,
+              title: item.title,
+              time: timeAgo(item.created_at),
+              read: readIds.has(item.id),
+              icon: item.icon,
+              color: item.color,
+            }));
+
+          setNotifications(items);
+        } catch (e) { }
       } catch {
         router.push('/login');
       }
@@ -99,8 +159,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     checkAuth();
   }, [router, supabase]);
 
-  const activeItem = navItems.find(item => pathname.startsWith(item.path));
+  const activeItem = navItems.reduce<typeof navItems[number] | null>((best, item) => {
+    const matches = pathname === item.path || pathname.startsWith(`${item.path}/`);
+    if (!matches) return best;
+    if (!best || item.path.length > best.path.length) return item;
+    return best;
+  }, null);
   const activeTab = activeItem ? activeItem.name : 'Dashboard';
+
+  // Build extra breadcrumb segments beyond the top-level nav item, e.g.
+  // "Admin > Projects > {Project Name} > {Tab}" when drilled into a
+  // project detail route. Resolves the id segment against the projects
+  // already fetched for the Cmd+K palette instead of leaving it raw.
+  const breadcrumbExtra: string[] = [];
+  if (activeItem) {
+    const rest = pathname.slice(activeItem.path.length).split('/').filter(Boolean);
+    if (rest.length > 0) {
+      const [maybeId, ...tail] = rest;
+      const matchedProject = allProjects.find((p) => String(p.id) === maybeId);
+      if (matchedProject) {
+        breadcrumbExtra.push(matchedProject.project_name || matchedProject.client_name || 'Project Details');
+      } else if (!/^[0-9a-f-]{8,}$/i.test(maybeId)) {
+        breadcrumbExtra.push(maybeId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+      } else {
+        breadcrumbExtra.push('Project Details');
+      }
+      if (tail.length > 0) {
+        breadcrumbExtra.push(tail[0].replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+      }
+    }
+  }
 
   if (loading) {
     return (
@@ -122,7 +210,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <ToastProvider>
       <div className="h-screen flex bg-neutral-900 text-neutral-800 overflow-hidden">
         {/* Skip to content — WCAG 2.4.1 */}
         <a
@@ -152,6 +239,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Topbar
             portalName="Admin"
             activeTab={activeTab}
+            breadcrumbExtra={breadcrumbExtra}
             isCollapsed={isCollapsed}
             isMobileOpen={isMobileOpen}
             setIsCollapsed={setIsCollapsed}
@@ -177,6 +265,5 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </main>
         </div>
       </div>
-    </ToastProvider>
   );
 }

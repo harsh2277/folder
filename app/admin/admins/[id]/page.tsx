@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { SkeletonUsersPage } from '@/components/ui';
+import { SkeletonProfile } from '@/components/ui';
 
 export default function AdminAdminDetailPage() {
   const { id } = useParams();
@@ -75,7 +75,7 @@ export default function AdminAdminDetailPage() {
     fetchAdminData();
   }, [id]);
 
-  if (loading) return <SkeletonUsersPage />;
+  if (loading) return <SkeletonProfile />;
 
   if (!admin) {
     return (

@@ -7,6 +7,18 @@ import CommandPalette from '@/components/ui/CommandPalette';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 
+function timeAgo(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
 const navItems = [
   { name: 'Dashboard', path: '/architect/dashboard', icon: 'bx bx-grid-alt', group: 'Overview' },
   { name: 'Projects', path: '/architect/projects', icon: 'bx bx-folder', group: 'Management' },
@@ -20,24 +32,25 @@ export default function ArchitectLayout({ children }: { children: React.ReactNod
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  // Persist sidebar collapse state in localStorage (same pattern as admin)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const saved = localStorage.getItem('architect_sidebar_collapsed');
+    return saved !== null ? saved === 'true' : window.innerWidth < 1024;
+  });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [allProjects, setAllProjects] = useState<any[]>([]);
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'Your project \'Luxury Residence\' has been approved!', time: '20m ago', read: false, icon: 'bx-check-circle', color: 'text-emerald-600 bg-emerald-50' },
-    { id: 2, title: 'Revision feedback received for project \'Modern Penthouse\'', time: '2h ago', read: false, icon: 'bx-git-pull-request', color: 'text-rose-600 bg-rose-50' },
-    { id: 3, title: 'Payment receipt generated for INV-2026-8879', time: '5h ago', read: true, icon: 'bx-receipt', color: 'text-blue-600 bg-blue-50' },
-    { id: 4, title: 'New lighting design layout ready for download', time: '2d ago', read: true, icon: 'bx-download', color: 'text-amber-600 bg-amber-50' }
-  ]);
+  // Notification badge state — mirrors the real Supabase-backed data and
+  // read/dismissed tracking used by /architect/notifications so the bell
+  // badge reflects the actual unread count instead of a hardcoded placeholder.
+  const [notifications, setNotifications] = useState<Array<{ id: string | number; title: string; time: string; read: boolean; icon: string; color: string }>>([]);
 
-  // Auto-collapse at 1024px, open on 1440px+
+  // Auto-collapse sidebar below lg breakpoint; persist preference above lg
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
         setIsCollapsed(true);
-      } else {
-        setIsCollapsed(false);
       }
       if (window.innerWidth >= 768) {
         setIsMobileOpen(false);
@@ -47,6 +60,13 @@ export default function ArchitectLayout({ children }: { children: React.ReactNod
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Persist sidebar state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('architect_sidebar_collapsed', String(isCollapsed));
+    }
+  }, [isCollapsed]);
 
   const authFetchedRef = useRef(false);
 
@@ -78,6 +98,71 @@ export default function ArchitectLayout({ children }: { children: React.ReactNod
             setAllProjects(d2.projects || []);
           }
         } catch (e) {}
+
+        // Fetch recent events for the notification bell badge, using the
+        // same read/dismissed tracking (localStorage key) as the full
+        // /architect/notifications page so the badge count stays accurate.
+        try {
+          const NOTIF_STORAGE_KEY = 'lightmap_architect_notification_state';
+          let readIds = new Set<string>();
+          let dismissedIds = new Set<string>();
+          try {
+            const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              readIds = new Set(parsed.read || []);
+              dismissedIds = new Set(parsed.dismissed || []);
+            }
+          } catch { }
+
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: myProjects } = await supabase
+              .from('projects')
+              .select('id, project_name, created_at')
+              .eq('architect_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(10);
+            const projectIds = (myProjects || []).map((p: any) => p.id);
+
+            const [{ data: recentPayments }, { data: recentRevisions }] = await Promise.all([
+              projectIds.length
+                ? supabase.from('payments').select('id, created_at, projects!project_id(project_name)').eq('status', 'completed').in('project_id', projectIds).order('created_at', { ascending: false }).limit(10)
+                : Promise.resolve({ data: [] as any[] }),
+              projectIds.length
+                ? supabase.from('revision_requests').select('id, status, created_at, projects!project_id(project_name)').in('project_id', projectIds).order('created_at', { ascending: false }).limit(10)
+                : Promise.resolve({ data: [] as any[] }),
+            ]);
+
+            const items = [
+              ...(myProjects || []).map((p: any) => ({
+                id: `project_${p.id}`, title: `Project update: ${p.project_name}`, created_at: p.created_at,
+                icon: 'bx-folder-plus', color: 'text-blue-600 bg-blue-50',
+              })),
+              ...(recentPayments || []).map((pay: any) => ({
+                id: `payment_${pay.id}`, title: `Payment completed${pay.projects ? ` for ${pay.projects.project_name}` : ''}`, created_at: pay.created_at,
+                icon: 'bx-receipt', color: 'text-emerald-600 bg-emerald-50',
+              })),
+              ...(recentRevisions || []).map((rev: any) => ({
+                id: `revision_${rev.id}`, title: `Revision update${rev.projects ? ` for ${rev.projects.project_name}` : ''}`, created_at: rev.created_at,
+                icon: 'bx-git-pull-request', color: 'text-rose-600 bg-rose-50',
+              })),
+            ]
+              .filter((item) => !dismissedIds.has(item.id))
+              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+              .slice(0, 6)
+              .map((item) => ({
+                id: item.id,
+                title: item.title,
+                time: timeAgo(item.created_at),
+                read: readIds.has(item.id),
+                icon: item.icon,
+                color: item.color,
+              }));
+
+            setNotifications(items);
+          }
+        } catch (e) { }
       } catch {
         router.push('/login');
       }
@@ -85,8 +170,36 @@ export default function ArchitectLayout({ children }: { children: React.ReactNod
     checkAuth();
   }, [router]);
 
-  const activeItem = navItems.find(item => pathname.startsWith(item.path));
+  const activeItem = navItems.reduce<typeof navItems[number] | null>((best, item) => {
+    const matches = pathname === item.path || pathname.startsWith(`${item.path}/`);
+    if (!matches) return best;
+    if (!best || item.path.length > best.path.length) return item;
+    return best;
+  }, null);
   const activeTab = activeItem ? activeItem.name : 'Dashboard';
+
+  // Build extra breadcrumb segments beyond the top-level nav item, e.g.
+  // "Architect > Projects > {Project Name} > {Tab}" when drilled into a
+  // project detail route. Resolves the id segment against the projects
+  // already fetched for the Cmd+K palette instead of leaving it raw.
+  const breadcrumbExtra: string[] = [];
+  if (activeItem) {
+    const rest = pathname.slice(activeItem.path.length).split('/').filter(Boolean);
+    if (rest.length > 0) {
+      const [maybeId, ...tail] = rest;
+      const matchedProject = allProjects.find((p) => String(p.id) === maybeId);
+      if (matchedProject) {
+        breadcrumbExtra.push(matchedProject.project_name || matchedProject.client_name || 'Project Details');
+      } else if (!/^[0-9a-f-]{8,}$/i.test(maybeId)) {
+        breadcrumbExtra.push(maybeId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+      } else {
+        breadcrumbExtra.push('Project Details');
+      }
+      if (tail.length > 0) {
+        breadcrumbExtra.push(tail[0].replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+      }
+    }
+  }
 
   if (loading) {
     return (
@@ -129,6 +242,7 @@ export default function ArchitectLayout({ children }: { children: React.ReactNod
         <Topbar
           portalName="Architect"
           activeTab={activeTab}
+          breadcrumbExtra={breadcrumbExtra}
           isCollapsed={isCollapsed}
           isMobileOpen={isMobileOpen}
           setIsCollapsed={setIsCollapsed}

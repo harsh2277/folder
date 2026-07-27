@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { useToast, SkeletonUsersPage } from '@/components/ui';
+import { useToast, SkeletonProfile } from '@/components/ui';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -84,7 +84,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) return <SkeletonUsersPage />;
+  if (loading) return <SkeletonProfile />;
 
   return (
     <div className="max-w-xl mx-auto py-8">

@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import CustomSelect from '../../../../components/ui/CustomSelect';
 import Portal from '../../../../components/ui/Portal';
-import { useToast, SkeletonDashboard } from '@/components/ui';
+import { useToast, SkeletonDashboard, InputField } from '@/components/ui';
 
 function generateClientPassword() {
   return Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4);
@@ -83,6 +83,7 @@ export default function AdminProjectCreationWizard() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [attemptedNext, setAttemptedNext] = useState(false);
   const { success: toastSuccess, error: toastError } = useToast();
 
   // Form State
@@ -274,6 +275,7 @@ export default function AdminProjectCreationWizard() {
       }
       setActiveStep(2);
     } else if (activeStep === 2) {
+      setAttemptedNext(true);
       if (!projectDetails.projectName || !projectDetails.clientName || !projectDetails.projectType || !projectDetails.siteLocation || !projectDetails.areaSqFt || !projectDetails.timeline) {
         setErrorMsg('Please complete all required fields (*).');
         return;
@@ -383,10 +385,13 @@ export default function AdminProjectCreationWizard() {
         });
       if (paymentError) throw paymentError;
 
+      toastSuccess('Project created successfully.');
       router.push('/admin/projects');
     } catch (err: any) {
       console.error('Error saving project:', err);
-      setErrorMsg(err.message || 'Something went wrong while saving the project.');
+      const message = err.message || 'Something went wrong while saving the project.';
+      setErrorMsg(message);
+      toastError(message);
       setSubmitting(false);
     }
   };
@@ -397,6 +402,7 @@ export default function AdminProjectCreationWizard() {
       setErrorMsg('Please select a pricing plan.');
       return;
     }
+    setAttemptedNext(true);
     if (!projectDetails.projectName || !projectDetails.clientName || !projectDetails.projectType || !projectDetails.siteLocation || !projectDetails.areaSqFt || !projectDetails.timeline) {
       setErrorMsg('Please complete all required fields (*) in the Project Details step.');
       return;
@@ -505,7 +511,7 @@ export default function AdminProjectCreationWizard() {
                           <div className="flex justify-between items-start">
                             <span className="text-sm font-medium text-neutral-400">{p.sqft}</span>
                             {p.discount && (
-                              <span className="px-2 py-0.5 rounded text-sm font-medium border bg-emerald-50 border-emerald-100 text-emerald-700">
+                              <span className="px-2 py-0.5 rounded text-sm font-medium border bg-amber-50 border-amber-100 text-amber-700">
                                 {p.discount}
                               </span>
                             )}
@@ -533,7 +539,7 @@ export default function AdminProjectCreationWizard() {
                           <ul className="space-y-2.5 pt-4 border-t border-neutral-100">
                             {p.features.map((f, i) => (
                               <li key={i} className="text-sm text-neutral-500 font-medium flex items-start space-x-1.5">
-                                <i className="bx bx-check text-emerald-600 text-sm mt-0.5 flex-shrink-0"></i>
+                                <i className="bx bx-check text-amber-600 text-sm mt-0.5 flex-shrink-0"></i>
                                 <span className="leading-tight">{f}</span>
                               </li>
                             ))}
@@ -635,27 +641,25 @@ export default function AdminProjectCreationWizard() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-neutral-600">Project Name *</label>
-                    <input
-                      type="text"
-                      value={projectDetails.projectName}
-                      onChange={(e) => setProjectDetails(prev => ({ ...prev, projectName: e.target.value }))}
-                      placeholder="e.g. Oberoi Residency"
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                    />
-                  </div>
+                  <InputField
+                    label="Project Name"
+                    required
+                    type="text"
+                    value={projectDetails.projectName}
+                    onChange={(e) => setProjectDetails(prev => ({ ...prev, projectName: e.target.value }))}
+                    placeholder="e.g. Oberoi Residency"
+                    error={attemptedNext && !projectDetails.projectName ? 'Project name is required.' : undefined}
+                  />
 
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-neutral-600">Client Name *</label>
-                    <input
-                      type="text"
-                      value={projectDetails.clientName}
-                      onChange={(e) => setProjectDetails(prev => ({ ...prev, clientName: e.target.value }))}
-                      placeholder="e.g. Mr. Aditya Oberoi"
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                    />
-                  </div>
+                  <InputField
+                    label="Client Name"
+                    required
+                    type="text"
+                    value={projectDetails.clientName}
+                    onChange={(e) => setProjectDetails(prev => ({ ...prev, clientName: e.target.value }))}
+                    placeholder="e.g. Mr. Aditya Oberoi"
+                    error={attemptedNext && !projectDetails.clientName ? 'Client name is required.' : undefined}
+                  />
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -706,31 +710,32 @@ export default function AdminProjectCreationWizard() {
                       ]}
                       className="w-full"
                     />
+                    {attemptedNext && !projectDetails.projectType && (
+                      <p className="text-xs text-rose-500 font-medium">Project type is required.</p>
+                    )}
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-neutral-600">Site Location *</label>
-                    <input
-                      type="text"
-                      value={projectDetails.siteLocation}
-                      onChange={(e) => setProjectDetails(prev => ({ ...prev, siteLocation: e.target.value }))}
-                      placeholder="City, State"
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                    />
-                  </div>
+                  <InputField
+                    label="Site Location"
+                    required
+                    type="text"
+                    value={projectDetails.siteLocation}
+                    onChange={(e) => setProjectDetails(prev => ({ ...prev, siteLocation: e.target.value }))}
+                    placeholder="City, State"
+                    error={attemptedNext && !projectDetails.siteLocation ? 'Site location is required.' : undefined}
+                  />
 
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-neutral-600">Total Area (sq.ft.) *</label>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={projectDetails.areaSqFt}
-                      onChange={(e) => handleAreaChange(e.target.value)}
-                      placeholder="e.g. 2500"
-                      className="w-full px-3 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm placeholder-neutral-455 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium"
-                    />
-                  </div>
+                  <InputField
+                    label="Total Area (sq.ft.)"
+                    required
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={projectDetails.areaSqFt}
+                    onChange={(e) => handleAreaChange(e.target.value)}
+                    placeholder="e.g. 2500"
+                    error={attemptedNext && !projectDetails.areaSqFt ? 'Total area is required.' : undefined}
+                  />
 
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-neutral-600">Fixture Budget Range</label>
@@ -765,6 +770,9 @@ export default function AdminProjectCreationWizard() {
                       ]}
                       className="w-full"
                     />
+                    {attemptedNext && !projectDetails.timeline && (
+                      <p className="text-xs text-rose-500 font-medium">Delivery timeline is required.</p>
+                    )}
                   </div>
 
                   <div className="space-y-1">
@@ -1105,12 +1113,22 @@ export default function AdminProjectCreationWizard() {
         <Portal>
           <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
             <div className="bg-white border border-neutral-200 rounded-md max-w-md w-full p-6 space-y-6">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-amber-55/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-100">
-                  <i className="bx bx-credit-card-front text-2xl"></i>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-amber-55/10 text-amber-500 rounded-full flex items-center justify-center flex-shrink-0 border border-amber-100">
+                  <i className="bx bx-credit-card-front text-xl"></i>
                 </div>
-                <h3 className="text-lg font-medium text-neutral-900">Verify Project Payment</h3>
-                <p className="text-sm text-neutral-455 mt-1">Confirm the payment status for <strong>{projectDetails.projectName}</strong> before submitting.</p>
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium text-neutral-900">Verify Project Payment</h3>
+                  <p className="text-sm text-neutral-455 mt-1">Confirm the payment status for <strong>{projectDetails.projectName}</strong> before submitting.</p>
+                </div>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  disabled={submitting}
+                  aria-label="Cancel and review"
+                  className="flex-shrink-0 text-neutral-400 hover:text-neutral-600 transition-colors p-1 rounded"
+                >
+                  <i className="bx bx-x text-xl"></i>
+                </button>
               </div>
 
               <div className="bg-neutral-50 rounded-md p-4 border border-neutral-100 flex justify-between items-center text-sm">
@@ -1121,20 +1139,7 @@ export default function AdminProjectCreationWizard() {
                 <span className="text-sm font-medium text-neutral-900">₹{calculateTotalPrice().toLocaleString()}</span>
               </div>
 
-              <div className="flex flex-col space-y-2">
-                <button
-                  onClick={async () => {
-                    setShowPaymentModal(false);
-                    setSubmitting(true);
-                    await saveProject(true);
-                  }}
-                  disabled={submitting}
-                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
-                >
-                  <i className="bx bx-check-circle text-sm"></i>
-                  <span>Yes, Payment Completed</span>
-                </button>
-
+              <div className="flex justify-end gap-2">
                 <button
                   onClick={async () => {
                     setShowPaymentModal(false);
@@ -1142,18 +1147,23 @@ export default function AdminProjectCreationWizard() {
                     await saveProject(false);
                   }}
                   disabled={submitting}
-                  className="w-full py-2.5 bg-white border border-neutral-200 hover:bg-neutral-55 text-neutral-700 font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
+                  className="px-4 py-2 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
                 >
                   <i className="bx bx-time text-sm"></i>
-                  <span>No, Pay Later (Pending)</span>
+                  <span>No, Pay Later</span>
                 </button>
 
                 <button
-                  onClick={() => setShowPaymentModal(false)}
+                  onClick={async () => {
+                    setShowPaymentModal(false);
+                    setSubmitting(true);
+                    await saveProject(true);
+                  }}
                   disabled={submitting}
-                  className="w-full py-2 text-sm font-medium text-neutral-450 hover:text-neutral-600 transition-colors text-center"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm rounded-md transition-colors flex items-center justify-center space-x-1.5"
                 >
-                  Cancel & Review
+                  <i className="bx bx-check-circle text-sm"></i>
+                  <span>Yes, Payment Completed</span>
                 </button>
               </div>
             </div>

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, use } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { StatusBadge } from '@/components/ui';
+import { StatusBadge, useToast, SkeletonProjectDetail } from '@/components/ui';
+import Modal from '@/components/ui/Modal';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -21,14 +22,15 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
   const [preferences, setPreferences] = useState<any[]>([]);
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [architectProfile, setArchitectProfile] = useState<any | null>(null);
-  const [activeTab, setActiveTab] = useState<'Overview' | 'Deliverables'>('Overview');
+  const [activeTab, setActiveTab] = useState<'Overview' | 'Deliverables' | 'My Feedback'>('Overview');
+  const [feedbackEntries, setFeedbackEntries] = useState<any[]>([]);
 
   // Approve modal state
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [clientNameInput, setClientNameInput] = useState('');
   const [approvalNoteInput, setApprovalNoteInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const toast = useToast();
 
   const fetchProjectDetails = async () => {
     if (!id) return;
@@ -76,6 +78,14 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
         setDeliverables(filesData.filter((f: any) => f.category === 'deliverable' || f.profiles?.role === 'designer'));
       }
 
+      // Read-only fetch of past client-submitted approval/feedback entries
+      const { data: revs } = await supabase
+        .from('revision_requests')
+        .select('*')
+        .eq('project_id', id)
+        .order('created_at', { ascending: false });
+      setFeedbackEntries((revs || []).filter((r: any) => r.description?.includes('CLIENT')));
+
     } catch (err: any) {
       console.error('Error loading client project portal:', err);
     } finally {
@@ -113,7 +123,6 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
 
   const handleApproveDesign = async () => {
     setIsSubmitting(true);
-    setToastMessage(null);
     try {
       const res = await fetch('/api/client/approval', {
         method: 'POST',
@@ -127,12 +136,12 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to record approval');
-      setToastMessage({ type: 'success', text: 'Design approved successfully! Your approval has been sent to the architect.' });
+      toast.success('Design approved successfully! Your approval has been sent to the architect.');
       setShowApproveModal(false);
       setApprovalNoteInput('');
       await fetchProjectDetails();
     } catch (err: any) {
-      setToastMessage({ type: 'error', text: err.message || 'Failed to submit approval.' });
+      toast.error(err.message || 'Failed to submit approval.');
     } finally {
       setIsSubmitting(false);
     }
@@ -141,14 +150,8 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
   // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex flex-col justify-center items-center p-6 font-sans">
-        <div className="flex items-center space-x-3 text-neutral-600">
-          <svg className="animate-spin h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-          <span className="text-sm font-semibold text-neutral-700">Loading Design Portal...</span>
-        </div>
+      <div className="min-h-screen bg-neutral-50 p-6 font-sans">
+        <SkeletonProjectDetail />
       </div>
     );
   }
@@ -289,7 +292,7 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
             </div>
 
             <p className="text-center text-xs text-neutral-400">
-              You'll receive a notification from your architect once the design is ready for review.
+              You&apos;ll receive a notification from your architect once the design is ready for review.
             </p>
           </div>
         </main>
@@ -342,21 +345,6 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
       {/* Main Content */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
 
-        {/* Toast */}
-        {toastMessage && (
-          <div className={`p-4 rounded-sm border text-xs font-semibold flex items-center justify-between ${
-            toastMessage.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
-          }`}>
-            <div className="flex items-center space-x-2">
-              <i className={`bx ${toastMessage.type === 'success' ? 'bx-check-circle text-emerald-600' : 'bx-error-circle text-rose-600'} text-base`}></i>
-              <span>{toastMessage.text}</span>
-            </div>
-            <button onClick={() => setToastMessage(null)} className="text-neutral-500 hover:text-neutral-900 p-1">
-              <i className="bx bx-x text-lg"></i>
-            </button>
-          </div>
-        )}
-
         {/* Status Banner */}
         <div className={`bg-white border rounded-sm p-6 shadow-xs relative overflow-hidden ${
           isApproved ? 'border-emerald-300 bg-emerald-50/20' : 'border-amber-200 bg-amber-50/10'
@@ -403,7 +391,7 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
           {/* Tab bar */}
           <div className="border-b border-neutral-200 mb-6 bg-white flex items-center pl-6 pr-3 h-14">
             <div className="flex space-x-8 h-full -mb-px">
-              {(['Overview', 'Deliverables'] as const).map((tab) => {
+              {(['Overview', 'Deliverables', 'My Feedback'] as const).map((tab) => {
                 const isCurrent = activeTab === tab;
                 return (
                   <button
@@ -418,6 +406,11 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
                     {tab === 'Deliverables' && deliverables.length > 0 && (
                       <span className={`ml-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full ${isCurrent ? 'bg-amber-100 text-amber-700' : 'bg-neutral-100 text-neutral-600'}`}>
                         {deliverables.length}
+                      </span>
+                    )}
+                    {tab === 'My Feedback' && feedbackEntries.length > 0 && (
+                      <span className={`ml-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full ${isCurrent ? 'bg-amber-100 text-amber-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                        {feedbackEntries.length}
                       </span>
                     )}
                   </button>
@@ -575,14 +568,48 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
                 )}
               </div>
             )}
+
+            {activeTab === 'My Feedback' && (
+              <div className="space-y-4">
+                {feedbackEntries.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-neutral-450 font-medium space-y-2 bg-neutral-50 rounded-xl border border-dashed border-neutral-200">
+                    <i className="bx bx-comment-detail text-3xl text-neutral-300"></i>
+                    <p className="font-medium">No approvals or feedback submitted yet.</p>
+                    <p className="text-xs text-neutral-400">Notes you submit via &quot;Approve Design&quot; will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {feedbackEntries.map((entry) => {
+                      const isApproval = entry.description?.includes('CLIENT APPROVAL:');
+                      return (
+                        <div key={entry.id} className="bg-neutral-50 border border-neutral-200 rounded-sm p-4 text-xs">
+                          <div className="flex justify-between items-center mb-1.5">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase ${
+                              isApproval ? 'bg-emerald-50 border border-emerald-100 text-emerald-700' : 'bg-amber-50 border border-amber-100 text-amber-700'
+                            }`}>
+                              {isApproval ? 'Approval' : 'Feedback'}
+                            </span>
+                            <span className="text-neutral-400 font-mono">
+                              {new Date(entry.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-neutral-700 font-medium leading-relaxed whitespace-pre-line">
+                            {entry.description?.replace(/^CLIENT (APPROVAL|FEEDBACK):\s*/, '')}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>
 
       {/* Approve Design Modal */}
-      {showApproveModal && (
-        <div className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-sans">
-          <div className="bg-white border border-neutral-200 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
+      <Modal isOpen={showApproveModal} onClose={() => setShowApproveModal(false)} maxWidthClassName="max-w-md">
+          <div className="overflow-hidden">
             <div className="h-1 w-full bg-gradient-to-r from-emerald-400 to-teal-500" />
             <div className="p-6 space-y-5">
               <div className="flex justify-between items-start">
@@ -648,8 +675,7 @@ export default function ClientProjectApprovalPage({ params }: PageProps) {
               </div>
             </div>
           </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

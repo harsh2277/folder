@@ -4,7 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export interface NotificationItem {
-  id: number;
+  id: number | string;
   title: string;
   time: string;
   read: boolean;
@@ -15,6 +15,10 @@ export interface NotificationItem {
 interface TopbarProps {
   portalName: string;
   activeTab: string;
+  /** Optional additional breadcrumb segments rendered after activeTab,
+   * e.g. ['Modern Penthouse', 'Overview'] to show
+   * "Portal > Section > Modern Penthouse > Overview". */
+  breadcrumbExtra?: string[];
   isCollapsed: boolean;
   isMobileOpen: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
@@ -30,6 +34,7 @@ interface TopbarProps {
 export default function Topbar({
   portalName,
   activeTab,
+  breadcrumbExtra = [],
   isCollapsed,
   isMobileOpen,
   setIsCollapsed,
@@ -79,9 +84,26 @@ export default function Topbar({
         </button>
         <span className="hidden sm:inline truncate">{portalName}</span>
         <i className="bx bx-chevron-right text-xs hidden sm:inline flex-shrink-0"></i>
-        <span className="text-neutral-800 font-medium truncate max-w-[120px] sm:max-w-[200px] xl:max-w-none">
-          {activeTab}
-        </span>
+        {breadcrumbExtra.length > 0 ? (
+          <span className="hidden sm:inline truncate max-w-[160px]">{activeTab}</span>
+        ) : (
+          <span className="text-neutral-800 font-medium truncate max-w-[120px] sm:max-w-[200px] xl:max-w-none">
+            {activeTab}
+          </span>
+        )}
+        {breadcrumbExtra.map((segment, idx) => (
+          <span key={`${segment}-${idx}`} className="hidden sm:flex items-center space-x-1.5 min-w-0">
+            <i className="bx bx-chevron-right text-xs flex-shrink-0"></i>
+            <span
+              className={`truncate ${idx === breadcrumbExtra.length - 1
+                  ? 'text-neutral-800 font-medium max-w-[120px] sm:max-w-[200px] xl:max-w-none'
+                  : 'max-w-[140px]'
+                }`}
+            >
+              {segment}
+            </span>
+          </span>
+        ))}
       </div>
 
       {/* Ctrl+K Search Hint */}

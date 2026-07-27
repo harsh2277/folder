@@ -4,7 +4,8 @@ import { useState, useEffect, use, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { StatusBadge, PaymentBadge, DeadlineBadge } from '@/components/ui';
+import { StatusBadge, PaymentBadge, DeadlineBadge, useToast, SkeletonProjectDetail } from '@/components/ui';
+import Modal from '@/components/ui/Modal';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -14,6 +15,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
   const { id } = use(params);
   const supabase = createClient();
   const router = useRouter();
+  const toast = useToast();
 
   const [loading, setLoading] = useState(true);
   const [project, setProject] = useState<any | null>(null);
@@ -206,13 +208,13 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
 
   const handleMockPayment = async () => {
     if (typeof (window as any).Razorpay === 'undefined') {
-      alert('Razorpay SDK is loading, please wait a moment.');
+      toast.error('Razorpay SDK is loading, please wait a moment.');
       return;
     }
 
     const baseAmount = Number(project?.calculated_price || payment?.amount || 0);
     if (baseAmount <= 0) {
-      alert('This project has no price recorded yet. Please contact your admin before paying.');
+      toast.error('This project has no price recorded yet. Please contact your admin before paying.');
       return;
     }
 
@@ -387,14 +389,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <svg className="animate-spin h-6 w-6 text-neutral-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      </div>
-    );
+    return <SkeletonProjectDetail />;
   }
 
   if (!project) {
@@ -491,6 +486,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                       key={tab}
                       type="button"
                       disabled={isDisabled}
+                      title={isDisabled ? 'Available once the project has moved past the initial submission stage' : undefined}
                       onClick={() => setActiveTab(tab as any)}
                       className={`h-full text-sm font-semibold transition-all relative flex items-center space-x-1.5 border-b-2 ${isDisabled
                         ? 'opacity-40 cursor-not-allowed text-neutral-400 border-transparent'
@@ -603,7 +599,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                         </div>
                       ) : (
                         <p className="text-xs text-neutral-400 italic">
-                          Share the direct link with your client ({project.client_name}). Homeowners can inspect project files, click "Approve Design", or submit feedback notes directly to your workspace.
+                          Share the direct link with your client ({project.client_name}). Homeowners can inspect project files, click &quot;Approve Design&quot;, or submit feedback notes directly to your workspace.
                         </p>
                       )}
                     </div>
@@ -964,7 +960,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                     <div className="py-12 text-center text-sm text-neutral-450 font-medium space-y-2 bg-neutral-50 rounded-xl border border-dashed border-neutral-200">
                       <i className="bx bx-comment-detail text-3xl text-neutral-300"></i>
                       <p className="font-medium">No revision requests have been filed.</p>
-                      <p className="text-xs text-neutral-400">If changes are needed, click 'Request Revision' above.</p>
+                      <p className="text-xs text-neutral-400">If changes are needed, click &apos;Request Revision&apos; above.</p>
                     </div>
                   ) : (
                     <div className="space-y-6">
@@ -997,7 +993,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                             {/* Designer Response if resolved */}
                             {isCompleted ? (
                               <div className="pl-4 border-l-2 border-amber-500/80 space-y-1 mt-2">
-                                <span className="text-sm font-semibold text-amber-600 block">Designer's Response</span>
+                                <span className="text-sm font-semibold text-amber-600 block">Designer&apos;s Response</span>
                                 <p className="text-md text-neutral-600 font-semibold leading-relaxed">{designerNotesPart}</p>
                               </div>
                             ) : (
@@ -1097,9 +1093,8 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
       </main>
 
       {/* Razorpay Checkout Modal Overlay */}
-      {checkoutOpen && (
-        <div className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white border border-neutral-200 rounded-2xl max-w-md w-full overflow-hidden shadow-xl p-6 space-y-6">
+      <Modal isOpen={checkoutOpen} onClose={() => setCheckoutOpen(false)} maxWidthClassName="max-w-md">
+          <div className="overflow-hidden p-6 space-y-6">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold text-neutral-900">Secure Checkout</h3>
@@ -1158,13 +1153,11 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
               )}
             </button>
           </div>
-        </div>
-      )}
+      </Modal>
 
       {/* Payment Gate Modal — shown when M2 balance is pending and architect tries to request a revision */}
-      {showPaymentGateModal && pendingBalancePayment && (
-        <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in font-sans">
-          <div className="bg-white border border-neutral-200 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+      <Modal isOpen={showPaymentGateModal && !!pendingBalancePayment} onClose={() => setShowPaymentGateModal(false)} maxWidthClassName="max-w-md">
+          <div className="overflow-hidden font-sans">
             {/* Top accent bar */}
             <div className="h-1 w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500" />
 
@@ -1202,12 +1195,12 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
               {/* Explanation */}
               <div className="space-y-3">
                 <p className="text-xs text-neutral-600 leading-relaxed">
-                  Your design is complete! 🎉 To protect our designers' work, revision requests are only available after the final balance payment is cleared. Please complete the payment to unlock this feature.
+                  Your design is complete! 🎉 To protect our designers&apos; work, revision requests are only available after the final balance payment is cleared. Please complete the payment to unlock this feature.
                 </p>
                 <div className="flex items-start space-x-2 bg-blue-50 border border-blue-100 rounded-lg p-3">
                   <i className="bx bx-info-circle text-blue-500 text-sm mt-0.5 shrink-0"></i>
                   <p className="text-[11px] text-blue-700 font-medium leading-relaxed">
-                    Once payment is completed, you'll be able to request revisions and the design team will continue working on your project.
+                    Once payment is completed, you&apos;ll be able to request revisions and the design team will continue working on your project.
                   </p>
                 </div>
               </div>
@@ -1246,8 +1239,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
               </div>
             </div>
           </div>
-        </div>
-      )}
+      </Modal>
     </>
   );
 }

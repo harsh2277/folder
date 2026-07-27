@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
+import { SkeletonList } from '@/components/ui';
 
 interface NotificationItem {
   id: string;
@@ -204,7 +205,7 @@ export default function DesignerNotificationsPage() {
       {/* Notification List Container */}
       <div className="bg-white border border-neutral-200 rounded-md overflow-hidden">
         {loading ? (
-          <div className="py-16 text-center text-sm text-neutral-450 font-medium">Loading notifications...</div>
+          <SkeletonList rows={6} />
         ) : filteredNotifications.length === 0 ? (
           <div className="py-16 text-center text-sm text-neutral-455 font-medium space-y-2 bg-neutral-50/20">
             <i className="bx bx-bell-off text-4xl text-neutral-300"></i>

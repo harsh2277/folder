@@ -32,6 +32,17 @@ export default function Sidebar({
 }: SidebarProps) {
   const navGroups = Array.from(new Set(navItems.map((item) => item.group)));
 
+  // Determine the single "most specific" matching nav item for the current
+  // pathname (exact match, or longest path prefix match on a segment
+  // boundary) so that items sharing a common prefix (e.g. /admin/payments
+  // vs /admin/pay) never both light up — only the longest match wins.
+  const matchingItem = navItems.reduce<NavItem | null>((best, item) => {
+    const matches = pathname === item.path || pathname.startsWith(`${item.path}/`);
+    if (!matches) return best;
+    if (!best || item.path.length > best.path.length) return item;
+    return best;
+  }, null);
+
   return (
     <>
       {/* Mobile Backdrop overlay */}
@@ -80,7 +91,7 @@ export default function Sidebar({
                 {navItems
                   .filter((item) => item.group === group)
                   .map((item) => {
-                    const isActive = pathname.startsWith(item.path);
+                    const isActive = matchingItem?.path === item.path;
                     return (
                       <Link
                         key={item.name}

@@ -8,7 +8,7 @@ import LayoutToggle from '@/components/ui/LayoutToggle';
 import EmptyState from '@/components/ui/EmptyState';
 import Portal from '@/components/ui/Portal';
 import SearchInput from '@/components/ui/SearchInput';
-import { StatusBadge, useToast, Pagination } from '@/components/ui';
+import { StatusBadge, useToast, Pagination, SkeletonPaymentsPage } from '@/components/ui';
 
 const PAGE_SIZE = 10;
 
@@ -154,7 +154,7 @@ export default function AdminRevisionRequests() {
   const paginatedRequests = filteredRequests.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   if (loading) {
-    return <SkeletonLoader />;
+    return <SkeletonPaymentsPage />;
   }
 
   if (loadError) {
@@ -599,42 +599,3 @@ export default function AdminRevisionRequests() {
   );
 }
 
-
-
-function SkeletonLoader() {
-  return (
-    <div className="space-y-6 animate-pulse">
-      <div className="flex justify-between items-center pb-4 border-b border-neutral-100">
-        <div className="space-y-2">
-          <div className="h-6 w-56 bg-neutral-200 rounded"></div>
-          <div className="h-4 w-96 bg-neutral-100 rounded"></div>
-        </div>
-        <div className="h-10 w-28 bg-neutral-200 rounded"></div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-24 bg-neutral-100 border border-neutral-200 rounded-md"></div>
-        ))}
-      </div>
-      <div className="flex items-center justify-between gap-3">
-        <div className="h-10 w-64 bg-neutral-100 rounded"></div>
-        <div className="flex space-x-2">
-          <div className="h-10 w-32 bg-neutral-100 rounded"></div>
-          <div className="h-10 w-32 bg-neutral-100 rounded"></div>
-          <div className="h-10 w-20 bg-neutral-100 rounded"></div>
-        </div>
-      </div>
-      <div className="border border-neutral-200 rounded-md p-4 bg-white space-y-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="flex justify-between items-center py-3 border-b last:border-0 border-neutral-100">
-            <div className="space-y-2 flex-1">
-              <div className="h-4 w-1/4 bg-neutral-200 rounded"></div>
-              <div className="h-3 w-1/3 bg-neutral-100 rounded"></div>
-            </div>
-            <div className="h-6 w-20 bg-neutral-200 rounded"></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}

@@ -23,13 +23,22 @@ interface ToastContextValue {
   dismiss: (id: string) => void;
 }
 
-// ─── Context ──────────────────────────────────────────────────────────────────
-
 const ToastContext = createContext<ToastContextValue | null>(null);
+
+const fallbackToastContext: ToastContextValue = {
+  toasts: [],
+  success: (msg: string) => console.log('[Toast Success]', msg),
+  error: (msg: string) => console.error('[Toast Error]', msg),
+  info: (msg: string) => console.log('[Toast Info]', msg),
+  warning: (msg: string) => console.warn('[Toast Warning]', msg),
+  dismiss: () => {},
+};
 
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used inside <ToastProvider>');
+  if (!ctx) {
+    return fallbackToastContext;
+  }
   return ctx;
 }
 

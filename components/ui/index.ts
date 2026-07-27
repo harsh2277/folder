@@ -27,4 +27,8 @@ export {
   SkeletonUsersPage,
   SkeletonPaymentsPage,
   SkeletonPricingPage,
+  SkeletonProjectsList,
+  SkeletonProjectDetail,
+  SkeletonProfile,
+  SkeletonList,
 } from './SkeletonLoader';
