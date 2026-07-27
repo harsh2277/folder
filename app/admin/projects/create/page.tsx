@@ -103,6 +103,13 @@ export default function AdminProjectCreationWizard() {
     notes: '',
   });
 
+  const [designRemarks, setDesignRemarks] = useState({
+    lightingMood: '',
+    expectations: '',
+    inspirationIdeas: '',
+    functionalRequirements: '',
+  });
+
   const [lightingPreferences, setLightingPreferences] = useState<string[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -339,10 +346,10 @@ export default function AdminProjectCreationWizard() {
         .from('project_remarks')
         .insert({
           project_id: project.id,
-          lighting_mood: projectDetails.stylePreference || '',
-          expectations: projectDetails.notes || '',
-          inspiration_ideas: selectedAddons.join(', '),
-          functional_requirements: '',
+          lighting_mood: designRemarks.lightingMood || projectDetails.stylePreference || '',
+          expectations: designRemarks.expectations || projectDetails.notes || '',
+          inspiration_ideas: designRemarks.inspirationIdeas || (selectedAddons.length > 0 ? selectedAddons.join(', ') : ''),
+          functional_requirements: designRemarks.functionalRequirements || '',
         });
       if (remarksError) throw remarksError;
 
@@ -847,6 +854,60 @@ export default function AdminProjectCreationWizard() {
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+
+                {/* Additional Design Remarks */}
+                <div className="border-t border-neutral-100 pt-4 space-y-3.5">
+                  <div>
+                    <span className="text-sm font-medium text-neutral-800 block">Additional Design Remarks</span>
+                    <p className="text-xs text-neutral-450 mt-0.5">Provide detailed specifications on lighting mood, expectations, inspiration, and functional needs.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide">Lighting Mood</label>
+                      <input
+                        type="text"
+                        value={designRemarks.lightingMood}
+                        onChange={(e) => setDesignRemarks(prev => ({ ...prev, lightingMood: e.target.value }))}
+                        placeholder="e.g., Warm & Cozy, Accent Driven"
+                        className="w-full px-3.5 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium text-neutral-800"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide">Expectations</label>
+                      <input
+                        type="text"
+                        value={designRemarks.expectations}
+                        onChange={(e) => setDesignRemarks(prev => ({ ...prev, expectations: e.target.value }))}
+                        placeholder="e.g., Glare-free workplace, subtle wall wash"
+                        className="w-full px-3.5 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium text-neutral-800"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide">Inspiration Ideas</label>
+                      <input
+                        type="text"
+                        value={designRemarks.inspirationIdeas}
+                        onChange={(e) => setDesignRemarks(prev => ({ ...prev, inspirationIdeas: e.target.value }))}
+                        placeholder="e.g., Minimal profile tracks, cove lighting"
+                        className="w-full px-3.5 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium text-neutral-800"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide">Functional Requirements</label>
+                      <input
+                        type="text"
+                        value={designRemarks.functionalRequirements}
+                        onChange={(e) => setDesignRemarks(prev => ({ ...prev, functionalRequirements: e.target.value }))}
+                        placeholder="e.g., DALI dimming, IP65 outdoor waterproofing"
+                        className="w-full px-3.5 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium text-neutral-800"
+                      />
+                    </div>
                   </div>
                 </div>
 
