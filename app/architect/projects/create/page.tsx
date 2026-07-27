@@ -537,7 +537,7 @@ export default function ArchitectProjectCreationWizard() {
                 disabled={s.num > activeStep}
                 className="relative z-10 flex flex-col items-center focus:outline-none"
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 border-2 ${ isActive ? 'bg-neutral-950 border-neutral-950 text-amber-500 ring-4 ring-neutral-950/10' : isCompleted ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-neutral-200 text-neutral-400' }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 border-2 ${ isActive ? 'bg-neutral-950 border-neutral-950 text-white ring-4 ring-neutral-950/10' : isCompleted ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-neutral-200 text-neutral-400' }`}>
                   {isCompleted ? <i className="bx bx-check text-sm"></i> : s.num}
                 </div>
                 <span className={`absolute top-10 text-sm font-medium whitespace-nowrap transition-colors duration-300 ${ isActive ? 'text-neutral-900 font-medium' : 'text-neutral-400' }`}>

@@ -459,10 +459,10 @@ export default function AdminProjectCreationWizard() {
                 disabled={s.num > activeStep}
                 className="relative z-10 flex flex-col items-center focus:outline-none"
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 border-2 ${isActive ? 'bg-neutral-950 border-neutral-950 text-amber-500 ring-4 ring-neutral-950/10' : isCompleted ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-neutral-200 text-neutral-400' }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 border-2 ${isActive ? 'bg-neutral-950 border-neutral-950 text-white ring-4 ring-neutral-950/10' : isCompleted ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-neutral-200 text-neutral-400'}`}>
                   {isCompleted ? <i className="bx bx-check text-sm"></i> : s.num}
                 </div>
-                <span className={`absolute top-10 text-sm font-medium whitespace-nowrap transition-colors duration-300 ${isActive ? 'text-neutral-900 font-medium' : 'text-neutral-400' }`}>
+                <span className={`absolute top-10 text-sm font-medium whitespace-nowrap transition-colors duration-300 ${isActive ? 'text-neutral-900 font-medium' : 'text-neutral-400'}`}>
                   {s.label}
                 </span>
               </button>
@@ -493,7 +493,7 @@ export default function AdminProjectCreationWizard() {
                       <div
                         key={p.id}
                         onClick={() => setSelectedPlanId(p.id)}
-                        className={`border rounded-md p-6 bg-white flex flex-col justify-between space-y-6 hover: transition-all duration-200 relative h-full cursor-pointer ${ isSelected ? 'border-amber-500 ring-1 ring-amber-500' : 'border-neutral-200 hover:border-neutral-300' }`}
+                        className={`border rounded-md p-6 bg-white flex flex-col justify-between space-y-6 hover: transition-all duration-200 relative h-full cursor-pointer ${isSelected ? 'border-amber-500 ring-1 ring-amber-500' : 'border-neutral-200 hover:border-neutral-300'}`}
                       >
                         {p.popular && (
                           <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-sm bg-amber-500 text-white px-2.5 py-0.5 rounded font-medium z-10 whitespace-nowrap">
@@ -559,7 +559,7 @@ export default function AdminProjectCreationWizard() {
                                 e.stopPropagation();
                                 setSelectedPlanId(p.id);
                               }}
-                              className={`w-full py-2.5 text-xs font-medium rounded-md transition-all duration-200 cursor-pointer text-center active:scale-[0.98] ${ isSelected ? 'bg-amber-500 hover:bg-amber-600 text-white ' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200' }`}
+                              className={`w-full py-2.5 text-xs font-medium rounded-md transition-all duration-200 cursor-pointer text-center active:scale-[0.98] ${isSelected ? 'bg-amber-500 hover:bg-amber-600 text-white ' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200'}`}
                             >
                               {isSelected ? 'Selected' : 'Select Plan'}
                             </button>
@@ -583,10 +583,10 @@ export default function AdminProjectCreationWizard() {
                         <div
                           key={addon.id}
                           onClick={() => handleAddonToggle(addon.id)}
-                          className={`border rounded-md p-4 flex items-center justify-between cursor-pointer transition-all duration-200 ${ isChecked ? 'border-amber-500 bg-amber-50/20' : 'border-neutral-200 hover:border-neutral-300' }`}
+                          className={`border rounded-md p-4 flex items-center justify-between cursor-pointer transition-all duration-200 ${isChecked ? 'border-amber-500 bg-amber-50/20' : 'border-neutral-200 hover:border-neutral-300'}`}
                         >
                           <div className="flex items-center space-x-3.5">
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${ isChecked ? 'bg-amber-500 border-amber-500 text-white' : 'border-neutral-300' }`}>
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${isChecked ? 'bg-amber-500 border-amber-500 text-white' : 'border-neutral-300'}`}>
                               {isChecked && <i className="bx bx-check text-sm"></i>}
                             </div>
                             <div>
@@ -617,7 +617,7 @@ export default function AdminProjectCreationWizard() {
                     type="button"
                     onClick={handleNext}
                     disabled={!selectedPlanId}
-                    className={`px-4 py-2 text-sm font-medium rounded transition-colors flex items-center gap-1.5 cursor-pointer ${ selectedPlanId ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-neutral-200 text-neutral-400 cursor-not-allowed' }`}
+                    className={`px-4 py-2 text-sm font-medium rounded transition-colors flex items-center gap-1.5 cursor-pointer ${selectedPlanId ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'}`}
                   >
                     <span>Continue to Project Details</span>
                     <i className="bx bx-chevron-right text-sm"></i>
@@ -848,7 +848,7 @@ export default function AdminProjectCreationWizard() {
                           key={pref}
                           type="button"
                           onClick={() => handlePreferenceToggle(pref)}
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${isChecked ? 'bg-amber-500 text-white border-amber-500' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border-neutral-200' }`}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${isChecked ? 'bg-amber-500 text-white border-amber-500' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border-neutral-200'}`}
                         >
                           {pref}
                         </button>
