@@ -6,22 +6,25 @@ import { useRouter } from 'next/navigation';
 import EmptyState from '@/components/ui/EmptyState';
 import LayoutToggle from '@/components/ui/LayoutToggle';
 import CustomSelect from '@/components/ui/CustomSelect';
-import { StatusBadge, DeadlineBadge } from '@/components/ui';
+import { StatusBadge, DeadlineBadge, Pagination } from '@/components/ui';
 import SearchInput from '@/components/ui/SearchInput';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 import { createClient } from '@/utils/supabase/client';
+
+const PAGE_SIZE = 10;
 
 export default function DesignerProjectsList() {
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [assignmentTab, setAssignmentTab] = useState<'mine' | 'all'>('mine');
+  const [, setCurrentUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
+  const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [page, setPage] = useState(1);
 
   async function fetchProjects() {
     try {
@@ -78,25 +81,31 @@ export default function DesignerProjectsList() {
 
 
 
-  const isSameId = (id1: any, id2: any) => {
-    if (!id1 || !id2) return false;
-    return String(id1).trim().toLowerCase() === String(id2).trim().toLowerCase();
-  };
+  const filteredProjects = projects
+    .filter((p) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        (p.project_name || '').toLowerCase().includes(query) ||
+        (p.client_name || '').toLowerCase().includes(query) ||
+        (p.project_id_serial || '').toLowerCase().includes(query);
+      const matchesStatus = selectedStatus === 'All' || p.status === selectedStatus;
 
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (sortBy === 'area-desc') return Number(b.area_sq_ft || 0) - Number(a.area_sq_ft || 0);
+      if (sortBy === 'area-asc') return Number(a.area_sq_ft || 0) - Number(b.area_sq_ft || 0);
+      return 0;
+    });
 
+  const pageCount = Math.max(1, Math.ceil(filteredProjects.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paginatedProjects = filteredProjects.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const myProjectsCount = currentUserId ? projects.filter(p => isSameId(p.assigned_designer_id, currentUserId)).length : 0;
-
-  const filteredProjects = projects.filter((p) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      (p.project_name || '').toLowerCase().includes(query) ||
-      (p.client_name || '').toLowerCase().includes(query) ||
-      (p.project_id_serial || '').toLowerCase().includes(query);
-    const matchesStatus = selectedStatus === 'All' || p.status === selectedStatus;
-
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedStatus, sortBy]);
 
   if (loading) {
     return (
@@ -132,6 +141,15 @@ export default function DesignerProjectsList() {
             onChange={setSelectedStatus}
             options={statuses.map(s => ({ value: s, label: s === 'All' ? 'All Statuses' : s }))}
           />
+          <CustomSelect
+            value={sortBy}
+            onChange={setSortBy}
+            options={[
+              { value: 'newest', label: 'Sort by: Newest' },
+              { value: 'area-desc', label: 'Area: High to Low' },
+              { value: 'area-asc', label: 'Area: Low to High' }
+            ]}
+          />
         </div>
 
         {/* View Mode Toggle */}
@@ -148,7 +166,7 @@ export default function DesignerProjectsList() {
         ) : viewMode === 'card' ? (
           /* Card View */
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {filteredProjects.map((proj) => (
+            {paginatedProjects.map((proj) => (
               <div
                 key={proj.id}
                 onClick={() => router.push(`/designer/projects/${proj.id}`)}
@@ -205,7 +223,7 @@ export default function DesignerProjectsList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 text-neutral-700">
-                {filteredProjects.map((proj) => (
+                {paginatedProjects.map((proj) => (
                   <tr
                     key={proj.id}
                     onClick={() => router.push(`/designer/projects/${proj.id}`)}
@@ -246,6 +264,14 @@ export default function DesignerProjectsList() {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={currentPage}
+          pageCount={pageCount}
+          totalItems={filteredProjects.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   );

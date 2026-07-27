@@ -93,7 +93,7 @@ export async function POST(
     }
 
     // Upload to storage — try cookieClient first (has user JWT), then supabaseAdmin
-    let uploadedPath = filePath;
+    const uploadedPath = filePath;
     let storageOk = false;
 
     try {

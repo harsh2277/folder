@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
 import { rateLimit, clientKeyFrom } from '@/utils/rateLimit';
+import { verifyClientToken } from '@/utils/clientLinkToken';
 
 export async function POST(request: Request) {
   try {
@@ -17,12 +18,23 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { projectId, action, clientName, clientEmail, feedbackNotes, rating } = body;
+    const { projectId, action, clientName, clientEmail, feedbackNotes, rating, token } = body;
 
     if (!projectId || !action) {
       return NextResponse.json(
         { error: 'Missing required fields: projectId and action are required.' },
         { status: 400 }
+      );
+    }
+
+    // This endpoint is otherwise reachable by anyone who knows/guesses a
+    // project UUID. Require the signed token that is only ever handed out
+    // (via /api/client/link) to someone with legitimate access to the
+    // project, and embedded in the client review link they were sent.
+    if (!verifyClientToken(projectId, token)) {
+      return NextResponse.json(
+        { error: 'Invalid or missing access token for this project link.' },
+        { status: 403 }
       );
     }
 

@@ -8,6 +8,7 @@ export { default as EmptyState } from './EmptyState';
 export { default as InputField } from './InputField';
 export { default as LayoutToggle } from './LayoutToggle';
 export { default as LoadingSpinner } from './LoadingSpinner';
+export { default as Modal } from './Modal';
 export { default as PageHeader } from './PageHeader';
 export { default as Pagination } from './Pagination';
 export { default as PasswordInput } from './PasswordInput';

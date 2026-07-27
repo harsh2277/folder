@@ -25,115 +25,52 @@ export default function AdminRevisionRequests() {
 
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [loadError, setLoadError] = useState(false);
   const { success: toastSuccess, error: toastError } = useToast();
 
-  useEffect(() => {
-    async function fetchRequests() {
-      try {
-        const { data, error } = await supabase
-          .from('revision_requests')
-          .select(`
+  async function fetchRequests() {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const { data, error } = await supabase
+        .from('revision_requests')
+        .select(`
+          id,
+          project_id,
+          architect_id,
+          description,
+          status,
+          created_at,
+          projects (
             id,
-            project_id,
-            architect_id,
-            description,
-            status,
-            created_at,
-            projects (
-              id,
-              project_name,
-              project_id_serial,
-              client_name,
-              site_location,
-              status
-            ),
-            architect:profiles!revision_requests_architect_id_fkey (
-              id,
-              name,
-              email,
-              mobile_number
-            )
-          `)
-          .order('created_at', { ascending: false });
+            project_name,
+            project_id_serial,
+            client_name,
+            site_location,
+            status
+          ),
+          architect:profiles!revision_requests_architect_id_fkey (
+            id,
+            name,
+            email,
+            mobile_number
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setRequests(data || []);
-      } catch (err: any) {
-        console.error('Error fetching revision requests:', err);
-        // Fallback realistic mock data if DB empty or unreachable
-        setRequests([
-          {
-            id: 'rev-101',
-            project_id: 'proj-1',
-            architect_id: 'arch-1',
-            description: 'Please adjust the ambient recessed lighting levels in the main living room from 300 Lux to 450 Lux. Also add accent spotlights for wall artworks.\n\n=== DESIGNER_RESOLUTION ===\nUpdated luminaire calculation sheet and repositioned accent track heads as requested.',
-            status: 'completed',
-            created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            projects: {
-              id: 'proj-1',
-              project_id_serial: 'KL-2026-0001',
-              project_name: 'Lotus Penthouse',
-              client_name: 'Vikram Shah',
-              site_location: 'Mumbai, MH',
-              status: 'In Design'
-            },
-            architect: {
-              id: 'arch-1',
-              name: 'Kabir Mehta',
-              email: 'kabir@studioarchitects.in',
-              mobile_number: '+91 91234 56789'
-            }
-          },
-          {
-            id: 'rev-102',
-            project_id: 'proj-2',
-            architect_id: 'arch-2',
-            description: 'Requesting revision for facade lighting fixtures. Client requested warm 2700K color temperature instead of neutral 4000K for exterior elevation.',
-            status: 'pending',
-            created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-            projects: {
-              id: 'proj-2',
-              project_id_serial: 'KL-2026-0002',
-              project_name: 'Vertex IT Hub',
-              client_name: 'Vertex Corp',
-              site_location: 'Bengaluru, KA',
-              status: 'Under Review'
-            },
-            architect: {
-              id: 'arch-2',
-              name: 'Ananya Roy',
-              email: 'ananya@designgroup.com',
-              mobile_number: '+91 95432 10987'
-            }
-          },
-          {
-            id: 'rev-103',
-            project_id: 'proj-3',
-            architect_id: 'arch-3',
-            description: 'Increase dimming control zones in executive boardroom from 2 to 4 channels to support presentation mode and video conference scenes.',
-            status: 'approved',
-            created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-            projects: {
-              id: 'proj-3',
-              project_id_serial: 'KL-2026-0003',
-              project_name: 'Zoya Boutique',
-              client_name: 'Zoya Lifestyle',
-              site_location: 'Delhi, DL',
-              status: 'In Design'
-            },
-            architect: {
-              id: 'arch-3',
-              name: 'Rohan Varma',
-              email: 'rohan@lightmap.com',
-              mobile_number: '+91 99887 76655'
-            }
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
+      if (error) throw error;
+      setRequests(data || []);
+    } catch (err: any) {
+      console.error('Error fetching revision requests:', err);
+      setRequests([]);
+      setLoadError(true);
+      toastError('Unable to load revision requests — please retry.');
+    } finally {
+      setLoading(false);
     }
+  }
 
+  useEffect(() => {
     fetchRequests();
   }, []);
 
@@ -218,6 +155,23 @@ export default function AdminRevisionRequests() {
 
   if (loading) {
     return <SkeletonLoader />;
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm font-medium flex flex-col items-center text-center space-y-3">
+        <div className="flex items-center space-x-2">
+          <i className="bx bx-error-circle text-lg"></i>
+          <span>Unable to load revision requests — please retry.</span>
+        </div>
+        <button
+          onClick={() => fetchRequests()}
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-md transition-all cursor-pointer"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (

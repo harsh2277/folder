@@ -22,76 +22,50 @@ export default function AdminPaymentsPage() {
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [page, setPage] = useState(1);
+  const [loadError, setLoadError] = useState(false);
+
+  async function fetchPayments() {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      // Query payments along with matching project details
+      const { data, error } = await supabase
+        .from('payments')
+        .select(`
+          id,
+          amount,
+          status,
+          payment_method,
+          transaction_id,
+          invoice_number,
+          receipt_number,
+          created_at,
+          project_id,
+          projects!project_id (
+            project_id_serial,
+            project_name,
+            client_name,
+            area_sq_ft,
+            pricing_plans (
+              name,
+              base_price_per_sq_ft
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPayments(data || []);
+    } catch (err) {
+      console.error('Error fetching payments:', err);
+      setPayments([]);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchPayments() {
-      try {
-        // Query payments along with matching project details
-        const { data, error } = await supabase
-          .from('payments')
-          .select(`
-            id,
-            amount,
-            status,
-            payment_method,
-            transaction_id,
-            invoice_number,
-            receipt_number,
-            created_at,
-            project_id,
-            projects!project_id (
-              project_id_serial,
-              project_name,
-              client_name,
-              area_sq_ft,
-              pricing_plans (
-                name,
-                base_price_per_sq_ft
-              )
-            )
-          `)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setPayments(data || []);
-      } catch (err) {
-        console.error('Error fetching payments:', err);
-        // Fallback mock transactions
-        setPayments([
-          {
-            id: '1',
-            invoice_number: 'INV-2026-9041',
-            amount: 85000,
-            status: 'completed',
-            created_at: new Date().toISOString(),
-            projects: {
-              project_id_serial: 'KL-2026-0001',
-              project_name: 'Lotus Penthouse',
-              client_name: 'Vikram Shah',
-              area_sq_ft: 2500,
-              pricing_plans: { name: 'Premium Design Plan', base_price_per_sq_ft: 34 }
-            }
-          },
-          {
-            id: '2',
-            invoice_number: 'INV-2026-4412',
-            amount: 437500,
-            status: 'pending',
-            created_at: new Date().toISOString(),
-            projects: {
-              project_id_serial: 'KL-2026-0002',
-              project_name: 'Vertex IT Hub',
-              client_name: 'Vertex Corp',
-              area_sq_ft: 12500,
-              pricing_plans: { name: 'Premium Design Plan', base_price_per_sq_ft: 35 }
-            }
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchPayments();
   }, []);
 
@@ -100,6 +74,23 @@ export default function AdminPaymentsPage() {
   }, [searchQuery, statusFilter]);
 
   if (loading) return <SkeletonPaymentsPage />;
+
+  if (loadError) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm font-medium flex flex-col items-center text-center space-y-3">
+        <div className="flex items-center space-x-2">
+          <i className="bx bx-error-circle text-lg"></i>
+          <span>Unable to load payments — please retry.</span>
+        </div>
+        <button
+          onClick={() => fetchPayments()}
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-md transition-all cursor-pointer"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   // Calculate audit totals
   const totalInvoiced = payments.reduce((sum, p) => sum + Number(p.amount), 0);

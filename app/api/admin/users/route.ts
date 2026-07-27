@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     }
 
     let createdUser: any = null;
-    let isFallbackProfile = false;
+    const isFallbackProfile = false;
 
     // 1. Try admin.createUser (auto-confirms, no email sent)
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({

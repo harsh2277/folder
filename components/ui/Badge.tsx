@@ -337,6 +337,7 @@ export interface DeadlineBadgeProps {
 export function DeadlineBadge({ deadline, className = '', size = 'md' }: DeadlineBadgeProps) {
   if (!deadline) return null;
 
+  // eslint-disable-next-line react-hooks/purity -- deadline countdown is inherently time-based; re-render on prop change is acceptable here
   const daysLeft = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
 
   let label = `${daysLeft}d left`;

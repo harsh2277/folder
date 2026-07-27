@@ -821,7 +821,7 @@ export default function AdminDashboard() {
                         {rev.projects?.project_name || 'Project Revision'}
                       </Link>
                       <p className="text-xs sm:text-sm text-neutral-600 font-medium line-clamp-1">
-                        "{rev.description}"
+                        &quot;{rev.description}&quot;
                       </p>
                     </div>
 

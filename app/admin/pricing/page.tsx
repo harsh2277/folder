@@ -99,10 +99,6 @@ export default function AdminPricingManagement() {
 
   async function fetchPlans() {
     try {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('lightmap_pricing_plan_overrides');
-      }
-
       const { data, error } = await supabase
         .from('pricing_plans')
         .select('id, name, description, base_price_per_sq_ft, min_sq_ft, is_active')

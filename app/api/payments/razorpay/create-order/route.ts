@@ -3,7 +3,7 @@ import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
 import { rateLimit, clientKeyFrom } from '@/utils/rateLimit';
 
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_TBHxoNcpPx7OW9';
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
 export async function POST(request: Request) {
@@ -16,9 +16,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!RAZORPAY_KEY_SECRET) {
+    if (!RAZORPAY_KEY_SECRET || !RAZORPAY_KEY_ID) {
       return NextResponse.json(
-        { error: 'Payment gateway is not configured on the server (missing RAZORPAY_KEY_SECRET).' },
+        { error: 'Payment gateway is not configured on the server (missing RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET).' },
         { status: 500 }
       );
     }
@@ -31,9 +31,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId, amount } = await request.json();
-    if (!projectId || !amount || Number(amount) <= 0) {
-      return NextResponse.json({ error: 'projectId and a positive amount are required' }, { status: 400 });
+    const { projectId, paymentId } = await request.json();
+    if (!projectId || !paymentId) {
+      return NextResponse.json({ error: 'projectId and paymentId are required' }, { status: 400 });
     }
 
     // Verify the caller owns (is the architect on) this project
@@ -47,7 +47,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const amountInPaise = Math.round(Number(amount) * 100);
+    // The order amount is never trusted from the client — it is always read
+    // from the pending payment row that was created (server/DB-side) when the
+    // project/milestone was set up. This prevents a client from paying an
+    // arbitrary (e.g. tampered, lower) amount for a real project/payment.
+    const { data: payment } = await adminClient
+      .from('payments')
+      .select('id, project_id, amount, status')
+      .eq('id', paymentId)
+      .maybeSingle();
+
+    if (!payment || payment.project_id !== projectId) {
+      return NextResponse.json({ error: 'Payment record not found for this project' }, { status: 404 });
+    }
+    if (payment.status === 'completed') {
+      return NextResponse.json({ error: 'This payment has already been completed' }, { status: 409 });
+    }
+    if (!payment.amount || Number(payment.amount) <= 0) {
+      return NextResponse.json({ error: 'Invalid payment amount on record' }, { status: 400 });
+    }
+
+    const amountInPaise = Math.round(Number(payment.amount) * 100);
 
     const res = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
@@ -59,7 +79,7 @@ export async function POST(request: Request) {
         amount: amountInPaise,
         currency: 'INR',
         receipt: `${projectId}-${Date.now()}`,
-        notes: { projectId, userId: user.id },
+        notes: { projectId, userId: user.id, paymentId },
       }),
     });
 

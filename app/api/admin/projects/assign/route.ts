@@ -2,6 +2,16 @@ import { createClient as createCookieClient } from '@/utils/supabase/server';
 import { getSupabaseAdmin } from '@/utils/supabase/admin';
 import { requireRole } from '@/utils/supabase/authorize';
 
+const VALID_PROJECT_STATUSES = [
+  'Submitted',
+  'Under Review',
+  'In Design',
+  'Ready for Client Review',
+  'Approved',
+  'Revision Requested',
+  'Closed',
+];
+
 export async function POST(request: Request) {
   try {
     const auth = await requireRole(['admin']);
@@ -15,6 +25,10 @@ export async function POST(request: Request) {
 
     if (!projectId) {
       return Response.json({ error: 'Missing projectId' }, { status: 400 });
+    }
+
+    if (status && !VALID_PROJECT_STATUSES.includes(status)) {
+      return Response.json({ error: `Invalid status. Must be one of: ${VALID_PROJECT_STATUSES.join(', ')}` }, { status: 400 });
     }
 
     if (designerId) {

@@ -135,7 +135,7 @@ export default function ArchitectRevisionRequest({ params }: PageProps) {
             </div>
 
             <p className="text-xs text-neutral-600 leading-relaxed">
-              Your design is complete! To protect our designers' work, revision requests are only available after the final balance payment is cleared. Please go back to your project page and complete the payment.
+              Your design is complete! To protect our designers&apos; work, revision requests are only available after the final balance payment is cleared. Please go back to your project page and complete the payment.
             </p>
 
             <Link

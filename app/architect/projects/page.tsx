@@ -6,9 +6,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CustomSelect from '@/components/ui/CustomSelect';
 import LayoutToggle from '@/components/ui/LayoutToggle';
-import { StatusBadge, PaymentBadge, DeadlineBadge } from '@/components/ui';
+import { StatusBadge, PaymentBadge, DeadlineBadge, useToast, Pagination } from '@/components/ui';
 import SearchInput from '@/components/ui/SearchInput';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import ConfirmModal from '@/components/ui/ConfirmModal';
+import EmptyState from '@/components/ui/EmptyState';
+
+const PAGE_SIZE = 10;
 
 export default function ArchitectProjectsList() {
   const supabase = createClient();
@@ -21,6 +25,10 @@ export default function ArchitectProjectsList() {
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const { error: toastError } = useToast();
 
   const fetchedRef = useRef(false);
 
@@ -46,16 +54,9 @@ export default function ArchitectProjectsList() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this project? All associated payments, comments, and files will be permanently deleted.')) {
-      try {
-        const { error } = await supabase.from('projects').delete().eq('id', id);
-        if (error) throw error;
-        setProjects(prev => prev.filter(p => p.id !== id));
-      } catch (err) {
-        console.error('Error deleting project:', err);
-        alert('Failed to delete project.');
-      }
-    }
+    setProjectToDelete(id);
+    setShowConfirm(true);
+    return; // exit early, modal will handle deletion
   };
 
   const statuses = [
@@ -80,7 +81,13 @@ export default function ArchitectProjectsList() {
       return 0;
     });
 
+  const pageCount = Math.max(1, Math.ceil(filteredProjects.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paginatedProjects = filteredProjects.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedStatus, sortBy]);
 
   if (loading) {
     return (
@@ -177,12 +184,13 @@ export default function ArchitectProjectsList() {
       {/* Projects Render Area */}
       <div>
         {filteredProjects.length === 0 ? (
-          <div className="py-12 text-center text-neutral-450 text-sm border border-dashed border-neutral-200 rounded-md bg-neutral-50/20">
-            No projects found. Click &quot;Add Project&quot; to onboard your first design project!
-          </div>
+          <EmptyState
+            title="No projects found"
+            description="Try adjusting your filters or search query, or click &quot;Add Project&quot; to onboard your first design project."
+          />
         ) : viewMode === 'card' ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {filteredProjects.map((proj) => (
+            {paginatedProjects.map((proj) => (
               <div
                 key={proj.id}
                 className="border border-neutral-200 hover:border-neutral-300 rounded-md p-6 bg-white flex flex-col justify-between space-y-4 hover: transition-all duration-300 group"
@@ -263,7 +271,7 @@ export default function ArchitectProjectsList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 text-neutral-700">
-                {filteredProjects.map((proj) => (
+                {paginatedProjects.map((proj) => (
                   <tr
                     key={proj.id}
                     onClick={() => router.push(`/architect/projects/${proj.id}`)}
@@ -313,7 +321,36 @@ export default function ArchitectProjectsList() {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={currentPage}
+          pageCount={pageCount}
+          totalItems={filteredProjects.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this project? All associated payments, comments, and files will be permanently deleted."
+        onConfirm={async () => {
+          if (projectToDelete) {
+            try {
+              const { error } = await supabase.from('projects').delete().eq('id', projectToDelete);
+              if (error) throw error;
+              setProjects(prev => prev.filter(p => p.id !== projectToDelete));
+            } catch (err) {
+              console.error('Error deleting project:', err);
+              toastError('Failed to delete project.');
+            }
+          }
+          setShowConfirm(false);
+          setProjectToDelete(null);
+        }}
+        onClose={() => { setShowConfirm(false); setProjectToDelete(null); }}
+      />
     </div>
   );
 }

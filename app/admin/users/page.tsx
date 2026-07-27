@@ -7,6 +7,7 @@ import LayoutToggle from '@/components/ui/LayoutToggle';
 import Portal from '@/components/ui/Portal';
 import SearchInput from '@/components/ui/SearchInput';
 import PasswordInput from '@/components/ui/PasswordInput';
+import Link from 'next/link';
 import { RoleBadge, ConfirmModal, useToast, SkeletonUsersPage, Pagination } from '@/components/ui';
 
 const PAGE_SIZE = 10;
@@ -21,6 +22,7 @@ export default function AdminUsersManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [roleFilter, setRoleFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
   const [page, setPage] = useState(1);
 
   // Modals state
@@ -215,14 +217,21 @@ export default function AdminUsersManagement() {
     }
   };
 
-  const filteredUsers = users.filter(u => {
-    if (u.role === 'admin') return false;
-    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (u.mobile_number && u.mobile_number.includes(searchQuery));
-    const matchesRole = roleFilter === 'All' || u.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  const filteredUsers = users
+    .filter(u => {
+      const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (u.mobile_number && u.mobile_number.includes(searchQuery));
+      const matchesRole = roleFilter === 'All' || u.role === roleFilter;
+      return matchesSearch && matchesRole;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+      if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+      return 0;
+    });
 
   const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -230,7 +239,7 @@ export default function AdminUsersManagement() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, roleFilter]);
+  }, [searchQuery, roleFilter, sortBy]);
 
   if (loading) return <SkeletonUsersPage />;
 
@@ -315,7 +324,18 @@ export default function AdminUsersManagement() {
               options={[
                 { value: 'All', label: 'All Roles' },
                 { value: 'architect', label: 'Architect' },
-                { value: 'designer', label: 'Designer' }
+                { value: 'designer', label: 'Designer' },
+                { value: 'admin', label: 'Admin' }
+              ]}
+            />
+            <CustomSelect
+              value={sortBy}
+              onChange={setSortBy}
+              options={[
+                { value: 'newest', label: 'Sort by: Newest' },
+                { value: 'oldest', label: 'Sort by: Oldest' },
+                { value: 'name-asc', label: 'Name: A to Z' },
+                { value: 'name-desc', label: 'Name: Z to A' }
               ]}
             />
           </div>
@@ -355,6 +375,14 @@ export default function AdminUsersManagement() {
                     Joined: {new Date(u.created_at).toLocaleDateString()}
                   </span>
                   <div className="flex items-center space-x-1.5">
+                    {u.role === 'admin' && (
+                      <Link
+                        href={`/admin/admins/${u.id}`}
+                        className="px-2.5 py-1 text-sm font-medium text-amber-600 border border-amber-200 bg-amber-50 rounded hover:bg-amber-100 transition-colors cursor-pointer"
+                      >
+                        View
+                      </Link>
+                    )}
                     <button
                       onClick={() => {
                         setEditingUser(u);
@@ -410,6 +438,14 @@ export default function AdminUsersManagement() {
                     </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
                       <div className="flex items-center justify-end space-x-2">
+                        {u.role === 'admin' && (
+                          <Link
+                            href={`/admin/admins/${u.id}`}
+                            className="px-2.5 py-1 text-sm font-medium text-amber-600 border border-amber-200 bg-amber-50 rounded hover:bg-amber-100 transition-colors cursor-pointer"
+                          >
+                            View
+                          </Link>
+                        )}
                         <button
                           onClick={() => {
                             setEditingUser(u);
