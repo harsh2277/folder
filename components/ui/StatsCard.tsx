@@ -49,7 +49,7 @@ export default function StatsCard({
       className={`bg-white border border-neutral-200 rounded-md p-3 sm:p-4 xl:p-5 flex items-center justify-between shadow-xs ${className}`}
     >
       <div className="space-y-0.5 min-w-0">
-        <span className="text-xs font-medium text-neutral-400 block truncate">{title}</span>
+        <span className="text-xs font-medium text-neutral-400 block leading-snug">{title}</span>
         <div className="flex items-baseline space-x-1.5">
           <span className="text-lg sm:text-xl xl:text-2xl font-bold text-neutral-900 font-sans tracking-tight">
             {value}

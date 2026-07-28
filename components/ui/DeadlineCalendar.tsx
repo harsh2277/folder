@@ -216,7 +216,7 @@ export default function DeadlineCalendar({
           ))}
 
           {cells.map((cell, idx) => {
-            if (!cell.key) return <div key={idx} className="bg-white min-h-[92px]" />;
+            if (!cell.key) return <div key={idx} className="bg-white min-h-[64px] sm:min-h-[92px]" />;
             const dayEvents = eventsByDate[cell.key] || [];
             const isToday = cell.key === todayKey;
             const isSelected = cell.key === selectedDate;
@@ -233,7 +233,7 @@ export default function DeadlineCalendar({
               <div key={cell.key} className="relative group bg-white">
                 <button
                   onClick={() => setSelectedDate(cell.key === selectedDate ? null : cell.key)}
-                  className={`w-full min-h-[92px] p-1.5 text-left transition-colors cursor-pointer flex flex-col gap-1 ${
+                  className={`w-full min-h-[64px] sm:min-h-[92px] p-1.5 text-left transition-colors cursor-pointer flex flex-col gap-1 ${
                     isSelected ? 'bg-amber-50 ring-1 ring-inset ring-amber-400' : 'hover:bg-neutral-50'
                   }`}
                 >

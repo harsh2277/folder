@@ -377,7 +377,7 @@ export default function DesignerProjectDetail({ params }: PageProps) {
 
         {/* Right side: Scaled-down Workflow Progress Stepper */}
         <div className="flex-1 w-full lg:w-auto animate-fade-in">
-          <div className="flex items-start justify-end overflow-x-auto gap-6">
+          <div className="flex items-start justify-start lg:justify-end overflow-x-auto gap-6 px-6">
             {steps.map((step, idx) => {
               const isCompleted = idx < activeStepIndex;
               const isActive = idx === activeStepIndex;
@@ -396,7 +396,7 @@ export default function DesignerProjectDetail({ params }: PageProps) {
                     }`}>
                     {isCompleted ? <i className="bx bx-check text-xs"></i> : idx + 1}
                   </div>
-                  <span className={`text-xs mt-2 font-semibold transition-colors duration-200 text-center relative z-10 whitespace-nowrap ${isActive ? 'text-amber-700 font-bold' : isCompleted ? 'text-amber-600' : 'text-neutral-400'
+                  <span className={`text-xs mt-2 font-semibold transition-colors duration-200 text-center relative z-10 leading-tight w-full break-words ${isActive ? 'text-amber-700 font-bold' : isCompleted ? 'text-amber-600' : 'text-neutral-400'
                     }`}>
                     {step.name}
                   </span>

@@ -228,24 +228,24 @@ export default function ArchitectProjectsList() {
 
       {/* Bulk Actions Toolbar */}
       {viewMode === 'table' && selectedIds.size > 0 && (
-        <div className="flex items-center justify-between gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
           <span className="text-xs font-medium text-amber-800">{selectedIds.size} selected</span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => handleExport('csv')}
-              className="px-3 py-1.5 bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 rounded-md text-xs font-medium transition-all cursor-pointer"
+              className="px-3 py-1.5 bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap"
             >
               <i className="bx bx-file mr-1"></i>Export CSV
             </button>
             <button
               onClick={() => handleExport('pdf')}
-              className="px-3 py-1.5 bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 rounded-md text-xs font-medium transition-all cursor-pointer"
+              className="px-3 py-1.5 bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap"
             >
               <i className="bx bxs-file-pdf mr-1"></i>Export PDF
             </button>
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="px-3 py-1.5 text-neutral-500 hover:text-neutral-800 text-xs font-medium transition-all cursor-pointer"
+              className="px-3 py-1.5 text-neutral-500 hover:text-neutral-800 text-xs font-medium transition-all cursor-pointer whitespace-nowrap"
             >
               Clear
             </button>
