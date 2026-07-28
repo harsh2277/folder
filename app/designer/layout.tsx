@@ -22,6 +22,7 @@ function timeAgo(iso: string) {
 const navItems = [
   { name: 'Dashboard', path: '/designer/dashboard', icon: 'bx bx-grid-alt', group: 'Overview' },
   { name: 'Projects', path: '/designer/projects', icon: 'bx bx-folder', group: 'Management' },
+  { name: 'Calendar', path: '/designer/calendar', icon: 'bx bx-calendar', group: 'Management' },
 ];
 
 export default function DesignerLayout({ children }: { children: React.ReactNode }) {

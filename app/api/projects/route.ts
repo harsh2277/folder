@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     // Query projects for architect or admin
     const { data: adminProjects } = await adminClient
       .from('projects')
-      .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, site_location, created_at, project_notes, architect_id')
+      .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, site_location, created_at, project_notes, architect_id, deadline')
       .eq('architect_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     } else {
       const { data: cookieProjects } = await cookieClient
         .from('projects')
-        .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, site_location, created_at, project_notes, architect_id')
+        .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, site_location, created_at, project_notes, architect_id, deadline')
         .eq('architect_id', user.id)
         .order('created_at', { ascending: false });
       projects = cookieProjects || [];

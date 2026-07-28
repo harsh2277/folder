@@ -1,6 +1,12 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+
+export interface StatsCardTrend {
+  value: number;
+  direction: 'up' | 'down';
+}
 
 export interface StatsCardProps {
   title: string;
@@ -8,10 +14,12 @@ export interface StatsCardProps {
   subtext?: string;
   badgeText?: string;
   badgeClass?: string;
+  trend?: StatsCardTrend;
   icon?: string;
   iconBgClass?: string;
   iconColorClass?: string;
   className?: string;
+  href?: string;
 }
 
 export default function StatsCard({
@@ -20,12 +28,23 @@ export default function StatsCard({
   subtext,
   badgeText,
   badgeClass = 'text-emerald-600',
+  trend,
   icon = 'bx-trending-up',
   iconBgClass = 'bg-amber-50 border-amber-100',
   iconColorClass = 'text-amber-600',
   className = '',
+  href,
 }: StatsCardProps) {
-  return (
+  const resolvedBadgeText = badgeText ?? (trend ? `${trend.direction === 'up' ? '+' : '-'}${Math.abs(trend.value)}%` : undefined);
+  const resolvedBadgeClass = badgeText
+    ? badgeClass
+    : trend
+      ? trend.direction === 'up'
+        ? 'text-emerald-600'
+        : 'text-rose-600'
+      : badgeClass;
+
+  const content = (
     <div
       className={`bg-white border border-neutral-200 rounded-md p-3 sm:p-4 xl:p-5 flex items-center justify-between shadow-xs ${className}`}
     >
@@ -35,9 +54,10 @@ export default function StatsCard({
           <span className="text-lg sm:text-xl xl:text-2xl font-bold text-neutral-900 font-sans tracking-tight">
             {value}
           </span>
-          {badgeText && (
-            <span className={`text-xs font-semibold whitespace-nowrap ${badgeClass}`}>
-              {badgeText}
+          {resolvedBadgeText && (
+            <span className={`text-xs font-semibold whitespace-nowrap ${resolvedBadgeClass}`}>
+              {trend && <i className={`bx ${trend.direction === 'up' ? 'bx-caret-up' : 'bx-caret-down'} mr-0.5`}></i>}
+              {resolvedBadgeText}
             </span>
           )}
         </div>
@@ -54,4 +74,6 @@ export default function StatsCard({
       )}
     </div>
   );
+
+  return href ? <Link href={href}>{content}</Link> : content;
 }

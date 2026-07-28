@@ -1,0 +1,15 @@
+'use client';
+
+import { DeadlineCalendar } from '@/components/ui';
+
+export default function AdminCalendarPage() {
+  return (
+    <div className="space-y-4 font-sans">
+      <div>
+        <h2 className="text-xl font-medium text-neutral-900 tracking-tight">Deadline Calendar</h2>
+        <p className="text-sm text-neutral-450 mt-0.5">Project deadlines and pending payments across all projects.</p>
+      </div>
+      <DeadlineCalendar basePath="/admin" projectsApiUrl="/api/admin/projects" />
+    </div>
+  );
+}

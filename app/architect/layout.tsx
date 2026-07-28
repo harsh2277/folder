@@ -22,6 +22,7 @@ function timeAgo(iso: string) {
 const navItems = [
   { name: 'Dashboard', path: '/architect/dashboard', icon: 'bx bx-grid-alt', group: 'Overview' },
   { name: 'Projects', path: '/architect/projects', icon: 'bx bx-folder', group: 'Management' },
+  { name: 'Calendar', path: '/architect/calendar', icon: 'bx bx-calendar', group: 'Management' },
   { name: 'Payments', path: '/architect/payments', icon: 'bx bx-credit-card', group: 'Finances' },
 ];
 

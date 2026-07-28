@@ -1185,10 +1185,10 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
               <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 space-y-1">
                 <p className="text-xs text-amber-700 font-semibold">Outstanding Balance Payment</p>
                 <p className="text-2xl font-black text-neutral-900">
-                  ₹{Number(pendingBalancePayment.amount).toLocaleString('en-IN')}
+                  ₹{Number(pendingBalancePayment?.amount || 0).toLocaleString('en-IN')}
                 </p>
                 <p className="text-[11px] text-neutral-500 font-medium">
-                  {pendingBalancePayment.invoice_number || '50% Balance — Final Instalment'}
+                  {pendingBalancePayment?.invoice_number || '50% Balance — Final Instalment'}
                 </p>
               </div>
 
@@ -1232,7 +1232,7 @@ export default function ArchitectProjectDetail({ params }: PageProps) {
                   ) : (
                     <>
                       <i className="bx bx-credit-card text-sm"></i>
-                      <span>Pay ₹{Number(pendingBalancePayment.amount).toLocaleString('en-IN')} Now</span>
+                      <span>Pay ₹{Number(pendingBalancePayment?.amount || 0).toLocaleString('en-IN')} Now</span>
                     </>
                   )}
                 </button>

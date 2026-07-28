@@ -68,6 +68,27 @@ export async function GET() {
       return sum + projectPaidSum;
     }, 0);
 
+    // Trend: projects created this calendar month vs last calendar month.
+    const now = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const createdThisMonth = projects.filter((p: any) => new Date(p.created_at) >= startOfThisMonth).length;
+    const createdLastMonth = projects.filter((p: any) => new Date(p.created_at) >= startOfLastMonth && new Date(p.created_at) < startOfThisMonth).length;
+    const projectsTrend = createdLastMonth === 0
+      ? (createdThisMonth > 0 ? { value: 100, direction: 'up' as const } : null)
+      : {
+          value: Math.round(Math.abs((createdThisMonth - createdLastMonth) / createdLastMonth) * 100),
+          direction: (createdThisMonth >= createdLastMonth ? 'up' : 'down') as 'up' | 'down',
+        };
+
+    // Upcoming deadlines: projects with a deadline in the next 7 days, not yet closed.
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const upcomingDeadlines = projects.filter((p: any) => {
+      if (!p.deadline || p.status === 'Closed') return false;
+      const d = new Date(p.deadline);
+      return d >= now && d <= in7Days;
+    }).length;
+
     return NextResponse.json({
       success: true,
       architectName,
@@ -78,7 +99,9 @@ export async function GET() {
         completedProjects: completed,
         inDesignProjects: inDesign,
         underReviewProjects: underReview,
-        totalInvoiced: invoiced
+        totalInvoiced: invoiced,
+        projectsTrend,
+        upcomingDeadlines
       }
     });
 

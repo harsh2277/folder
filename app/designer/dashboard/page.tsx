@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { StatusBadge, SkeletonDashboard } from '@/components/ui';
+import { StatusBadge, SkeletonDashboard, StatsCard } from '@/components/ui';
 
 export default function DesignerDashboard() {
   const supabase = createClient();
@@ -13,11 +13,20 @@ export default function DesignerDashboard() {
   const [revisionProjects, setRevisionProjects] = useState<any[]>([]);
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
   const [pendingRevisions, setPendingRevisions] = useState<any[]>([]);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<{
+    totalProjects: number;
+    inDesignProjects: number;
+    underReviewProjects: number;
+    completedProjects: number;
+    projectsTrend: { value: number; direction: 'up' | 'down' } | null;
+    upcomingDeadlines: number;
+  }>({
     totalProjects: 0,
     inDesignProjects: 0,
     underReviewProjects: 0,
     completedProjects: 0,
+    projectsTrend: null,
+    upcomingDeadlines: 0,
   });
 
   const fetchedRef = useRef(false);
@@ -61,7 +70,7 @@ export default function DesignerDashboard() {
         if (!projects || projects.length === 0) {
           const { data: dbProjects } = await supabase
             .from('projects')
-            .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, created_at, assigned_designer_id')
+            .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, created_at, assigned_designer_id, deadline')
             .order('created_at', { ascending: false });
           projects = dbProjects || [];
         }
@@ -97,11 +106,32 @@ export default function DesignerDashboard() {
 
         setPendingRevisions(revRequests);
 
+        const now = new Date();
+        const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const createdThisMonth = activeProjects.filter((p: any) => new Date(p.created_at) >= startOfThisMonth).length;
+        const createdLastMonth = activeProjects.filter((p: any) => new Date(p.created_at) >= startOfLastMonth && new Date(p.created_at) < startOfThisMonth).length;
+        const projectsTrend = createdLastMonth === 0
+          ? (createdThisMonth > 0 ? { value: 100, direction: 'up' as const } : null)
+          : {
+              value: Math.round(Math.abs((createdThisMonth - createdLastMonth) / createdLastMonth) * 100),
+              direction: (createdThisMonth >= createdLastMonth ? 'up' : 'down') as 'up' | 'down',
+            };
+
+        const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const upcomingDeadlines = activeProjects.filter((p: any) => {
+          if (!p.deadline || p.status === 'Closed') return false;
+          const d = new Date(p.deadline);
+          return d >= now && d <= in7Days;
+        }).length;
+
         setStats({
           totalProjects: activeProjects.length,
           inDesignProjects: activeProjects.filter((p: any) => p.status === 'In Design').length,
           underReviewProjects: activeProjects.filter((p: any) => p.status === 'Under Review' || p.status === 'Ready for Client Review').length,
           completedProjects: activeProjects.filter((p: any) => p.status === 'Approved' || p.status === 'Closed').length,
+          projectsTrend,
+          upcomingDeadlines,
         });
       } catch (err) {
         console.error('Error loading designer dashboard:', err);
@@ -141,54 +171,49 @@ export default function DesignerDashboard() {
 
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* KPI 1 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-450 block truncate">Total</span>
-            <span className="text-2xl sm:text-3xl font-medium text-neutral-900 leading-none">{stats.totalProjects}</span>
-            <span className="text-[10px] text-neutral-400 block mt-1.5 truncate">All managed projects</span>
-          </div>
-          <div className="w-10 h-10 xl:w-12 xl:h-12 bg-neutral-50 rounded-md flex items-center justify-center text-neutral-600 border border-neutral-200 shrink-0">
-            <i className="bx bx-folder text-lg xl:text-xl"></i>
-          </div>
-        </div>
-
-        {/* KPI 2 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-450 block truncate">In Design</span>
-            <span className="text-2xl sm:text-3xl font-medium text-neutral-900 leading-none">{stats.inDesignProjects}</span>
-            <span className="text-[10px] text-neutral-400 block mt-1.5 truncate">Active layout stage</span>
-          </div>
-          <div className="w-10 h-10 xl:w-12 xl:h-12 bg-amber-50 rounded-md flex items-center justify-center text-amber-600 border border-amber-100 shrink-0">
-            <i className="bx bx-edit text-lg xl:text-xl"></i>
-          </div>
-        </div>
-
-        {/* KPI 3 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-455 block truncate">In Review</span>
-            <span className="text-2xl sm:text-3xl font-medium text-neutral-900 leading-none">{stats.underReviewProjects}</span>
-            <span className="text-[10px] text-neutral-400 block mt-1.5 truncate">Awaiting client checks</span>
-          </div>
-          <div className="w-10 h-10 xl:w-12 xl:h-12 bg-blue-50 rounded-md flex items-center justify-center text-blue-600 border border-blue-100 shrink-0">
-            <i className="bx bx-time-five text-lg xl:text-xl"></i>
-          </div>
-        </div>
-
-        {/* KPI 4 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-455 block truncate">Completed</span>
-            <span className="text-2xl sm:text-3xl font-medium text-neutral-900 leading-none">{stats.completedProjects}</span>
-            <span className="text-[10px] text-neutral-400 block mt-1.5 truncate">Successfully closed scopes</span>
-          </div>
-          <div className="w-10 h-10 xl:w-12 xl:h-12 bg-emerald-50 rounded-md flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
-            <i className="bx bx-check-double text-lg xl:text-xl"></i>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatsCard
+          title="Total"
+          value={stats.totalProjects}
+          subtext="All managed projects"
+          trend={stats.projectsTrend || undefined}
+          icon="bx-folder"
+          iconBgClass="bg-neutral-50 border-neutral-200"
+          iconColorClass="text-neutral-600"
+        />
+        <StatsCard
+          title="In Design"
+          value={stats.inDesignProjects}
+          subtext="Active layout stage"
+          icon="bx-edit"
+          iconBgClass="bg-amber-50 border-amber-100"
+          iconColorClass="text-amber-600"
+        />
+        <StatsCard
+          title="In Review"
+          value={stats.underReviewProjects}
+          subtext="Awaiting client checks"
+          icon="bx-time-five"
+          iconBgClass="bg-blue-50 border-blue-100"
+          iconColorClass="text-blue-600"
+        />
+        <StatsCard
+          title="Completed"
+          value={stats.completedProjects}
+          subtext="Successfully closed scopes"
+          icon="bx-check-double"
+          iconBgClass="bg-emerald-50 border-emerald-100"
+          iconColorClass="text-emerald-600"
+        />
+        <StatsCard
+          title="Upcoming Deadlines"
+          value={stats.upcomingDeadlines}
+          subtext="Due within 7 days"
+          href="/designer/calendar"
+          icon="bx-calendar-exclamation"
+          iconBgClass="bg-rose-50 border-rose-100"
+          iconColorClass="text-rose-600"
+        />
       </div>
 
       {/* Pending Revision Requests Section */}

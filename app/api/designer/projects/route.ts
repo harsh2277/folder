@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       .maybeSingle();
     if (profile?.name) designerName = profile.name;
 
-    const selectCols = 'id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, created_at, assigned_designer_id';
+    const selectCols = 'id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, created_at, assigned_designer_id, deadline';
 
     let query = adminClient.from('projects').select(selectCols).order('created_at', { ascending: false });
 

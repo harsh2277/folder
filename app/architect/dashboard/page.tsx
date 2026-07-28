@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { StatusBadge, SkeletonDashboard } from '@/components/ui';
+import { StatusBadge, SkeletonDashboard, StatsCard } from '@/components/ui';
 
 export default function ArchitectDashboard() {
   const supabase = createClient();
@@ -11,12 +11,22 @@ export default function ArchitectDashboard() {
   const [architectName, setArchitectName] = useState('Architect');
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   const [revisionProjects, setRevisionProjects] = useState<any[]>([]);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<{
+    totalProjects: number;
+    completedProjects: number;
+    inDesignProjects: number;
+    underReviewProjects: number;
+    totalInvoiced: number;
+    projectsTrend: { value: number; direction: 'up' | 'down' } | null;
+    upcomingDeadlines: number;
+  }>({
     totalProjects: 0,
     completedProjects: 0,
     inDesignProjects: 0,
     underReviewProjects: 0,
-    totalInvoiced: 0
+    totalInvoiced: 0,
+    projectsTrend: null,
+    upcomingDeadlines: 0
   });
 
   const fetchedRef = useRef(false);
@@ -80,54 +90,49 @@ export default function ArchitectDashboard() {
 
 
       {/* Grid of Key Performance Indicators */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* KPI 1 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-450 block truncate">Assigned</span>
-            <span className="text-2xl sm:text-3xl font-medium text-neutral-900 leading-none">{stats.totalProjects}</span>
-            <span className="text-[10px] text-neutral-400 block mt-1.5 truncate">All managed projects</span>
-          </div>
-          <div className="w-10 h-10 xl:w-12 xl:h-12 bg-neutral-50 rounded-md flex items-center justify-center text-neutral-600 border border-neutral-200 shrink-0">
-            <i className="bx bx-folder text-lg xl:text-xl"></i>
-          </div>
-        </div>
-
-        {/* KPI 2 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-450 block truncate">In Design</span>
-            <span className="text-2xl sm:text-3xl font-medium text-neutral-900 leading-none">{stats.inDesignProjects}</span>
-            <span className="text-[10px] text-neutral-400 block mt-1.5 truncate">Active layout stage</span>
-          </div>
-          <div className="w-10 h-10 xl:w-12 xl:h-12 bg-amber-50 rounded-md flex items-center justify-center text-amber-600 border border-amber-100 shrink-0">
-            <i className="bx bx-edit text-lg xl:text-xl"></i>
-          </div>
-        </div>
-
-        {/* KPI 3 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-450 block truncate">Under Review</span>
-            <span className="text-2xl sm:text-3xl font-medium text-neutral-900 leading-none">{stats.underReviewProjects}</span>
-            <span className="text-[10px] text-neutral-400 block mt-1.5 truncate">Awaiting client checks</span>
-          </div>
-          <div className="w-10 h-10 xl:w-12 xl:h-12 bg-blue-50 rounded-md flex items-center justify-center text-blue-600 border border-blue-100 shrink-0">
-            <i className="bx bx-time-five text-lg xl:text-xl"></i>
-          </div>
-        </div>
-
-        {/* KPI 4 */}
-        <div className="bg-white border border-neutral-200 rounded-md p-4 xl:p-5 flex items-center justify-between">
-          <div className="space-y-0.5 min-w-0">
-            <span className="text-xs font-medium text-neutral-450 block truncate">Settled</span>
-            <span className="text-2xl sm:text-3xl font-medium text-neutral-900 leading-none">₹{(stats.totalInvoiced / 100000).toFixed(1)}L</span>
-            <span className="text-[10px] text-neutral-400 block mt-1.5 truncate">Settled invoice amount</span>
-          </div>
-          <div className="w-10 h-10 xl:w-12 xl:h-12 bg-emerald-50 rounded-md flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
-            <i className="bx bx-credit-card text-lg xl:text-xl"></i>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatsCard
+          title="Assigned"
+          value={stats.totalProjects}
+          subtext="All managed projects"
+          trend={stats.projectsTrend || undefined}
+          icon="bx-folder"
+          iconBgClass="bg-neutral-50 border-neutral-200"
+          iconColorClass="text-neutral-600"
+        />
+        <StatsCard
+          title="In Design"
+          value={stats.inDesignProjects}
+          subtext="Active layout stage"
+          icon="bx-edit"
+          iconBgClass="bg-amber-50 border-amber-100"
+          iconColorClass="text-amber-600"
+        />
+        <StatsCard
+          title="Under Review"
+          value={stats.underReviewProjects}
+          subtext="Awaiting client checks"
+          icon="bx-time-five"
+          iconBgClass="bg-blue-50 border-blue-100"
+          iconColorClass="text-blue-600"
+        />
+        <StatsCard
+          title="Settled"
+          value={`₹${(stats.totalInvoiced / 100000).toFixed(1)}L`}
+          subtext="Settled invoice amount"
+          icon="bx-credit-card"
+          iconBgClass="bg-emerald-50 border-emerald-100"
+          iconColorClass="text-emerald-600"
+        />
+        <StatsCard
+          title="Upcoming Deadlines"
+          value={stats.upcomingDeadlines}
+          subtext="Due within 7 days"
+          href="/architect/calendar"
+          icon="bx-calendar-exclamation"
+          iconBgClass="bg-rose-50 border-rose-100"
+          iconColorClass="text-rose-600"
+        />
       </div>
 
       {/* Main Grid: Projects List (No charts here) */}
