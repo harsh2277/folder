@@ -20,15 +20,27 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     async function establishSession() {
-      // Supabase's password-reset email links use the PKCE flow — the URL carries
-      // a `?code=...` param that must be exchanged for a session explicitly.
-      // Without this, getSession() below would never find a session and the
-      // (perfectly valid) link would incorrectly be reported as expired.
+      // Supabase's password-reset email links can carry the session in one of two
+      // shapes depending on the project's auth flow setting:
+      //  - PKCE: a `?code=...` query param that must be exchanged for a session.
+      //  - Implicit: a `#access_token=...&refresh_token=...&type=recovery` hash.
+      // Without handling both, getSession() below never finds a session and a
+      // perfectly valid link is incorrectly reported as expired.
       const code = new URLSearchParams(window.location.search).get('code');
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
           console.error('Reset link code exchange failed:', error.message);
+        }
+      } else if (window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.slice(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          if (error) {
+            console.error('Reset link session setup failed:', error.message);
+          }
         }
       }
 
