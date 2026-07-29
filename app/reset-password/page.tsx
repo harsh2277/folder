@@ -19,10 +19,25 @@ export default function ResetPasswordPage() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then((result: Awaited<ReturnType<typeof supabase.auth.getSession>>) => {
+    async function establishSession() {
+      // Supabase's password-reset email links use the PKCE flow — the URL carries
+      // a `?code=...` param that must be exchanged for a session explicitly.
+      // Without this, getSession() below would never find a session and the
+      // (perfectly valid) link would incorrectly be reported as expired.
+      const code = new URLSearchParams(window.location.search).get('code');
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          console.error('Reset link code exchange failed:', error.message);
+        }
+      }
+
+      const { data } = await supabase.auth.getSession();
       setReady(true);
-      if (!result.data.session) setInvalidLink(true);
-    });
+      if (!data.session) setInvalidLink(true);
+    }
+
+    establishSession();
   }, [supabase]);
 
   useEffect(() => {
