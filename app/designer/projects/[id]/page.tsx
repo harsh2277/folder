@@ -7,6 +7,7 @@ import CustomSelect from '../../../../components/ui/CustomSelect';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import Portal from '@/components/ui/Portal';
 import { StatusBadge, DeadlineBadge, SkeletonProjectDetail } from '@/components/ui';
+import { downloadFile } from '@/utils/downloadFile';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -18,7 +19,6 @@ export default function DesignerProjectDetail({ params }: PageProps) {
 
   const [loading, setLoading] = useState(true);
   const [project, setProject] = useState<any | null>(null);
-  const [remarks, setRemarks] = useState<any | null>(null);
   const [preferences, setPreferences] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);
   const [deliverables, setDeliverables] = useState<any[]>([]);
@@ -92,12 +92,6 @@ export default function DesignerProjectDetail({ params }: PageProps) {
             .maybeSingle();
 
           if (clientProj) {
-            const { data: remData } = await supabase
-              .from('project_remarks')
-              .select('*')
-              .eq('project_id', id)
-              .maybeSingle();
-
             const { data: prefData } = await supabase
               .from('project_lighting_preferences')
               .select('preference_name')
@@ -116,7 +110,6 @@ export default function DesignerProjectDetail({ params }: PageProps) {
 
             resData = {
               project: clientProj,
-              remarks: remData || null,
               preferences: prefData || [],
               files: fileData || [],
               revisions: revData || []
@@ -127,7 +120,6 @@ export default function DesignerProjectDetail({ params }: PageProps) {
         if (resData?.project) {
           setProject(resData.project);
           setStatus(resData.project.status);
-          setRemarks(resData.remarks);
           setPreferences(resData.preferences || []);
           setFiles(resData.files || []);
           setDeliverables((resData.files || []).filter((f: any) => f.profiles?.role === 'designer' || (f.category && f.category.startsWith('deliverable_'))));
@@ -557,26 +549,6 @@ export default function DesignerProjectDetail({ params }: PageProps) {
                       )}
                     </div>
 
-                    {/* Additional Design Remarks */}
-                    {remarks && (
-                      <div className="pt-6 border-t border-neutral-100 px-6">
-                        <span className="text-xs font-bold text-neutral-450 tracking-wide block mb-4">Additional Design Remarks</span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-4">
-                          {[
-                            { label: 'Lighting Mood', val: remarks.lighting_mood },
-                            { label: 'Expectations', val: remarks.expectations },
-                            { label: 'Inspiration Ideas', val: remarks.inspiration_ideas },
-                            { label: 'Functional Requirements', val: remarks.functional_requirements }
-                          ].filter(item => item.val).map((item, idx) => (
-                            <div key={idx}>
-                              <span className="text-xs text-neutral-400 font-medium block">{item.label}</span>
-                              <span className="text-sm font-semibold text-neutral-800 mt-1 block whitespace-pre-line">{item.val}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     {/* Project Notes */}
                     {project.project_notes && (
                       <div className="pt-6 border-t border-neutral-100 px-6">
@@ -605,14 +577,13 @@ export default function DesignerProjectDetail({ params }: PageProps) {
                                   <p className="text-xs text-neutral-400 mt-0.5 font-medium">{file.file_type} &middot; {getCategoryLabel(file.category, file.profiles?.role)}</p>
                                 </div>
                               </div>
-                              <a
-                                href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${file.file_path}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                type="button"
+                                onClick={() => downloadFile(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/project-assets/${file.file_path}`, file.file_name)}
                                 className="px-3 py-1.5 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 font-semibold text-xs rounded-sm transition-colors flex-shrink-0 cursor-pointer"
                               >
                                 Download
-                              </a>
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -702,15 +673,14 @@ export default function DesignerProjectDetail({ params }: PageProps) {
                             </div>
 
                             <div className="flex items-center space-x-2 shrink-0">
-                              <a
-                                href={getDownloadUrl(file.file_path)}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                type="button"
+                                onClick={() => downloadFile(getDownloadUrl(file.file_path), file.file_name)}
                                 className="w-8 h-8 bg-white hover:bg-neutral-100 border border-neutral-200 rounded-lg flex items-center justify-center text-neutral-600 hover:text-neutral-900 transition-colors cursor-pointer"
                                 title="Download Deliverable"
                               >
                                 <i className="bx bx-download text-sm"></i>
-                              </a>
+                              </button>
                               <button
                                 onClick={() => handleDeleteDeliverable(file.id, file.file_path)}
                                 className="w-8 h-8 bg-white hover:bg-rose-50 text-neutral-400 hover:text-rose-600 border border-neutral-200 hover:border-rose-200 rounded-lg flex items-center justify-center transition-colors cursor-pointer"

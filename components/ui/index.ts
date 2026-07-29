@@ -34,3 +34,13 @@ export {
   SkeletonProfile,
   SkeletonList,
 } from './SkeletonLoader';
+export { default as AuthLayout } from './AuthLayout';
+export { default as AuthWelcome } from './AuthWelcome';
+export { default as InteractiveRoomLightingCards } from './InteractiveRoomLightingCards';
+export { default as StudioPlatformShowcase } from './StudioPlatformShowcase';
+export { default as WorkflowShowcase } from './WorkflowShowcase';
+export { default as TestimonialsShowcase } from './TestimonialsShowcase';
+export { default as PricingShowcase } from './PricingShowcase';
+
+
+

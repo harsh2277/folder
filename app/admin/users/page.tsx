@@ -1,19 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import CustomSelect from '@/components/ui/CustomSelect';
 import LayoutToggle from '@/components/ui/LayoutToggle';
 import Portal from '@/components/ui/Portal';
 import SearchInput from '@/components/ui/SearchInput';
 import PasswordInput from '@/components/ui/PasswordInput';
-import Link from 'next/link';
 import { RoleBadge, ConfirmModal, useToast, SkeletonUsersPage, Pagination } from '@/components/ui';
 
 const PAGE_SIZE = 10;
 
 export default function AdminUsersManagement() {
   const supabase = createClient();
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
@@ -350,7 +351,8 @@ export default function AdminUsersManagement() {
             {paginatedUsers.map((u) => (
               <div
                 key={u.id}
-                className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 hover: transition-all duration-200"
+                onClick={() => router.push(`/admin/users/${u.id}`)}
+                className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 hover: transition-all duration-200 cursor-pointer"
               >
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
@@ -374,13 +376,7 @@ export default function AdminUsersManagement() {
                   <span className="text-sm text-neutral-400 font-sans font-medium">
                     Joined: {new Date(u.created_at).toLocaleDateString()}
                   </span>
-                  <div className="flex items-center space-x-1.5">
-                    <Link
-                      href={`/admin/users/${u.id}`}
-                      className="px-2.5 py-1 text-sm font-medium text-amber-600 border border-amber-200 bg-amber-50 rounded hover:bg-amber-100 transition-colors cursor-pointer"
-                    >
-                      View
-                    </Link>
+                  <div className="flex items-center space-x-1.5" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => {
                         setEditingUser(u);
@@ -419,7 +415,11 @@ export default function AdminUsersManagement() {
               </thead>
               <tbody className="divide-y divide-neutral-200 text-neutral-700 font-normal">
                 {paginatedUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-neutral-50/80 transition-colors">
+                  <tr
+                    key={u.id}
+                    onClick={() => router.push(`/admin/users/${u.id}`)}
+                    className="hover:bg-neutral-50/80 transition-colors cursor-pointer"
+                  >
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-700 flex items-center justify-center font-medium text-xs flex-shrink-0">
                         {u.name.substring(0, 2).toUpperCase()}
@@ -434,14 +434,8 @@ export default function AdminUsersManagement() {
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-sm text-neutral-400 font-medium font-sans">
                       {new Date(u.created_at).toLocaleDateString()}
                     </td>
-                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right">
+                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end space-x-2">
-                        <Link
-                          href={`/admin/users/${u.id}`}
-                          className="px-2.5 py-1 text-sm font-medium text-amber-600 border border-amber-200 bg-amber-50 rounded hover:bg-amber-100 transition-colors cursor-pointer"
-                        >
-                          View
-                        </Link>
                         <button
                           onClick={() => {
                             setEditingUser(u);

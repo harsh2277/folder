@@ -72,6 +72,24 @@ const ADDONS_DATA = [
   { id: 'site_visit', name: 'Site Visit & Consultation', description: 'On-site consultation', price: 2500 }
 ];
 
+const LIGHTING_TYPES = [
+  'COB Spot Light',
+  'Magnetic Track Lights',
+  'Profile Lights',
+  'Linear Stop Lights',
+  'Flexible Neon Light',
+  'Wall Washer Light',
+  'Linear Wall Washer',
+  'Curtain Grazer Light',
+  'Track Light',
+  'Down Light',
+  'Surface Cylinder Light',
+  'Surface Panel Light',
+  'Mirror Light',
+  'Office Hanging Linear Lights',
+  'Office Hanging Circle Lights',
+];
+
 export default function AdminProjectCreationWizard() {
   const router = useRouter();
   const supabase = createClient();
@@ -104,16 +122,11 @@ export default function AdminProjectCreationWizard() {
     notes: '',
   });
 
-  const [designRemarks, setDesignRemarks] = useState({
-    lightingMood: '',
-    expectations: '',
-    inspirationIdeas: '',
-    functionalRequirements: '',
-  });
-
   const [lightingPreferences, setLightingPreferences] = useState<string[]>([]);
+  const [otherLightingSelected, setOtherLightingSelected] = useState(false);
+  const [otherLightingText, setOtherLightingText] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [fileCategory, setFileCategory] = useState('layout');
   const [fileAreaSqFt, setFileAreaSqFt] = useState('');
   const [fileAreaMismatchConfirmed, setFileAreaMismatchConfirmed] = useState(false);
@@ -332,8 +345,12 @@ export default function AdminProjectCreationWizard() {
       if (projectError) throw projectError;
 
       // 2. Insert Lighting Preferences
-      if (lightingPreferences.length > 0) {
-        const prefInserts = lightingPreferences.map(pref => ({
+      const allLightingPreferences = [
+        ...lightingPreferences,
+        ...(otherLightingSelected && otherLightingText.trim() ? [`Other: ${otherLightingText.trim()}`] : []),
+      ];
+      if (allLightingPreferences.length > 0) {
+        const prefInserts = allLightingPreferences.map(pref => ({
           project_id: project.id,
           preference_name: pref
         }));
@@ -343,23 +360,11 @@ export default function AdminProjectCreationWizard() {
         if (prefError) throw prefError;
       }
 
-      // 3. Insert Remarks / Notes
-      const { error: remarksError } = await supabase
-        .from('project_remarks')
-        .insert({
-          project_id: project.id,
-          lighting_mood: designRemarks.lightingMood || projectDetails.stylePreference || '',
-          expectations: designRemarks.expectations || projectDetails.notes || '',
-          inspiration_ideas: designRemarks.inspirationIdeas || (selectedAddons.length > 0 ? selectedAddons.join(', ') : ''),
-          functional_requirements: designRemarks.functionalRequirements || '',
-        });
-      if (remarksError) throw remarksError;
-
-      // 4. Upload File if any
-      if (uploadedFile) {
+      // 3. Upload Files if any
+      for (const file of uploadedFiles) {
         try {
           const formData = new FormData();
-          formData.append('file', uploadedFile);
+          formData.append('file', file);
           formData.append('category', fileCategory);
 
           const uploadRes = await fetch(`/api/projects/${project.id}/files`, {
@@ -836,20 +841,9 @@ export default function AdminProjectCreationWizard() {
                 </div>
 
                 <div className="space-y-3.5">
-                  <span className="text-sm font-medium text-neutral-555 block">Design Concepts (Select all that apply)</span>
+                  <span className="text-sm font-medium text-neutral-555 block">Lighting Type (Select all that apply)</span>
                   <div className="flex flex-wrap gap-2">
-                    {[
-                      'Ambient General Lighting',
-                      'Accent / Highlight Lighting',
-                      'Task-oriented Lighting',
-                      'Decorative Fixtures & Chandeliers',
-                      'Facade & Exterior Lighting',
-                      'Landscape & Garden Lighting',
-                      'Smart Dimming Controls & Automation',
-                      'High Energy Efficiency (LEED)',
-                      'Indirect / Cove Lighting',
-                      'RGB / Dynamic Color Lighting'
-                    ].map((pref) => {
+                    {LIGHTING_TYPES.map((pref) => {
                       const isChecked = lightingPreferences.includes(pref);
                       return (
                         <button
@@ -862,61 +856,23 @@ export default function AdminProjectCreationWizard() {
                         </button>
                       );
                     })}
+                    <button
+                      type="button"
+                      onClick={() => setOtherLightingSelected((v) => !v)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${otherLightingSelected ? 'bg-amber-500 text-white border-amber-500' : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border-neutral-200'}`}
+                    >
+                      Any Others
+                    </button>
                   </div>
-                </div>
-
-                {/* Additional Design Remarks */}
-                <div className="border-t border-neutral-100 pt-4 space-y-3.5">
-                  <div>
-                    <span className="text-sm font-medium text-neutral-800 block">Additional Design Remarks</span>
-                    <p className="text-xs text-neutral-450 mt-0.5">Provide detailed specifications on lighting mood, expectations, inspiration, and functional needs.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide">Lighting Mood</label>
-                      <input
-                        type="text"
-                        value={designRemarks.lightingMood}
-                        onChange={(e) => setDesignRemarks(prev => ({ ...prev, lightingMood: e.target.value }))}
-                        placeholder="e.g., Warm & Cozy, Accent Driven"
-                        className="w-full px-3.5 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium text-neutral-800"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide">Expectations</label>
-                      <input
-                        type="text"
-                        value={designRemarks.expectations}
-                        onChange={(e) => setDesignRemarks(prev => ({ ...prev, expectations: e.target.value }))}
-                        placeholder="e.g., Glare-free workplace, subtle wall wash"
-                        className="w-full px-3.5 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium text-neutral-800"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide">Inspiration Ideas</label>
-                      <input
-                        type="text"
-                        value={designRemarks.inspirationIdeas}
-                        onChange={(e) => setDesignRemarks(prev => ({ ...prev, inspirationIdeas: e.target.value }))}
-                        placeholder="e.g., Minimal profile tracks, cove lighting"
-                        className="w-full px-3.5 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium text-neutral-800"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide">Functional Requirements</label>
-                      <input
-                        type="text"
-                        value={designRemarks.functionalRequirements}
-                        onChange={(e) => setDesignRemarks(prev => ({ ...prev, functionalRequirements: e.target.value }))}
-                        placeholder="e.g., DALI dimming, IP65 outdoor waterproofing"
-                        className="w-full px-3.5 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium text-neutral-800"
-                      />
-                    </div>
-                  </div>
+                  {otherLightingSelected && (
+                    <input
+                      type="text"
+                      value={otherLightingText}
+                      onChange={(e) => setOtherLightingText(e.target.value)}
+                      placeholder="Describe the other lighting type..."
+                      className="w-full px-3.5 py-2 bg-neutral-50/50 border border-neutral-200 rounded-md text-sm focus:outline-none focus:bg-white focus:border-amber-500 transition-colors font-medium text-neutral-800"
+                    />
+                  )}
                 </div>
 
                 <div className="border-t border-neutral-100 pt-4 space-y-4">
@@ -940,22 +896,51 @@ export default function AdminProjectCreationWizard() {
                   <div className="border-2 border-dashed border-neutral-200 hover:border-amber-500 transition-colors rounded-md p-8 text-center bg-neutral-50/50 flex flex-col items-center justify-center min-h-[160px] relative cursor-pointer group">
                     <input
                       type="file"
-                      onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                      multiple
+                      onChange={(e) => {
+                        const newFiles = Array.from(e.target.files || []);
+                        if (newFiles.length) setUploadedFiles((prev) => [...prev, ...newFiles]);
+                        e.target.value = '';
+                      }}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                     <i className="bx bx-cloud-upload text-4xl text-neutral-400 mb-2 group-hover:text-amber-500 transition-colors"></i>
-                    {uploadedFile ? (
-                      <div>
-                        <p className="text-sm font-medium text-neutral-800">{uploadedFile.name}</p>
-                        <p className="text-sm text-neutral-400 mt-0.5">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
+                    {uploadedFiles.length > 0 ? (
+                      <p className="text-sm font-medium text-neutral-800">
+                        {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} selected — click or drop to add more
+                      </p>
                     ) : (
                       <div>
                         <p className="text-sm font-medium text-neutral-700">Drag & Drop blueprint layout files or browse</p>
-                        <p className="text-sm text-neutral-400 mt-0.5">Supports PDF, DWG, DXF, PNG, JPG (Max 25MB)</p>
+                        <p className="text-sm text-neutral-400 mt-0.5">Supports PDF, DWG, DXF, PNG, JPG (Max 25MB each) — multiple files allowed</p>
                       </div>
                     )}
                   </div>
+
+                  {uploadedFiles.length > 0 && (
+                    <ul className="space-y-2">
+                      {uploadedFiles.map((file, idx) => (
+                        <li
+                          key={`${file.name}-${idx}`}
+                          className="flex items-center justify-between px-3.5 py-2.5 bg-white border border-neutral-200 rounded-md text-sm"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <i className="bx bx-file text-neutral-400 flex-shrink-0"></i>
+                            <span className="text-neutral-800 font-medium truncate">{file.name}</span>
+                            <span className="text-neutral-400 flex-shrink-0">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-neutral-400 hover:text-rose-600 transition-colors flex-shrink-0 ml-2"
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <i className="bx bx-x text-lg"></i>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 <div className="pt-3 flex justify-between">

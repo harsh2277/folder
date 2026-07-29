@@ -11,11 +11,13 @@ export default function AdminPricingManagement() {
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<any[]>([]);
 
-  // Additional Revenue Add-ons rates state
-  const [addonRates, setAddonRates] = useState({
-    vis3dFee: '₹5,000+',
-    siteVisitFee: '₹2,500'
-  });
+  // Additional Revenue Add-ons state (name + amount editable per add-on)
+  const DEFAULT_ADDONS = [
+    { id: 'default-3d', name: '3D Lighting Visualization', description: 'Photorealistic 3D rendering and false-color lux calculation spreads', price_label: '₹5,000+' },
+    { id: 'default-site-visit', name: 'Site Visit & Consultation', description: 'On-site luminaire positioning & electrical team coordination', price_label: '₹2,500' },
+  ];
+  const [addons, setAddons] = useState<{ id: string; name: string; description?: string; price_label: string }[]>(DEFAULT_ADDONS);
+  const [addonForm, setAddonForm] = useState<{ id: string; name: string; price_label: string }[]>(DEFAULT_ADDONS.map(({ id, name, price_label }) => ({ id, name, price_label })));
   const [showAddonModal, setShowAddonModal] = useState(false);
 
   // Modals state
@@ -153,17 +155,22 @@ export default function AdminPricingManagement() {
     try {
       const { data, error } = await supabase
         .from('pricing_addons')
-        .select('name, price, price_label')
+        .select('id, name, price, price_label')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        const vis3d = data.find((a: any) => a.name.includes('3D'));
-        const site = data.find((a: any) => a.name.includes('Site'));
-        setAddonRates({
-          vis3dFee: vis3d?.price_label || `₹${Number(vis3d?.price || 5000).toLocaleString('en-IN')}+`,
-          siteVisitFee: site?.price_label || `₹${Number(site?.price || 2500).toLocaleString('en-IN')}`
+        const loaded = data.map((a: any) => {
+          const known = DEFAULT_ADDONS.find((d) => d.name === a.name);
+          return {
+            id: a.id,
+            name: a.name,
+            description: known?.description,
+            price_label: a.price_label || `₹${Number(a.price || 0).toLocaleString('en-IN')}`,
+          };
         });
+        setAddons(loaded);
+        setAddonForm(loaded.map((a: { id: string; name: string; price_label: string }) => ({ id: a.id, name: a.name, price_label: a.price_label })));
       }
     } catch (err) {
       // Table may not exist yet — keep hardcoded defaults
@@ -278,13 +285,34 @@ export default function AdminPricingManagement() {
   const handleSaveAddons = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await supabase.from('pricing_addons').upsert([
-        { name: '3D Lighting Visualization', price_label: addonRates.vis3dFee, is_active: true },
-        { name: 'Site Visit & Consultation', price_label: addonRates.siteVisitFee, is_active: true }
-      ], { onConflict: 'name' });
-      toastSuccess('Add-on amounts updated successfully!');
+      const isDefaultId = (id: string) => id.startsWith('default-');
+
+      // Rows that already exist in the DB — update in place by id so renames don't create duplicates.
+      const existingRows = addonForm
+        .filter((a) => !isDefaultId(a.id))
+        .map(({ id, name, price_label }) => ({ id, name, price_label, is_active: true }));
+
+      // Rows still on their placeholder id (table row never existed / table not seeded yet) — insert fresh.
+      const newRows = addonForm
+        .filter((a) => isDefaultId(a.id))
+        .map(({ name, price_label }) => ({ name, price_label, is_active: true }));
+
+      if (existingRows.length > 0) {
+        const { error } = await supabase.from('pricing_addons').upsert(existingRows, { onConflict: 'id' });
+        if (error) throw error;
+      }
+      if (newRows.length > 0) {
+        const { error } = await supabase.from('pricing_addons').insert(newRows);
+        if (error) throw error;
+      }
+
+      setAddons((prev) =>
+        addonForm.map((f) => ({ ...f, description: prev.find((a) => a.id === f.id)?.description }))
+      );
+      toastSuccess('Add-on services updated successfully!');
+      await fetchAddons();
     } catch (err: any) {
-      toastSuccess('Add-on amounts updated!');
+      toastError(err.message || 'Failed to update add-on services.');
     } finally {
       setShowAddonModal(false);
     }
@@ -432,32 +460,23 @@ export default function AdminPricingManagement() {
             className="px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 text-xs font-semibold rounded-md border border-neutral-200 transition-all flex items-center space-x-1.5 cursor-pointer w-fit"
           >
             <i className="bx bx-edit text-sm"></i>
-            <span>Edit Add-on Amounts</span>
+            <span>Edit Add-on Services</span>
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="border border-neutral-200 rounded-md p-4 bg-neutral-50/50 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-sm font-semibold text-neutral-900 block">3D Lighting Visualization</span>
-              <span className="text-xs text-neutral-500 block">Photorealistic 3D rendering and false-color lux calculation spreads</span>
+          {addons.map((addon) => (
+            <div key={addon.id} className="border border-neutral-200 rounded-md p-4 bg-neutral-50/50 flex items-center justify-between">
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-sm font-semibold text-neutral-900 block truncate">{addon.name}</span>
+                <span className="text-xs text-neutral-500 block">{addon.description || 'Optional add-on service'}</span>
+              </div>
+              <div className="text-right shrink-0 ml-3">
+                <span className="text-base font-bold text-amber-600 font-sans block">{addon.price_label}</span>
+                <span className="text-[10px] text-neutral-400 font-medium block">Add-on</span>
+              </div>
             </div>
-            <div className="text-right shrink-0">
-              <span className="text-base font-bold text-amber-600 font-sans block">{addonRates.vis3dFee}</span>
-              <span className="text-[10px] text-neutral-400 font-medium block">Starting Add-on</span>
-            </div>
-          </div>
-
-          <div className="border border-neutral-200 rounded-md p-4 bg-neutral-50/50 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-sm font-semibold text-neutral-900 block">Site Visit & Consultation</span>
-              <span className="text-xs text-neutral-500 block">On-site luminaire positioning & electrical team coordination</span>
-            </div>
-            <div className="text-right shrink-0">
-              <span className="text-base font-bold text-amber-600 font-sans block">{addonRates.siteVisitFee}</span>
-              <span className="text-[10px] text-neutral-400 font-medium block">Per Visit</span>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -474,32 +493,39 @@ export default function AdminPricingManagement() {
               </button>
 
               <div>
-                <h3 className="text-base font-semibold text-neutral-900">Edit Additional Service Amounts</h3>
-                <p className="text-xs text-neutral-500 mt-0.5">Update display fees for optional add-on services.</p>
+                <h3 className="text-base font-semibold text-neutral-900">Edit Additional Services</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">Update the name and display fee for each optional add-on service.</p>
               </div>
 
               <form onSubmit={handleSaveAddons} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-1">3D Lighting Visualization Amount</label>
-                  <input
-                    type="text"
-                    required
-                    value={addonRates.vis3dFee}
-                    onChange={(e) => setAddonRates(prev => ({ ...prev, vis3dFee: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-1">Site Visit & Consultation Amount</label>
-                  <input
-                    type="text"
-                    required
-                    value={addonRates.siteVisitFee}
-                    onChange={(e) => setAddonRates(prev => ({ ...prev, siteVisitFee: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
-                  />
-                </div>
+                {addonForm.map((addon, idx) => (
+                  <div key={addon.id} className="grid grid-cols-2 gap-3 pb-4 border-b border-neutral-100 last:border-b-0 last:pb-0">
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-700 mb-1">Service Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={addon.name}
+                        onChange={(e) =>
+                          setAddonForm((prev) => prev.map((a, i) => (i === idx ? { ...a, name: e.target.value } : a)))
+                        }
+                        className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-700 mb-1">Amount</label>
+                      <input
+                        type="text"
+                        required
+                        value={addon.price_label}
+                        onChange={(e) =>
+                          setAddonForm((prev) => prev.map((a, i) => (i === idx ? { ...a, price_label: e.target.value } : a)))
+                        }
+                        className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-amber-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+                ))}
 
                 <div className="pt-2 flex items-center justify-end space-x-2">
                   <button
@@ -513,7 +539,7 @@ export default function AdminPricingManagement() {
                     type="submit"
                     className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-semibold transition-all shadow-xs cursor-pointer"
                   >
-                    Save Amounts
+                    Save Changes
                   </button>
                 </div>
               </form>

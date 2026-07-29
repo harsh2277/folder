@@ -77,11 +77,11 @@ export async function GET() {
     const projectsTrend = createdLastMonth === 0
       ? (createdThisMonth > 0 ? { value: 100, direction: 'up' as const } : null)
       : {
-          value: Math.round(Math.abs((createdThisMonth - createdLastMonth) / createdLastMonth) * 100),
-          direction: (createdThisMonth >= createdLastMonth ? 'up' : 'down') as 'up' | 'down',
-        };
+        value: Math.round(Math.abs((createdThisMonth - createdLastMonth) / createdLastMonth) * 100),
+        direction: (createdThisMonth >= createdLastMonth ? 'up' : 'down') as 'up' | 'down',
+      };
 
-    // Upcoming deadlines: projects with a deadline in the next 7 days, not yet closed.
+    // inline-flex items-center px-1 py-1 bg-neutral-800 rounded-full: projects with a deadline in the next 7 days, not yet closed.
     const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const upcomingDeadlines = projects.filter((p: any) => {
       if (!p.deadline || p.status === 'Closed') return false;

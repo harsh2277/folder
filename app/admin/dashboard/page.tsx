@@ -857,7 +857,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-neutral-450 mt-0.5">Status overview of client accounts and active scopes</p>
               </div>
               <Link
-                href="/admin/projects"
+                href="/admin/projects/all"
                 className="text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors flex items-center space-x-0.5"
               >
                 <span>View Full List</span>
@@ -910,7 +910,7 @@ export default function AdminDashboard() {
               <h3 className="text-sm font-medium text-neutral-900 font-sans">Last Approved Projects</h3>
               <p className="text-xs text-neutral-450 mt-0.5">Recently completed layout approvals</p>
             </div>
-            <Link href="/admin/projects?status=Approved" className="text-xs font-medium text-blue-600 hover:underline">
+            <Link href="/admin/projects/all?status=Approved" className="text-xs font-medium text-blue-600 hover:underline">
               View All
             </Link>
           </div>

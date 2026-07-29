@@ -1,52 +1,58 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import EmptyState from '@/components/ui/EmptyState';
 import CustomSelect from '@/components/ui/CustomSelect';
 import LayoutToggle from '@/components/ui/LayoutToggle';
+import SearchInput from '@/components/ui/SearchInput';
 import { StatusBadge, PaymentBadge, DeadlineBadge, useToast, Pagination, SkeletonProjectsList } from '@/components/ui';
 
 const PAGE_SIZE = 10;
-import SearchInput from '@/components/ui/SearchInput';
 
-export default function AdminProjectsPage() {
-  return (
-    <Suspense fallback={<SkeletonProjectsList />}>
-      <AdminProjectsList />
-    </Suspense>
-  );
-}
-
-function AdminProjectsList() {
+export default function AdminArchitectProjectsList() {
   const supabase = createClient();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const params = useParams();
+  const architectId = params.architectId as string;
 
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [projects, setProjects] = useState<any[]>([]);
-  const [architects, setArchitects] = useState<any[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<string>(searchParams.get('status') || 'All');
-  const [selectedArchitectId, setSelectedArchitectId] = useState<string>(searchParams.get('architect') || 'All');
+  const [architect, setArchitect] = useState<any>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [sortBy, setSortBy] = useState('newest');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [page, setPage] = useState(1);
   const { error: toastError } = useToast();
 
   useEffect(() => {
+    async function fetchArchitect() {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, name, email, mobile_number')
+          .eq('id', architectId)
+          .single();
+        if (error) throw error;
+        setArchitect(data);
+      } catch (err) {
+        console.error('Error fetching architect:', err);
+      }
+    }
+
     async function fetchProjects() {
       try {
         const { data, error } = await supabase
           .from('projects')
-          .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, site_location, created_at, architect_id, profiles!projects_architect_id_fkey(id, name)')
+          .select('id, project_id_serial, project_name, client_name, area_sq_ft, payment_status, status, site_location, created_at, deadline')
+          .eq('architect_id', architectId)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -57,63 +63,14 @@ function AdminProjectsList() {
       }
     }
 
-    async function fetchArchitects() {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .eq('role', 'architect')
-          .order('name', { ascending: true });
-        if (error) throw error;
-        setArchitects(data || []);
-      } catch (err) {
-        console.error('Error fetching architects:', err);
-      }
-    }
-
     async function loadData() {
       setLoading(true);
-      await Promise.all([fetchProjects(), fetchArchitects()]);
+      await Promise.all([fetchArchitect(), fetchProjects()]);
       setLoading(false);
     }
 
-    loadData();
-  }, []);
-
-  const handleDelete = async (id: string) => {
-    setProjectToDelete(id);
-    setShowConfirm(true);
-    return; // exit early, modal will handle deletion
-  };
-
-  const handleExport = (format: 'csv' | 'pdf') => {
-    if (format === 'csv') {
-      const headers = ['Architect', 'Project Name', 'Client Name', 'Location', 'Area (sq ft)', 'Payment Status', 'Workflow Status', 'Created Date'];
-      const rows = filteredProjects.map(proj => [
-        `"${(proj.profiles?.name || 'Unassigned').replace(/"/g, '""')}"`,
-        `"${proj.project_name.replace(/"/g, '""')}"`,
-        `"${proj.client_name.replace(/"/g, '""')}"`,
-        `"${(proj.site_location || 'N/A').replace(/"/g, '""')}"`,
-        proj.area_sq_ft,
-        proj.payment_status,
-        proj.status,
-        new Date(proj.created_at).toLocaleDateString()
-      ]);
-
-      const csvContent = "data:text/csv;charset=utf-8,"
-        + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `projects_export_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else if (format === 'pdf') {
-      window.print();
-    }
-  };
+    if (architectId) loadData();
+  }, [architectId]);
 
   const statuses = [
     'All', 'Submitted', 'Payment Pending', 'Under Review', 'In Design',
@@ -124,11 +81,9 @@ function AdminProjectsList() {
     .filter((p) => {
       const matchesSearch = p.project_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.project_id_serial && p.project_id_serial.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (p.profiles?.name && p.profiles.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        (p.project_id_serial && p.project_id_serial.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesStatus = selectedStatus === 'All' || p.status === selectedStatus;
-      const matchesArchitect = selectedArchitectId === 'All' || p.architect_id === selectedArchitectId;
-      return matchesSearch && matchesStatus && matchesArchitect;
+      return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -143,73 +98,45 @@ function AdminProjectsList() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedStatus, selectedArchitectId, sortBy]);
+  }, [searchQuery, selectedStatus, sortBy]);
 
   if (loading) {
     return <SkeletonProjectsList />;
   }
 
+  const initials = (architect?.name || 'A')
+    .split(' ')
+    .map((n: string) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
   return (
     <div className="space-y-6">
       {/* Title block */}
-      <div className="flex justify-between items-center print:hidden">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h2 className="text-xl font-medium text-neutral-900 font-sans">Projects</h2>
-          <p className="text-sm text-neutral-400 mt-0.5">Every project across every architect, in one list.</p>
-        </div>
-
-        {/* Export Button & Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setShowExportDropdown(!showExportDropdown)}
-            className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-md text-sm font-medium transition-all flex items-center space-x-2 cursor-pointer"
-            aria-label="Export options"
-          >
-            <i className="bx bx-download text-sm"></i>
-            <span>Export</span>
-            <i className="bx bx-chevron-down text-sm"></i>
-          </button>
-
-          {showExportDropdown && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setShowExportDropdown(false)}
-              />
-              <div className="absolute right-0 mt-1.5 w-40 bg-white border border-neutral-200 rounded-md py-1 z-20">
-                <button
-                  onClick={() => {
-                    handleExport('csv');
-                    setShowExportDropdown(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center space-x-2 transition-colors cursor-pointer"
-                >
-                  <i className="bx bx-file text-sm text-neutral-400"></i>
-                  <span>Export as CSV</span>
-                </button>
-                <button
-                  onClick={() => {
-                    handleExport('pdf');
-                    setShowExportDropdown(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center space-x-2 transition-colors cursor-pointer"
-                >
-                  <i className="bx bxs-file-pdf text-sm text-neutral-400"></i>
-                  <span>Export as PDF</span>
-                </button>
-              </div>
-            </>
-          )}
+          <Link href="/admin/projects" className="text-xs font-medium text-neutral-400 hover:text-neutral-700 flex items-center gap-1 mb-2">
+            <i className="bx bx-arrow-back text-sm" /> All Projects
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-100 text-amber-700 flex items-center justify-center font-semibold text-sm flex-shrink-0">
+              {initials}
+            </div>
+            <div>
+              <h2 className="text-xl font-medium text-neutral-900 font-sans">{architect?.name || 'Architect'}</h2>
+              <p className="text-sm text-neutral-400 mt-0.5">{architect?.email} · {projects.length} project{projects.length === 1 ? '' : 's'}</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Content Block */}
       {/* Filter Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Search by ID, name, or representative..."
+          placeholder="Search by ID or project name..."
         />
 
         <div className="flex items-center space-x-2">
@@ -220,15 +147,6 @@ function AdminProjectsList() {
               { value: 'newest', label: 'Sort by: Newest' },
               { value: 'area-desc', label: 'Area: High to Low' },
               { value: 'area-asc', label: 'Area: Low to High' }
-            ]}
-          />
-
-          <CustomSelect
-            value={selectedArchitectId}
-            onChange={setSelectedArchitectId}
-            options={[
-              { value: 'All', label: 'All Architects' },
-              ...architects.map(a => ({ value: a.id, label: a.name }))
             ]}
           />
 
@@ -261,7 +179,7 @@ function AdminProjectsList() {
                           setSelectedStatus(status);
                           setShowFilterDropdown(false);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${selectedStatus === status ? 'bg-amber-50 text-amber-700 font-medium' : 'text-neutral-700 hover:bg-neutral-50' }`}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${selectedStatus === status ? 'bg-amber-50 text-amber-700 font-medium' : 'text-neutral-700 hover:bg-neutral-50'}`}
                       >
                         <span>{status}</span>
                         {selectedStatus === status && <i className="bx bx-check text-sm"></i>}
@@ -281,13 +199,13 @@ function AdminProjectsList() {
       {/* Projects List Render Area */}
       <div className="mt-4">
         {filteredProjects.length === 0 ? (
-          <EmptyState title="No projects found" description="Try adjusting your filters or search query." />
+          <EmptyState title="No projects found" description="This architect has no projects matching your filters yet." />
         ) : viewMode === 'card' ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {paginatedProjects.map((proj) => (
               <div
                 key={proj.id}
-                className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 hover: transition-all duration-200"
+                className="border border-neutral-200 hover:border-neutral-300 rounded-md p-5 bg-white flex flex-col justify-between space-y-4 transition-all duration-200"
               >
                 <div className="space-y-2">
                   <div className="flex justify-between items-start">
@@ -304,24 +222,6 @@ function AdminProjectsList() {
                   {proj.site_location && (
                     <p className="text-sm text-neutral-400 font-medium flex items-center mt-1">
                       <i className="bx bx-map mr-1 text-sm text-neutral-500"></i> {proj.site_location}
-                    </p>
-                  )}
-                  {proj.profiles?.name && proj.architect_id ? (
-                    <p className="text-sm text-neutral-400 font-medium flex items-center mt-1">
-                      <i className="bx bx-buildings mr-1 text-sm text-neutral-500"></i>
-                      <span>Architect:{' '}</span>
-                      <Link
-                        href={`/admin/users/${proj.architect_id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-amber-700 ml-1 hover:text-amber-800 hover:underline"
-                      >
-                        {proj.profiles.name}
-                      </Link>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-neutral-400 font-medium flex items-center mt-1">
-                      <i className="bx bx-buildings mr-1 text-sm text-neutral-500"></i>
-                      <span>Architect: Unassigned</span>
                     </p>
                   )}
                 </div>
@@ -341,7 +241,7 @@ function AdminProjectsList() {
                     </span>
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => handleDelete(proj.id)}
+                        onClick={() => { setProjectToDelete(proj.id); setShowConfirm(true); }}
                         className="inline-flex items-center px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium text-sm border border-rose-200 rounded-md transition-colors cursor-pointer"
                         aria-label={`Delete project ${proj.project_name}`}
                       >
@@ -362,10 +262,9 @@ function AdminProjectsList() {
           </div>
         ) : (
           <div className="overflow-x-auto mt-3 border border-neutral-200 rounded-md bg-white">
-            <table className="w-full text-left border-collapse text-sm min-w-[700px] md:min-w-0 bg-white">
+            <table className="w-full text-left border-collapse text-sm min-w-[640px] md:min-w-0 bg-white">
               <thead>
                 <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-normal text-xs">
-                  <th className="py-3 px-4 first:pl-5 last:pr-5">Architect</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Project Name</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Client Name</th>
                   <th className="py-3 px-4 first:pl-5 last:pr-5">Location</th>
@@ -383,19 +282,6 @@ function AdminProjectsList() {
                     onClick={() => router.push(`/admin/projects/${proj.id}`)}
                     className="hover:bg-neutral-50/80 transition-colors cursor-pointer"
                   >
-                    <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-600 font-medium">
-                      {proj.profiles?.name && proj.architect_id ? (
-                        <Link
-                          href={`/admin/users/${proj.architect_id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-amber-700 font-medium hover:text-amber-800 hover:underline"
-                        >
-                          {proj.profiles.name}
-                        </Link>
-                      ) : (
-                        <span className="text-neutral-450">Unassigned</span>
-                      )}
-                    </td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-900 font-medium">{proj.project_name}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-550">{proj.client_name}</td>
                     <td className="py-3.5 px-4 first:pl-5 last:pr-5 text-neutral-500 font-medium">{proj.site_location || 'N/A'}</td>
@@ -417,7 +303,8 @@ function AdminProjectsList() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(proj.id);
+                            setProjectToDelete(proj.id);
+                            setShowConfirm(true);
                           }}
                           className="inline-flex items-center px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium text-sm border border-rose-200 rounded-md transition-colors cursor-pointer"
                         >

@@ -78,7 +78,9 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         amount: amountInPaise,
         currency: 'INR',
-        receipt: `${projectId}-${Date.now()}`,
+        // Razorpay caps `receipt` at 40 chars — a raw UUID + timestamp overflows that,
+        // so use a short hash of the payment id (unique per payment) plus a compact timestamp.
+        receipt: `${paymentId.replace(/-/g, '').slice(0, 20)}-${Date.now().toString(36)}`,
         notes: { projectId, userId: user.id, paymentId },
       }),
     });

@@ -28,7 +28,6 @@ export async function GET(
 
     // Try fetching project via cookie session first (user JWT satisfies RLS)
     let project: any = null;
-    let remarks: any = null;
     let preferences: any[] = [];
     let files: any[] = [];
     let revisions: any[] = [];
@@ -68,14 +67,6 @@ export async function GET(
       }
     };
 
-    // Remarks
-    const { data: remarksData } = await cookieClient
-      .from('project_remarks')
-      .select('*')
-      .eq('project_id', id)
-      .maybeSingle();
-    remarks = remarksData || null;
-
     // Preferences
     const { data: prefsData } = await cookieClient
       .from('project_lighting_preferences')
@@ -109,7 +100,6 @@ export async function GET(
 
     return Response.json({
       project,
-      remarks,
       preferences,
       files,
       revisions,

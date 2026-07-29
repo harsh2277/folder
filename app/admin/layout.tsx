@@ -211,60 +211,60 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-      <div className="h-screen flex bg-neutral-900 text-neutral-800 overflow-hidden">
-        {/* Skip to content — WCAG 2.4.1 */}
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-amber-500 focus:text-white focus:rounded-md focus:text-sm focus:font-medium focus:shadow-lg"
-        >
-          Skip to content
-        </a>
+    <div className="h-screen flex bg-neutral-900 text-neutral-800 overflow-hidden">
+      {/* Skip to content — WCAG 2.4.1 */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-amber-500 focus:text-white focus:rounded-md focus:text-sm focus:font-medium focus:shadow-lg"
+      >
+        Skip to content
+      </a>
 
-        <CommandPalette projects={allProjects} basePath="/admin/projects" />
+      <CommandPalette projects={allProjects} basePath="/admin/projects" />
 
-        {/* Reusable Sidebar Component */}
-        <Sidebar
-          workspaceTitle="LightMap"
-          workspaceSubtitle="Admin Workspace"
-          workspaceIcon="bx bxs-bulb"
-          navItems={navItems}
+      {/* Reusable Sidebar Component */}
+      <Sidebar
+        workspaceTitle="LightMap"
+        workspaceSubtitle="Admin Workspace"
+        workspaceIcon="bx bxs-bulb"
+        navItems={navItems}
+        isCollapsed={isCollapsed}
+        isMobileOpen={isMobileOpen}
+        setIsMobileOpen={setIsMobileOpen}
+        pathname={pathname}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 bg-white border border-neutral-200 rounded-md my-1.5 mr-1.5 ml-0.5 overflow-hidden">
+        {/* Reusable Topbar Header Component */}
+        <Topbar
+          portalName="Admin"
+          activeTab={activeTab}
+          breadcrumbExtra={breadcrumbExtra}
           isCollapsed={isCollapsed}
           isMobileOpen={isMobileOpen}
+          setIsCollapsed={setIsCollapsed}
           setIsMobileOpen={setIsMobileOpen}
-          pathname={pathname}
+          profile={profile}
+          notifications={notifications}
+          setNotifications={setNotifications}
+          handleSignOut={handleSignOut}
+          notificationsBasePath="/admin/notifications"
+          showQuickSearch={true}
         />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white border border-neutral-200 rounded-md my-1.5 mr-1.5 ml-0.5 overflow-hidden">
-          {/* Reusable Topbar Header Component */}
-          <Topbar
-            portalName="Admin"
-            activeTab={activeTab}
-            breadcrumbExtra={breadcrumbExtra}
-            isCollapsed={isCollapsed}
-            isMobileOpen={isMobileOpen}
-            setIsCollapsed={setIsCollapsed}
-            setIsMobileOpen={setIsMobileOpen}
-            profile={profile}
-            notifications={notifications}
-            setNotifications={setNotifications}
-            handleSignOut={handleSignOut}
-            notificationsBasePath="/admin/notifications"
-            showQuickSearch={true}
-          />
-
-          {/* Page Content — unified wrapper, no pathname conditionals */}
-          <main
-            id="main-content"
-            role="main"
-            tabIndex={-1}
-            className="flex-1 overflow-y-auto p-4 bg-neutral-50/30 focus:outline-none"
-          >
-            <div className="content-container">
-              {children}
-            </div>
-          </main>
-        </div>
+        {/* Page Content — unified wrapper, no pathname conditionals */}
+        <main
+          id="main-content"
+          role="main"
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto p-4 bg-neutral-50/30 focus:outline-none"
+        >
+          <div className="content-container">
+            {children}
+          </div>
+        </main>
       </div>
+    </div>
   );
 }

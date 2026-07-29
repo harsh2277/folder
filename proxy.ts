@@ -39,11 +39,11 @@ export async function proxy(request: NextRequest) {
   // Paths requiring protection
   // Note: /client/* is intentionally excluded — it's an unauthenticated,
   // UUID-link-based client portal (no Supabase account for clients exists).
+  // Note: '/' is the public marketing landing page and is intentionally excluded.
   const isProtectedPath =
     pathname.startsWith('/admin') ||
     pathname.startsWith('/architect') ||
-    pathname.startsWith('/designer') ||
-    pathname === '/';
+    pathname.startsWith('/designer');
 
   // 1. If not authenticated and visiting protected path
   if (!user) {
@@ -65,8 +65,8 @@ export async function proxy(request: NextRequest) {
 
     const role = profile?.role;
 
-    // Redirect to dashboard if visiting /login or root /
-    if (pathname === '/login' || pathname === '/') {
+    // Redirect to dashboard if visiting /login or /signup (root stays public)
+    if (pathname === '/login' || pathname === '/signup') {
       const url = request.nextUrl.clone();
       if (role === 'admin') url.pathname = '/admin/dashboard';
       else if (role === 'architect') url.pathname = '/architect/dashboard';
